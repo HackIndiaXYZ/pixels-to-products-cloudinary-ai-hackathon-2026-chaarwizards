@@ -9,14 +9,24 @@
     "lint": "eslint src",
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "test": "vitest run",
-    "dev": "tsc -p tsconfig.json --watch"
+    "dev": "tsx watch src/start.ts",
+    "start": "node dist/start.js"
   },
   "dependencies": {
+    "@fastify/rate-limit": "^10.2.1",
     "@impact/shared": "workspace:*",
-    "cloudinary": "^2.5.1"
+    "@supabase/supabase-js": "^2.47.10",
+    "bullmq": "^5.34.5",
+    "cloudinary": "^2.5.1",
+    "fastify": "^5.2.0",
+    "ioredis": "^5.4.2",
+    "jsonwebtoken": "^9.0.2",
+    "zod": "^4.6.5"
   },
   "devDependencies": {
+    "@types/jsonwebtoken": "^9.0.7",
     "@types/node": "^20.19.0",
+    "tsx": "^4.19.2",
     "typescript": "^5.7.2",
     "vitest": "^2.1.8"
   }
