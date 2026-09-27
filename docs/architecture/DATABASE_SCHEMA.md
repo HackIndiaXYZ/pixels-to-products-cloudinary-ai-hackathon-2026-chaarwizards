@@ -178,6 +178,10 @@ CREATE TABLE assets (
   
   -- Device capture timestamps (immutable after insert)
   device_capture_timestamp TIMESTAMPTZ NOT NULL,
+  -- Signed as epoch milliseconds (captured_at_ms) in the capture payload, NOT as
+  -- an ISO string: the API re-derives the signed value with
+  -- round(extract(epoch from device_capture_timestamp) * 1000) so it reproduces
+  -- byte-for-byte (see packages/shared/src/signing.ts, AGENTS.md §3.4/§3.8).
   device_commit_hash TEXT NOT NULL,           -- SHA-256 = commitId from app
   device_id TEXT NOT NULL,
   device_public_key TEXT NOT NULL,            -- Ed25519 public key
@@ -185,8 +189,12 @@ CREATE TABLE assets (
   
   -- GPS with accuracy
   gps_point GEOGRAPHY(POINT, 4326),
-  gps_accuracy_meters FLOAT,                  -- Horizontal accuracy (meters)
-  gps_altitude FLOAT,
+  -- Signed as integer E7 coordinates (lat_e7/lon_e7 = round(deg * 1e7)) in the
+  -- capture payload, never as floats. Re-derive with round(ST_Y(gps_point)*1e7)
+  -- / round(ST_X(gps_point)*1e7). Integers avoid PostGIS double drift breaking
+  -- signature verification (packages/shared/src/signing.ts, AGENTS.md §3.8).
+  gps_accuracy_meters FLOAT,                  -- Horizontal accuracy (meters), signed as accuracy_m
+  gps_altitude FLOAT,                         -- signed as altitude_m
   gps_provider TEXT,                          -- 'gps' | 'network' | 'fused' | 'passive'
   gps_timestamp TIMESTAMPTZ,                  -- GPS satellite time
   
@@ -829,7 +837,7 @@ $$ LANGUAGE plpgsql;
 | Column | Type | Purpose |
 |--------|------|---------|
 | `upload_started_at` | `timestamptz` | Client clock immediately before upload begins — isolates dwell |
-| `device_monotonic_ms` | `bigint` | Monotonic counter since app launch, inside the signed payload |
+| `device_monotonic_ms` | `bigint` | Monotonic counter since app launch, inside the signed payload (`device_monotonic_ms`, see `packages/shared/src/signing.ts`). Signed so it cannot be forged post-capture (AGENTS.md §3.7). |
 | `ntp_offset_seconds` | `numeric` | Signed NTP offset at capture; NULL means skew is `unknown` |
 | `signature_tier` | `text` | `device` or `server` — never mislabel a server fallback |
 | `exif_verified_at` | `timestamptz` | When the API confirmed the JCS EXIF hash |

@@ -1,0 +1,101 @@
+{
+  "description": "RFC 8785 (JCS) cross-language conformance fixtures. Both the TypeScript canonicalizer in packages/shared and the Python port in apps/ml-service (Phase 6) MUST reproduce canonical and sha256 for every vector byte-for-byte (AGENTS.md 3.8).",
+  "spec": "RFC 8785",
+  "vectors": [
+    {
+      "name": "empty_object",
+      "input": {},
+      "canonical": "{}",
+      "sha256": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a"
+    },
+    {
+      "name": "empty_array",
+      "input": [],
+      "canonical": "[]",
+      "sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+    },
+    {
+      "name": "key_ordering",
+      "input": {
+        "b": 1,
+        "a": 2,
+        "c": 3
+      },
+      "canonical": "{\"a\":2,\"b\":1,\"c\":3}",
+      "sha256": "e145110e712e3ed0a6b233551b27a90aa39b4c93ed67e111ba2002d16e5ed1fa"
+    },
+    {
+      "name": "nested_key_ordering",
+      "input": {
+        "z": {
+          "b": 1,
+          "a": 2
+        },
+        "a": 3
+      },
+      "canonical": "{\"a\":3,\"z\":{\"a\":2,\"b\":1}}",
+      "sha256": "c2438635795c82ca61e79ff7d3296a32531ab55ea2e02178ecb8a9ec064f538f"
+    },
+    {
+      "name": "numbers",
+      "input": {
+        "ints": [
+          0,
+          1,
+          -1,
+          100
+        ],
+        "floats": [
+          1.5,
+          0.002,
+          1e+30,
+          1e-27,
+          0
+        ]
+      },
+      "canonical": "{\"floats\":[1.5,0.002,1e+30,1e-27,0],\"ints\":[0,1,-1,100]}",
+      "sha256": "c24f6ae06a57a5540da61a29c1dd3de5428f55773ab6aca300f619889d65ae79"
+    },
+    {
+      "name": "literals",
+      "input": {
+        "a": null,
+        "b": true,
+        "c": false
+      },
+      "canonical": "{\"a\":null,\"b\":true,\"c\":false}",
+      "sha256": "17073ac6186d8c60c0c0da712ce30cdb52ed5a9155f616983da39a9785dce715"
+    },
+    {
+      "name": "unicode_and_escapes",
+      "input": {
+        "s": "€$\u000f\nA'B\"\\\"/"
+      },
+      "canonical": "{\"s\":\"€$\\u000f\\nA'B\\\"\\\\\\\"/\"}",
+      "sha256": "3a72a4dbe2cd8353cafa079d62a388fc15a796df45497feb26008ca3efc69796"
+    },
+    {
+      "name": "signing_payload_shape",
+      "input": {
+        "v": 1,
+        "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "exif_hash": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+        "captured_at_ms": 1775899927412,
+        "device_monotonic_ms": 84523,
+        "gps": {
+          "lat_e7": 129716000,
+          "lon_e7": 775946000,
+          "accuracy_m": 4.2,
+          "altitude_m": 920.1,
+          "provider": "fused"
+        },
+        "project_id": "550e8400-e29b-41d4-a716-446655440000",
+        "observation_type": "forestry",
+        "phase": "before",
+        "caption": null
+      },
+      "canonical": "{\"caption\":null,\"captured_at_ms\":1775899927412,\"device_monotonic_ms\":84523,\"exif_hash\":\"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb\",\"gps\":{\"accuracy_m\":4.2,\"altitude_m\":920.1,\"lat_e7\":129716000,\"lon_e7\":775946000,\"provider\":\"fused\"},\"observation_type\":\"forestry\",\"phase\":\"before\",\"project_id\":\"550e8400-e29b-41d4-a716-446655440000\",\"sha256\":\"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\",\"v\":1}",
+      "sha256": "7086387c1910654867570e66157dfe06b7b0b8721d9332edb2eea7f3ce27149f"
+    }
+  ]
+}
