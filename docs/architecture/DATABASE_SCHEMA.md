@@ -231,6 +231,7 @@ CREATE TABLE assets (
   
   -- Server timestamps (immutable after insert)
   server_upload_timestamp TIMESTAMPTZ,        -- Cloudinary server time (created_at)
+  cloudinary_created_at TIMESTAMPTZ,          -- Cloudinary-side created_at, re-read at nightly reconciliation (evidence)
   server_received_at TIMESTAMPTZ DEFAULT now(), -- Our API receipt time
   
   upload_status TEXT DEFAULT 'pending' CHECK (upload_status IN ('pending', 'verified', 'flagged')),
@@ -272,6 +273,51 @@ CREATE POLICY "assets_org_scope" ON assets FOR SELECT
 gps_lat, gps_lon, gps_accuracy, server_upload_timestamp, server_received_at,
 cloudinary_public_id, cloudinary_version) ON assets FROM anon, authenticated;`
 
+### Asset Derivatives (Cloudinary Lineage)
+
+Every resize, crop, re-encode, caption, or generative edit produces a **new**
+Cloudinary asset and a **new** row here — the original asset row is never
+mutated (AGENTS.md §3.1). The row *is* the evidence that a transform happened,
+so the table is append-only: an `UPDATE`/`DELETE` trigger refuses, and a changed
+transform is a new row, not an edit. `org_id` is forced to the parent asset's
+org by a `BEFORE INSERT/UPDATE` trigger (same pattern as
+`report_manifest_entries`), so a derivative can never be filed under another org
+and leaked through RLS. Implemented in migration
+`20260927120000_asset_derivatives.sql`.
+
+```sql
+CREATE TABLE asset_derivatives (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  parent_asset_id UUID NOT NULL REFERENCES assets(id) ON DELETE CASCADE,
+  org_id UUID NOT NULL REFERENCES orgs(id),   -- forced to parent's org by trigger
+  transformation TEXT NOT NULL,               -- exact string sent to Cloudinary (not a template ref)
+  kind TEXT,                                   -- coarse family: thumbnail | diff | report_full | clip | ...
+  public_id TEXT NOT NULL,                     -- Cloudinary public_id of the derived asset
+  is_generative BOOLEAN NOT NULL DEFAULT false,-- true iff a generative transform was used (report copies only)
+  cloudinary_asset_id TEXT,
+  cloudinary_version TEXT,
+  byte_size BIGINT,                            -- known at transform time
+  sha256_hash TEXT,                            -- only knowable by fetching the bytes; NULL is terminal
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  CONSTRAINT asset_derivatives_public_id_key UNIQUE (public_id),
+  CONSTRAINT asset_derivatives_parent_transformation_key UNIQUE (parent_asset_id, transformation)
+);
+
+CREATE INDEX idx_derivatives_parent ON asset_derivatives(parent_asset_id);
+CREATE INDEX idx_derivatives_org    ON asset_derivatives(org_id);
+
+ALTER TABLE asset_derivatives ENABLE ROW LEVEL SECURITY;
+-- SELECT is org-scoped (+ platform_admin). No INSERT/UPDATE/DELETE policy:
+-- derivatives are written by the transformation worker through the service role,
+-- and the append-only trigger refuses UPDATE/DELETE for every role.
+CREATE POLICY "derivatives_org_scope" ON asset_derivatives FOR SELECT
+  USING (
+    org_id = (auth.jwt() ->> 'org_id')::uuid
+    OR (auth.jwt() ->> 'role') = 'platform_admin'
+  );
+REVOKE INSERT, UPDATE, DELETE ON asset_derivatives FROM anon, authenticated;
+```
+
 ### Observations (Structured Field Notes)
 
 ```sql
@@ -311,7 +357,8 @@ CREATE TABLE change_events (
   
   change_type TEXT, -- 'sapling_planting', 'canopy_growth', 'construction_progress', etc.
   change_metrics JSONB NOT NULL, -- {hectares: 2.3, saplings: 49, density: 0.041, ...}
-  detection_method TEXT, -- 'cv_model_forestry_v3', 'manual'
+  detection_method TEXT, -- 'cv_model_forestry', 'manual'
+  model_version TEXT NOT NULL, -- versioned model that produced the metric (AGENTS.md §3.2); NOT NULL so a metric can never lack provenance
   confidence FLOAT,
   
   -- Cloudinary diff visualization
@@ -525,6 +572,66 @@ CREATE POLICY "templates_org_scope" ON report_templates FOR SELECT
 CREATE POLICY "templates_org_write" ON report_templates FOR ALL
   USING      (org_id = (auth.jwt() ->> 'org_id')::uuid)
   WITH CHECK (org_id = (auth.jwt() ->> 'org_id')::uuid);
+```
+
+### Model Registry
+
+The source of every metric-producing model (AGENTS.md §3.2/§3.3). The ML service
+resolves `observation_type.model` → a row here; `status != 'trained'` returns
+`{"status":"unsupported"}` and **never** falls back to another sector. Platform
+reference data, not org-scoped: a read-only `USING (true)` SELECT policy is safe
+(the §3.4 prohibition is on `WITH CHECK (true)` for writes); the registry is
+curated by a `platform_admin` through the service role, so there is no
+INSERT/UPDATE policy. Implemented in migration
+`20260927080000_model_registry_sync_state.sql`, seeded by
+`20260927100000_model_registry_seed.sql` (forestry `trained`; water /
+infrastructure / agriculture `unsupported`).
+
+```sql
+CREATE TABLE model_registry (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  key TEXT NOT NULL UNIQUE,        -- resolve_model(model_key) looks up by this
+  version TEXT NOT NULL,
+  sector TEXT NOT NULL,
+  weights_uri TEXT,                -- private bucket URI; NULL for placeholders/prebuilt
+  status TEXT NOT NULL CHECK (status IN ('trained', 'prebuilt', 'unsupported')),
+  metrics JSONB DEFAULT '{}',      -- eval metrics for the trained weights
+  created_at TIMESTAMPTZ DEFAULT now()
+);
+
+ALTER TABLE model_registry ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "model_registry_read" ON model_registry FOR SELECT
+  TO authenticated USING (true);
+```
+
+### Sync State
+
+Records the nightly one-way Cloudinary→Postgres reconciliation run per org
+(ARCHITECTURE.md §3.2.1): last cursor, last run, outcome, and the orphans /
+missing rows found. Kept minimal in Phase 1; extended when Phase 5 implements the
+job. Read-only to org members; the reconciliation job writes via the service
+role, so there is no write policy. Implemented in migration
+`20260927080000_model_registry_sync_state.sql`.
+
+```sql
+CREATE TABLE sync_state (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  org_id UUID NOT NULL REFERENCES orgs(id) ON DELETE CASCADE,
+  scope TEXT NOT NULL DEFAULT 'cloudinary_reconciliation',
+  cursor TEXT,                     -- opaque continuation cursor for the last run
+  last_run_at TIMESTAMPTZ,
+  last_status TEXT CHECK (last_status IN ('ok', 'partial', 'failed')),
+  details JSONB DEFAULT '{}',      -- orphans found, missing rows, error reasons
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  UNIQUE (org_id, scope)
+);
+
+CREATE INDEX idx_sync_state_org ON sync_state(org_id);
+
+ALTER TABLE sync_state ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "sync_state_org_read" ON sync_state FOR SELECT
+  USING (org_id = (auth.jwt() ->> 'org_id')::uuid);
 ```
 
 ---

@@ -12,40 +12,74 @@ Refuse unless both hold:
 - current branch is `phase/$ARGUMENTS`, **not** `main`
 - `git status --porcelain` is non-empty — there is something to commit
 
-## Never merge, never push
+Never commit on `main`. `main` is the sync target, not a work branch. An
+un-gated commit there is recoverable only with a reset, so `/commit` refuses
+unless the branch is `phase/N`.
 
-`git merge`, `git rebase`, and `git push` are forbidden here. A phase branch is
-handed to the user intact; how it lands on `main` is their call.
+## 0.5 Task completeness — the step that catches incomplete phases
 
-## Never commit on `main`
+Before running any tests, enumerate **every row** of the phase's task table in
+`BUILD_ORDER.md`. For each one, report a verdict:
 
-`main` is the sync target, not a work branch. An un-gated commit there is
-recoverable only with a reset, so `/commit` refuses unless the branch is
-`phase/N`.
+| Verdict | Meaning |
+|---|---|
+| `DONE` | Implemented, and you can name the file that implements it |
+| `PARTIAL` | Some of it exists. Name what is missing. |
+| `MISSING` | No implementation. Name it. |
+| `BLOCKED` | Cannot be checked, and say exactly what is missing (a tool, a credential, a decision) |
 
-Run these in order. Stop at the first failure.
+A task with no file behind it is `MISSING`, whatever the commit message claims.
+Do not infer completion from a passing test — a gate can pass while most of a
+phase is unimplemented, because the gate only tests what it names.
+
+**Any `PARTIAL`, `MISSING`, or `BLOCKED` stops the commit.** Report the table
+verbatim and stop.
 
 ## 1. Gate
 
-Invoke the `gate-runner` subagent for Phase $ARGUMENTS. It must report
-**GATE PASSED**. Any single failing check counts as a failure.
+Invoke the `gate-runner` subagent for Phase $ARGUMENTS.
+
+Report a verdict for **every** gate item, individually:
+
+| Verdict | Meaning |
+|---|---|
+| `PASS` | Ran it. Paste the command and its real output. |
+| `FAIL` | Ran it. Paste the real failure. |
+| `BLOCKED` | **Could not run.** Name the tool, credential, or decision that is missing. |
+
+Then print the totals, e.g. `11 PASS · 0 FAIL · 2 BLOCKED`.
+
+**The rule that matters: any `BLOCKED` item means no commit.**
+
+Do not run a manual or device test yourself and then report it as `PASS` because
+it looked fine. You cannot operate a phone or eyeball a staging deploy. Those
+items are `BLOCKED (needs user review)` — every time, without exception, even if
+you are confident.
+
+Do not write "GATE PASSED" if anything is not `PASS`. Partial is not passed.
+Unrun is not passed. Confident is not passed.
 
 ## 2. Invariant audit
 
 Invoke the `invariant-auditor` subagent over all uncommitted work. Any
-**critical** or **high** severity finding is a failure. Medium and low
-findings are not blocking but must be reported before committing.
+**critical** or **high** severity finding is a failure. Medium and low findings
+are not blocking but must be reported before committing.
 
 ## 3. Secrets re-check
 
 The audit is not a substitute for this. Run the pattern-based secrets gate
-directly and confirm it is clean. If a real secret value is found in a tracked
-or about-to-be-committed file, **abort** and report the file — do not commit,
-and do not attempt to fix it silently.
+directly and confirm it is clean. Match on literal values, not variable names —
+`CLOUDINARY_API_SECRET=` with nothing after it is a placeholder and is fine; the
+same line with a real value after it is a leak.
+
+If a real secret value is found in a tracked or about-to-be-committed file,
+**abort** and report the file. Do not commit, and do not attempt to fix it
+silently.
 
 ## 4. Commit
 
-Only if steps 1–3 all passed:
+Only if 0, 0.5, 1, 2 and 3 all passed with nothing `PARTIAL`, `MISSING`,
+`FAIL`, or `BLOCKED`:
 
 ```bash
 git add -A
@@ -58,9 +92,10 @@ what changed. Good:
 ```
 feat(api): add Cloudinary delivery URLs resolved by asset_id under RLS
 
-Gate: pnpm lint, typecheck, test pass; turbo build green.
+Gate: 14/14 items PASS. pnpm lint, typecheck, test; supabase db reset;
+  cross-org SELECT denied; UPDATE assets.sha256_hash raises.
 Audit: no findings above medium. Clients cannot supply public_id;
-transformation allowlist rejects unknown params with 422.
+  transformation allowlist rejects unknown params with 422.
 ```
 
 Bad:
@@ -75,20 +110,24 @@ comparison, a correct one would have read `Gate: 8/8 turbo tasks across lint,
 typecheck, test; ruff, mypy, pytest green in the ml-service venv. Audit: no
 findings.`
 
-Do not push. Pushing is the user's decision, always.
+## 5. Never merge, never push
 
-## 5. After committing
+`git merge`, `git rebase`, and `git push` are forbidden here. A phase branch is
+handed to the user intact; how it lands on `main` is their call.
+
+## 6. After committing
 
 Report the branch name and the commit SHA. Remind the user that syncing this
 phase into `main` is their decision — the agent does not merge and does not
 push. Nothing further happens automatically.
 
-## 5. If anything failed
+## 7. If anything failed, was partial, or was blocked
 
 Do not commit. Report:
 
-- which check failed
-- the specific evidence
-- the fix, but do not apply it
+- the full verdict table, every row, including the ones that passed
+- which specific item failed, was partial, or was blocked
+- the real evidence — command output, not a description of it
+- the likely fix, but do not apply it
 
 Leave the work uncommitted so it can be corrected and re-gated.

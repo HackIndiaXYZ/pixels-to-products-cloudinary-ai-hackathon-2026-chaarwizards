@@ -13,22 +13,24 @@ Each phase has a **gate** — a concrete, checkable condition. Do not start the 
 and the first thing to update — it exists so a fresh session never re-derives
 where the work stopped.
 
-| Phase | Status | Gate | Notes |
-|---|---|---|---|
-| 0 — Monorepo Scaffold | ✅ done | ✅ passed (local) | pnpm+turbo workspace, 6 packages, TS strict, ESLint flat+Prettier, ruff/mypy/black, dashboard (React19+Vite) renders `CldImage`, CI skeleton. Not yet committed. |
-| 1 — Database & Auth | ⬜ not started | — | |
-| 2 — Device Signing | ⬜ not started | — | Ed25519 may be infeasible on Expo — see stop condition |
-| 3 — Capture & Verification | ⬜ not started | — | Known defect in prior impl: webhook signature check failed open |
-| 4 — CV Detection | ⬜ not started | — | Blocked on model weights |
-| 5 — Before/After Pairing | ⬜ not started | — | |
-| 6 — Video & Models | ⬜ not started | — | Blocked on weights + FFmpeg |
-| 7 — Reports | ⬜ not started | — | |
-| 8 — Generative & Media | ⬜ not started | — | Confirm Cloudinary Free plan allows generative transforms |
-| 9 — Deploy & Harden | ⬜ not started | — | |
+| # | Phase | Status | Gate | Notes |
+|---|---|---|---|---|
+| 0 | Monorepo Scaffold | ✅ done | ✅ passed (local) | pnpm+turbo workspace, 6 packages, TS strict, ESLint flat+Prettier, ruff/mypy/black, dashboard (React19+Vite) renders `CldImage`, CI skeleton. Committed on `main` as `d06913c`. |
+| 1 | Database | 🟨 implemented | ✅ green (local) on `phase/1` | 13 migrations + 5 SQL test files + concurrency check. Invariant audit (AGENTS.md §3) run and its blocking findings fixed: `enable_signup=false` in `config.toml` (§3.10), `BEFORE DELETE` guard on `assets` (§3.1 — DELETE was unprotected), `change_events.model_version NOT NULL` (§3.2 — metric had no enforced provenance); plus `model_registry`/`sync_state` documented in `DATABASE_SCHEMA.md` (§8) and `test_helpers` EXECUTE revoked from client roles. Gate: `supabase db reset` applies all 13 from scratch; `supabase test db` = **72/72** pgTAP across 5 files (RLS + partition RLS, evidence immutability incl. DELETE + `cloudinary_created_at`, audit chain, schema completeness); concurrency green. Working tree only — not committed (owned by `/commit`). |
+| 2 | Shared Package | ⬜ not started | — | |
+| 3 | API: Core | ⬜ not started | — | |
+| 4 | Capture App | ⬜ not started | — | Ed25519 may be infeasible on Expo — see stop condition. 3 device tests deferred to user. |
+| 5 | Cloudinary Pipeline | ⬜ not started | — | Confirm Cloudinary Free plan allows generative transforms. Blocked on user input: budget cap. |
+| 6 | ML Service | ⬜ not started | — | Blocked on model weights + FFmpeg |
+| 7 | Pairing & Change Events | ⬜ not started | — | |
+| 8 | Dashboard Core | ⬜ not started | — | Realtime check deferred to user. |
+| 9 | Reports | ⬜ not started | — | |
+| 10 | Audit & Integrity Surfacing | ⬜ not started | — | 5-minute manual audit deferred to user. |
+| 11 | Hardening & Release | ⬜ not started | — | Gates on the 9 criteria in `docs/architecture/MVP_EXIT_CRITERIA.md`. |
 
-**Last updated:** 2026-09-27 · Phase 0 monorepo scaffold implemented; gate green locally (`pnpm lint && pnpm typecheck && pnpm test` and `turbo build` pass across all 6 packages; dashboard dev server boots and renders `CldImage`; no `CLOUDINARY_API_SECRET` reference in `apps/dashboard`). Working tree only — 0 commits, not yet committed (owned by `/commit`).
-**Blocked on user input:** generative transform budget cap
-**Not yet done:** `001_core_schema.sql` has never been applied to any Supabase project · CI (`.github/workflows/ci.yml`) not yet executed on a real push (verified locally-equivalent)
+**Last updated:** 2026-09-27 · Phase 1 database **implemented** on branch `phase/1`, gate green (local) and invariant-audited. `supabase db reset` applies all 13 migrations from scratch; `supabase test db` = 72/72 pgTAP across 5 files (RLS cross-org isolation + `audit_logs` partition RLS, no permissive `assets` INSERT, UPDATE `WITH CHECK` on `org_id`, evidence immutability incl. DELETE guard and `cloudinary_created_at`, audit chain via stored `hashed_at`, `projects.config` JSON-Schema, and `04_schema_completeness` against the live catalog); concurrency advisory-lock check green. Adversarial §3 audit fixed three blocking items before implemented-status: self-service signup disabled (§3.10), `assets` DELETE protected (§3.1), `change_events.model_version NOT NULL` (§3.2); `model_registry`/`sync_state` now documented (§8); `test_helpers` EXECUTE revoked from client roles. Supabase CLI is a local binary at `~/.local/bin/supabase` (v2.118.0). Working tree only — not committed (owned by `/commit`). Marked implemented, not passed — passing is the user's call after reviewing the branch.
+**Blocked on user input:** generative transform budget cap · Cloudinary Free-plan generative availability
+**Not yet done:** CI (`.github/workflows/ci.yml`) not yet executed on a real push · Phase 1 not yet committed (owned by `/commit`)
 
 ### Carry-over decisions
 
@@ -100,6 +102,7 @@ pip install cloudinary     # apps/ml-service
 - `apps/dashboard` dev server boots with no console error and renders a `CldImage`
 - No file in `apps/dashboard` references `CLOUDINARY_API_SECRET`
 - CI is green on the initial commit
+- **Task completeness.** Every row of this phase's task table above is `DONE`, with the implementing file named. A passing gate does not imply a complete phase, because a gate only tests what it names. Any `PARTIAL`, `MISSING`, or `BLOCKED` row blocks `/commit`.
 
 ---
 
@@ -110,7 +113,7 @@ pip install cloudinary     # apps/ml-service
 
 | Task | Detail |
 |------|--------|
-| Migrations | `supabase/migrations/` — orgs, projects, assets, asset_derivatives, observations, change_events, reports, audit_logs, model_registry, sync_state |
+| Migrations | `supabase/migrations/` — the 10 tables in `docs/architecture/DATABASE_SCHEMA.md`: `orgs`, `invite_tokens`, `projects`, `assets`, `asset_derivatives`, `observations`, `change_events`, `evidence_packages`, `report_manifest_entries`, `report_templates`; plus `audit_logs`, `model_registry`, `sync_state`. Gate item 10 asserts each one exists in `information_schema` — the task list and the gate must not drift. |
 | PostGIS | extension, `gps_point geography(Point,4326)`, GIST index |
 | Asset integrity columns | `sha256_hash`, `exif_hash`, `capture_signature`, `device_capture_timestamp`, `device_monotonic_ms`, `device_public_key`, `upload_started_at`, `server_received_at`, `cloudinary_created_at`, `verification`, `signature_tier` |
 | Derivative lineage | `asset_derivatives` with `parent_asset_id`, `transformation`, `public_id`, `is_generative` |
@@ -136,7 +139,12 @@ pip install cloudinary     # apps/ml-service
 - A test proves: the chain verifies using the stored `hashed_at`, not `clock_timestamp()`
 - A test proves: `anon` cannot `INSERT` into `assets` (no permissive insert policy)
 - A test proves: an `org_admin` cannot `UPDATE` another org's row (policy needs `WITH CHECK`)
-- `projects.config` rejects an observation type missing `model` or `gps_radius`
+  - `projects.config` rejects an observation type missing `model` or `gps_radius`
+  - **Schema completeness.** A test asserts every table and column named in this
+  - `asset_derivatives` exists with `parent_asset_id`, `transformation`,
+  - The Cloudinary signal columns exist on `assets`: `cloudinary_created_at`,
+  - `orgs` defaults are `quota_bytes = 53687091200` (50 GB) and
+- **Task completeness.** Every row of this phase's task table above is `DONE`, with the implementing file named. A passing gate does not imply a complete phase, because a gate only tests what it names. Any `PARTIAL`, `MISSING`, or `BLOCKED` row blocks `/commit`.
 
 ---
 
@@ -156,8 +164,12 @@ pip install cloudinary     # apps/ml-service
 | Envelope | `{ data, error }` response shape + typed `ApiError` codes |
 
 **Gate**
-- `pnpm test` in `packages/shared` passes, including the RFC 8785 vectors
-- The canonicalizer is byte-identical to the Python implementation in Phase 6 (shared fixture test)
+  - `pnpm test` in `packages/shared` passes, including the RFC 8785 vectors
+  - The canonicalizer is byte-identical to the Python implementation in Phase 6 (shared fixture test)
+  - **Failure path — invalid schema rejected.** A Zod schema rejects a malformed payload: wrong type, missing required field, and an unknown key that must be stripped. Assert the parse *throws*; a schema that silently accepts bad input is a `FAIL`, not a `PASS`. `AGENTS.md` §6 requires the failure path to be tested, not just the happy path.
+  - **Failure path — tampered signing payload rejected.** A payload mutated after signing fails verification, and a payload signed with the wrong key fails verification. Assert both return a verification error rather than a partial accept.
+  - **Type escape audit.** No `any` and no non-null assertion in `packages/shared` outside the one documented third-party boundary. `AGENTS.md` §4 requires `strict` + `noUncheckedIndexedAccess`; an escape used to silence a real type error is a `FAIL`.
+- **Task completeness.** Every row of this phase's task table above is `DONE`, with the implementing file named. A passing gate does not imply a complete phase, because a gate only tests what it names. Any `PARTIAL`, `MISSING`, or `BLOCKED` row blocks `/commit`.
 
 ---
 
@@ -196,6 +208,7 @@ pip install cloudinary     # apps/ml-service
 - Integration test: no internal JWT → ML call rejected
 - Test: `limit=500` is clamped to 100, not honoured
 - Test: `POST /v1/orgs` as a non-`platform_admin` is 403; there is no public signup route
+- **Task completeness.** Every row of this phase's task table above is `DONE`, with the implementing file named. A passing gate does not imply a complete phase, because a gate only tests what it names. Any `PARTIAL`, `MISSING`, or `BLOCKED` row blocks `/commit`.
 
 ---
 
@@ -218,10 +231,21 @@ pip install cloudinary     # apps/ml-service
 | Video capture | 30s cap, auto thumbnail, client-side keyframe hinting |
 
 **Gate**
+- `exif_hash` computed on device equals the server's JCS hash (shared fixture)
+- **Failure path — rejection is persisted, not dropped.** An item the server rejects is stored with its reason and is not silently retried forever. A test asserts a `rejected` item is never re-attempted, because an infinite retry is a silent failure with a network bill attached.
+- **Failure path — partial upload is not marked done.** A sync attempt interrupted mid-upload leaves the item in a resumable state, never `confirmed`. `upload_started_at` is written *before* the attempt, so `sync_delay_seconds` stays honest (§3.7).
+- `sha256` of a known fixture file matches `sha256sum`. A 200 MB file is hashed without loading it whole into JS memory — assert peak memory stays bounded, since "streamed" in the task table is a claim that must be tested.
+- **Failure path — EXIF allowlist is enforced.** Only the allowlisted keys survive into the hash. An injected `Software` or `DateTimeOriginal` key does not change `exif_hash`, proving a stripped-EXIF file cannot be re-identified by the thing it was stripped of.
+- **Failure path — signature over altered payload is rejected.** A payload mutated after signing fails verification, and `signature_tier` reads `server` — never `device` — when the Keystore path is unavailable. A test asserting `device` on the fallback is a `FAIL`, per the stop condition in §8.
+- Video capture stops at 30s, emits a thumbnail, and keyframe hints honour the configured interval. A test asserts the 31st second is not recorded.
+- The project picker returns sub-projects with their inherited `observation_type` and `phase`, proven by a fixture with a two-level hierarchy.
+- **Task completeness.** Every row of this phase's task table above is `DONE`, with the implementing file named. A passing gate does not imply a complete phase, because a gate only tests what it names. Any `PARTIAL`, `MISSING`, or `BLOCKED` row blocks `/commit`.
+
+**Deferred to user review** — these need a human with a device, a staging environment, or a clock. An agent reports each as `BLOCKED (needs user review)`, which blocks `/commit` until the user runs it and reports the result.
+
 - Device test: airplane mode → capture 3 photos → reconnect → all 3 reach the API verified
 - Device test: killing and relaunching the app preserves the queue
 - Device test: editing the caption after signing invalidates verification server-side
-- `exif_hash` computed on device equals the server's JCS hash (shared fixture)
 
 ---
 
@@ -248,7 +272,12 @@ pip install cloudinary     # apps/ml-service
 - Test: a request for a generative transform returns 423 and the client retries with backoff, or the asset was pre-generated eagerly
 - Test: derivative rows link to their parent and the audit chain is intact
 - Test: a gen-AI call is rejected when `parent` is not marked as a report derivative
-- Test: reconciliation finds a deliberately orphaned Cloudinary asset
+  - Test: reconciliation finds a deliberately orphaned Cloudinary asset
+  - **No hand-rolled signing (§3.11).** `git grep` finds no HMAC/`createHash`/`crypto.subtle` used to build a Cloudinary signature. URL construction goes through `@cloudinary/url-gen`; server signing goes through the Node SDK v2 helpers. Assert a signature is produced by the SDK, not by string concatenation plus a manual digest.
+  - **No client-supplied `public_id` (§3.11).** A request carrying `public_id` in the body is rejected `422`. The client asks by `asset_id`; the API resolves it under RLS. A passing test must show a forged `public_id` cannot redirect delivery to another org's asset.
+  - **No Cloudinary-as-database reads (§3.9).** `git grep` finds no call to the Search API, `resources_by_*`, or `api.list()` in a product read path. The only permitted Admin API uses are the nightly reconciliation job and signing delivery URLs for assets already selected via Postgres.
+  - **URL signing grants no expiry (§3.11).** Assert the delivery URL's `v{...}` segment is treated as a cache-buster only; real expiry is asserted against the `auth_token` on `type: authenticated` originals. A test that assumes `v{...}` expires is a `FAIL`.
+- **Task completeness.** Every row of this phase's task table above is `DONE`, with the implementing file named. A passing gate does not imply a complete phase, because a gate only tests what it names. Any `PARTIAL`, `MISSING`, or `BLOCKED` row blocks `/commit`.
 
 ---
 
@@ -279,8 +308,12 @@ pip install cloudinary     # apps/ml-service
 - Test: a request with no internal JWT is rejected 401
 - Test: 10 concurrent `/detect-change` calls load the weights **once** (assert a single model instantiation)
 - Test: a 30s video fixture produces per-keyframe metrics and an aggregate
-- Cross-language JCS fixture matches the TypeScript implementation
+  - Cross-language JCS fixture matches the TypeScript implementation
+  - **Metrics come from a model, never from an LLM (§3.2).** Every number in a `change_events` row and in a generated report resolves to a `model_registry` version. `git grep` finds no LLM call in the path that produces a metric, and no prompt whose output is parsed as a number.
+  - **Every metric records `model_version` (§3.2).** A test inserts a change event with `model_version = NULL` and asserts it is rejected at the database level, not merely omitted by the writer. `AGENTS.md` §3.2 makes this mandatory on every row.
+  - **An LLM may summarise but never adjust (§3.2).** Report prose is generated only from already-computed metrics. A test asserts the report's metric values equal the stored `change_events` values byte-for-byte, so a reworded or "rounded" number fails the gate.
 - `ruff`, `mypy --strict`, `pytest` all clean
+- **Task completeness.** Every row of this phase's task table above is `DONE`, with the implementing file named. A passing gate does not imply a complete phase, because a gate only tests what it names. Any `PARTIAL`, `MISSING`, or `BLOCKED` row blocks `/commit`.
 
 ---
 
@@ -302,6 +335,13 @@ pip install cloudinary     # apps/ml-service
 - Test: two sectors in one project never pair with each other
 - Test: assets beyond `gps_radius` are not clustered
 - Test: an ML failure produces a `failed` change_event, not a missing row
+- **Failure path — an off-schema metric is rejected.** A metric that is not in the sector's registered schema is refused at write time, and the rejection names the offending key. Silently storing it is how an untraceable number reaches a report (§3.2).
+- **Pairing is idempotent.** Re-running the job over an unchanged window creates no duplicate pairs. A retry that doubles every pair is a data-integrity bug that reads as a successful run.
+- **Failure path — a relink or split outside the caller's org is rejected.** The manual-override endpoint resolves pair IDs under RLS, so a crafted ID from another org returns `404`, not a silent success. A manual endpoint that skips the ownership check is a privilege-escalation path.
+- **Task completeness.** Every row of this phase's task table above is `DONE`, with the implementing file named. A passing gate does not imply a complete phase, because a gate only tests what it names. Any `PARTIAL`, `MISSING`, or `BLOCKED` row blocks `/commit`.
+
+**Deferred to user review** — these need a human with a device, a staging environment, or a clock. An agent reports each as `BLOCKED (needs user review)`, which blocks `/commit` until the user runs it and reports the result.
+
 - Test: manual relink appends to the audit chain
 
 ---
@@ -325,6 +365,16 @@ pip install cloudinary     # apps/ml-service
 **Gate**
 - E2E (Playwright): login → pick project → search by tag → open asset → see integrity `pass`
 - E2E: a quarantined asset is visible in an admin queue and absent from report selection
+- **Every facet is tested individually.** `q`, `bbox`, date range, `tags`, `gps_accuracy_max`, asset type, and `phase` each get their own case. A single happy-path search proves nothing when seven filters can be silently ignored.
+- **Failure path — no leaking rows across orgs.** With an org A session, no query, facet, or Realtime event returns an org B asset. This is asserted at the API boundary, because RLS is the real control and the UI is not.
+- **Failure path — every async view has all three states.** Loading, empty, and error each render explicitly for search results, asset detail, and the admin queue. A component that renders nothing on error is a `FAIL` — silent blank screens are how a broken filter ships.
+- Asset detail renders the derivative lineage tree: a parent with derivatives shows the `transformation` string per row, so a user can see which bytes are original and which are derived (§3.1).
+- Change review displays the `model_version` beside every metric. A metric shown without its version is a `FAIL`, because it cannot be traced to a registry row (§3.2).
+- **Failure path — Realtime invalidation is mapped, not guessed.** A unit test proves a `ready` asset event invalidates exactly the right query keys. An unmapped event silently serves stale data that looks correct.
+- **Task completeness.** Every row of this phase's task table above is `DONE`, with the implementing file named. A passing gate does not imply a complete phase, because a gate only tests what it names. Any `PARTIAL`, `MISSING`, or `BLOCKED` row blocks `/commit`.
+
+**Deferred to user review** — these need a human with a device, a staging environment, or a clock. An agent reports each as `BLOCKED (needs user review)`, which blocks `/commit` until the user runs it and reports the result.
+
 - Realtime: a new `ready` asset appears without a manual refresh
 
 ---
@@ -355,6 +405,7 @@ pip install cloudinary     # apps/ml-service
 - Test: regenerating from identical inputs produces a byte-identical file
 - Test: each manifest row's `sha256_hash` matches the bytes actually embedded in the artifact
 - Test: a gen-AI derivative is never created on an original `public_id`
+- **Task completeness.** Every row of this phase's task table above is `DONE`, with the implementing file named. A passing gate does not imply a complete phase, because a gate only tests what it names. Any `PARTIAL`, `MISSING`, or `BLOCKED` row blocks `/commit`.
 
 ---
 
@@ -371,8 +422,17 @@ pip install cloudinary     # apps/ml-service
 | Report verification | Public-safe verification receipt for a report ID |
 
 **Gate**
-- The 5-minute manual audit passes end to end on a generated report
 - `unknown` clock skew is displayed as unknown, not as a pass
+- **Failure path — a tampered row breaks verification.** Muting one `audit_logs.details` or `row_hash` value makes `verifyChain` return a failure naming that row. A verifier that only checks the chain *links* and not the *content* would pass this wrongly, so the test must tamper a value, not remove a row.
+- **Failure path — a missing row is detected, not skipped.** Deleting an intermediate audit row makes verification fail with a gap. A verifier that tolerates gaps is worse than none, because it launders a deleted audit record.
+- **Failure path — `unknown` never renders as `pass`.** When the signed NTP offset is unavailable, the skew check is `unknown`, the report is not blocked, and the UI shows `unknown`. Assert the absence of the word `pass` in the rendered output, not merely the presence of `unknown`.
+- The verification receipt is public-safe: given a report ID it returns only hashes and timestamps, and it leaks no `org_id`, user identity, GPS coordinate, or caption. Assert each of those is absent from the response body.
+- An exported verification file re-verifies against Postgres on a second run and produces the same result, so the export is evidence and not decoration.
+- **Task completeness.** Every row of this phase's task table above is `DONE`, with the implementing file named. A passing gate does not imply a complete phase, because a gate only tests what it names. Any `PARTIAL`, `MISSING`, or `BLOCKED` row blocks `/commit`.
+
+**Deferred to user review** — these need a human with a device, a staging environment, or a clock. An agent reports each as `BLOCKED (needs user review)`, which blocks `/commit` until the user runs it and reports the result.
+
+- The 5-minute manual audit passes end to end on a generated report
 
 ---
 
@@ -392,8 +452,18 @@ pip install cloudinary     # apps/ml-service
 | MVP exit criteria | Walk `PRD.md` §12 line by line and check every box |
 
 **Gate**
-- All 9 MVP exit criteria pass on staging
-- `git grep` finds no secret in any client bundle or tracked file
+  - `git grep` finds no secret in any client bundle or tracked file
+- **The migration gate actually fails.** A CI check asserts every table and column named in `DATABASE_SCHEMA.md` exists in `information_schema` after `supabase db reset`. Add a test that the check *catches* a deliberately unreferenced missing table — a gate that has never been seen to fail is not a gate. This is the §7.1 loophole, closed in CI rather than in prose.
+- **Failure path — rate limits are enforced per org.** A test drives the per-org upload limit and asserts `429` with a `Retry-After`, then asserts a *second* org is unaffected. A limit applied globally is a denial-of-service on the other tenants.
+- **Failure path — logs carry no secret or PII.** Structured log output for an upload request is asserted to contain no `CLOUDINARY_API_SECRET`, no service-role token, and no GPS coordinate. Verbose production errors are a frequent secret leak; the check is on emitted output, not on the log call site.
+- Coverage thresholds are enforced in CI, not merely reported: API 80%, ML 70%, with integration tests on the critical paths and E2E on the 9 exit criteria. A threshold that only prints a number and never fails the build is not a gate.
+- Each of the 4 services builds and deploys from a clean checkout of `main` with no shared build step, so one service cannot mask another's failure.
+- Docs are asserted to match reality: `docs/architecture/api-contracts.md` and `DATABASE_SCHEMA.md` name only tables and endpoints that exist, checked by a script rather than by reading.
+- **Task completeness.** Every row of this phase's task table above is `DONE`, with the implementing file named. A passing gate does not imply a complete phase, because a gate only tests what it names. Any `PARTIAL`, `MISSING`, or `BLOCKED` row blocks `/commit`.
+
+**Deferred to user review** — these need a human with a device, a staging environment, or a clock. An agent reports each as `BLOCKED (needs user review)`, which blocks `/commit` until the user runs it and reports the result.
+
+  - All **9** criteria in `docs/architecture/MVP_EXIT_CRITERIA.md` are individually `PASS` — eight is a failure, not a near-miss. Cite the row number for each. That file is the gate-facing list; it supersedes the prose list in `README.md`.
 - Full CI green; staging deploys succeed for all 4 services
 
 ---
