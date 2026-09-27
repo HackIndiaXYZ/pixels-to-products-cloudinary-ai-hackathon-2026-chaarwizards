@@ -1,0 +1,3 @@
+# Runtime dependencies for the ML service land in Phase 6
+# (fastapi, uvicorn, torch, ultralytics, opencv-python-headless, cloudinary,
+#  pydantic, python-jose, ...). Pinned there against the trained-weights work.

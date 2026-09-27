@@ -1,0 +1,58 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  workspace:
+    name: Lint · Typecheck · Test · Build (all 6 packages)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Read Node version
+        id: nvm
+        run: echo "version=$(cat .nvmrc)" >> "$GITHUB_OUTPUT"
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10.11.0
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ steps.nvm.outputs.version }}
+          cache: pnpm
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install JS workspace
+        run: pnpm install --frozen-lockfile
+
+      - name: Provision ml-service venv
+        working-directory: apps/ml-service
+        run: |
+          python -m venv .venv
+          ./.venv/bin/python -m pip install --upgrade pip
+          ./.venv/bin/python -m pip install -r requirements-dev.txt
+
+      - name: Lint (turbo — eslint + ruff)
+        run: pnpm lint
+
+      - name: Typecheck (turbo — tsc + mypy)
+        run: pnpm typecheck
+
+      - name: Test (turbo — vitest + pytest)
+        run: pnpm test
+
+      - name: Build (turbo — tsc/vite + compileall)
+        run: pnpm build
+
+      - name: No secret literal in dashboard bundle
+        run: |
+          test ! -d apps/dashboard/dist || \
+            ! grep -rIl "CLOUDINARY_API_SECRET" apps/dashboard/dist

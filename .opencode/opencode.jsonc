@@ -1,0 +1,78 @@
+{
+  "$schema": "https://opencode.ai/config.json",
+
+  // ─────────────────────────────────────────────────────────────
+  // TOKEN BUDGET
+  // ─────────────────────────────────────────────────────────────
+  // Verified against: opencode models
+  //
+  // Paid tier — two independent Opus sources, same model:
+  //   justwoker/claude-opus-4-8      $70 budget   → ACTIVE, used first
+  //   agentrouter/claude-opus-4-8    $180 budget  → held in reserve
+  //
+  // justwoker is the default so the cheaper pool is spent first and
+  // agentrouter stays intact for the phases that genuinely need the
+  // longer budget (Phase 6 ML training, Phase 8 report generation).
+  // Same model either way, so switching costs nothing but balance.
+  //
+  // To move spend between them, change the "model" value below and
+  // restart opencode (config is not hot-reloaded). A mid-session switch
+  // via the model picker also works.
+  //
+  // Free tier (opencode zen):
+  //   opencode/nemotron-3-ultra-free    550B — better at summarising
+  //   opencode/big-pickle               current session model
+  //   opencode/nemotron-3.5-lightning-free
+  //
+  // small_model drives subagent file reading and summarising, which
+  // is where token volume actually explodes. Cheap here = Opus budget
+  // survives for the part that needs judgment.
+
+  "small_model": "opencode/nemotron-3-ultra-free",
+
+  // Default session model. Currently justwoker (the $70 pool). To move
+  // spend to the larger agentrouter pool ($180), change this one value
+  // and restart — config is not hot-reloaded.
+  "model": "justwoker/claude-opus-4-8",
+
+  // NOTE: `instructions` is deliberately NOT set.
+  // Listing the spec docs would load ~6,200 lines into every session
+  // and defeat the subagent strategy. The `spec-reader` subagent
+  // pulls only the section it needs. AGENTS.md is loaded already.
+
+  "compaction": {
+    "auto": true,
+    "tail_turns": 15
+  },
+
+  "permission": {
+    "read": "allow",
+    "edit": "allow",
+    "glob": "allow",
+    "grep": "allow",
+    "task": "allow",
+    "bash": {
+      "*": "ask",
+      "git status": "allow",
+      "git diff*": "allow",
+      "git log*": "allow",
+      "git add*": "allow",
+      "git commit*": "allow",
+      "pnpm lint": "allow",
+      "pnpm typecheck": "allow",
+      "pnpm test": "allow",
+      "turbo*": "allow",
+      "ruff*": "allow",
+      "mypy*": "allow",
+      "pytest*": "allow"
+    },
+    // Real credentials live outside the repo. No agent should be
+    // able to read them, and none should be able to write there.
+    "external_directory": {
+      "~/.config/impact-platform/**": "deny",
+      "~/.config/impact-platform": "deny",
+      "/home/kartik/.config/impact-platform/**": "deny",
+      "*": "allow"
+    }
+  }
+}
