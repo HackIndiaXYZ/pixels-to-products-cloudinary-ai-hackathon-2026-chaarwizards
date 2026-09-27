@@ -173,9 +173,12 @@ A task is done only when all of these hold:
 - [ ] New behaviour has a test, including the failure path
 - [ ] Any new Cloudinary transformation is recorded in `asset_derivatives` with `is_generative` set correctly
 - [ ] Any new metric records its `model_version`
+- [ ] No LLM produces, adjusts, or infers a metric — only prose over already-computed numbers (§3.2)
 - [ ] Docs updated to match reality: `docs/architecture/api-contracts.md`, `docs/architecture/DATABASE_SCHEMA.md`
 - [ ] `git grep` for secrets returns nothing
 - [ ] No secret, key, or credential in any client bundle
+- [ ] Every table and column named in the task table exists in `information_schema` — a migration applying cleanly is not proof
+- [ ] Gate reported item by item; every `BLOCKED` item named and blocking, not rounded down to a pass
 
 ---
 
@@ -205,6 +208,41 @@ Then, per phase:
 3. Run the phase's gate. Do not proceed on a partial pass.
 4. Mark the phase `implemented` in `BUILD_ORDER.md` — not passed. Passing is the user's call once they have reviewed the branch and the gate output.
 5. If a stop condition is hit, stop and ask — do not improvise a workaround.
+
+### 7.1 How to report a gate
+
+A gate is reported **item by item**, never as a bare "gate passed".
+
+| Verdict | Meaning |
+|---|---|
+| `PASS` | You ran it. Paste the command and its real output. |
+| `FAIL` | You ran it. Paste the real failure. |
+| `BLOCKED` | You could not run it. Name the missing tool, credential, device, environment, or decision. |
+
+Then print the totals, e.g. `11 PASS · 0 FAIL · 2 BLOCKED`.
+
+**Any `BLOCKED` item blocks `/commit`.** Unrun is not passed, and confident is
+not passed. There is no such thing as a partial pass.
+
+Three consequences that are easy to get wrong:
+
+- **A passing gate does not mean a complete phase.** A gate only tests what it
+  names. Every phase gate therefore carries a *Task completeness* item: list
+  every row of that phase's task table as `DONE` / `PARTIAL` / `MISSING` /
+  `BLOCKED` and name the file behind each `DONE`. `PARTIAL`, `MISSING`, or
+  `BLOCKED` blocks the commit.
+- **Manual checks are never self-certified.** Device tests, staging deploys,
+  realtime behaviour, timed audits, and anything needing a human with a phone
+  live in the phase's *Deferred to user review* block. An agent reports them
+  `BLOCKED (needs user review)`, every time, without exception.
+- **`supabase db reset` does not prove the schema is complete.** It only fails
+  when something *references* a missing object, so an unreferenced table or
+  column disappears silently. Schema phases assert against `information_schema`.
+
+Phase 11 gates on the nine criteria in
+`docs/architecture/MVP_EXIT_CRITERIA.md`, which is the gate-facing list. Eight
+of nine is a failure, not a near-miss. Where it disagrees with the prose list in
+`README.md`, that file wins, and the disagreement is a bug in one of them.
 
 ---
 

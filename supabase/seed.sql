@@ -1,0 +1,3 @@
+-- Local seed. Reference data (model_registry) ships in a migration, and test
+-- fixtures are built per-test via the test_helpers.* functions, so there is
+-- nothing to seed here. Kept so `supabase db reset` finds the configured file.
