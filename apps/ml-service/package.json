@@ -1,0 +1,12 @@
+{
+  "name": "@impact/ml-service",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Python FastAPI ML service — wrapped as a turbo package so the workspace gate covers all 6 packages. Real toolchain is ruff/mypy/pytest in .venv.",
+  "scripts": {
+    "build": "./.venv/bin/python -m compileall -q src",
+    "lint": "./.venv/bin/ruff check .",
+    "typecheck": "./.venv/bin/mypy src",
+    "test": "./.venv/bin/pytest -q"
+  }
+}

@@ -1,0 +1,5 @@
+# Dev toolchain for the ML service (pinned). Runtime deps land in Phase 6.
+ruff==0.16.9
+mypy==1.13.0
+pytest==8.3.4
+black==24.10.0

@@ -1,0 +1,563 @@
+# API Contracts (OpenAPI 3.0)
+
+---
+
+## Overview
+
+All APIs use JSON request/response bodies. Authentication via Supabase JWT (Bearer token). Org-scoped access enforced by RLS.
+
+**Base URLs:**
+- Node API: `https://api.impact-platform.example.com/v1`
+- ML Service: `https://ml.impact-platform.example.com/v1`
+- Dashboard: `https://app.impact-platform.example.com`
+
+---
+
+## 1. Capture App → Cloudinary (Direct Upload)
+
+### Upload Image/Video
+```
+POST https://api.cloudinary.com/v1_1/{cloud_name}/image/upload
+Content-Type: multipart/form-data
+
+FormData Fields:
+- file: binary (required)
+- upload_preset: "verified_capture" (required)
+- public_id: "{org_id}/{project_id}/{sha256}" (required)
+- context: JSON string (required)
+- metadata: JSON string (required)
+
+context JSON:
+{
+  "capture_signature": "base64_ed25519_signature",
+  "device_id": "device-uuid",
+  "device_public_key": "base64_ed25519_public_key",
+  "capture_timestamp": "2024-01-15T09:30:00.000Z",
+  "capture_commit_hash": "sha256_hex",
+  "gps_lat": 19.1234,
+  "gps_lon": 72.8765,
+  "gps_accuracy": 3.2,
+  "gps_altitude": 10.5,
+  "gps_provider": "fused",
+  "gps_timestamp": "2024-01-15T09:30:00.000Z",
+  "project_id": "project-uuid",
+  "org_id": "org-uuid",
+  "observation_type": "planting",
+  "phase": "before",
+  "app_version": "1.0.0",
+  "caption": "Planted 50 saplings",
+  "caption_signature": "base64_ed25519_signature",
+  "caption_language": "en",
+  "caption_created_at": "2024-01-15T09:30:00.000Z",
+  "exif_hash": "sha256_hex"
+}
+
+metadata JSON:
+{
+  "sha256": "sha256_hex",
+  "exif": {
+    "Make": "Apple",
+    "Model": "iPhone 15 Pro",
+    "Orientation": 1,
+    "DateTimeOriginal": "2024:01:15 09:30:00",
+    ...
+  }
+}
+
+Response (200):
+{
+  "public_id": "org-uuid/project-uuid/sha256_hex",
+  "asset_id": "cloudinary-asset-id",
+  "created_at": "2024-01-15T09:30:05.123Z",
+  "secure_url": "https://res.cloudinary.com/...",
+  ...
+}
+```
+
+---
+
+## 2. Cloudinary Webhook → Node API
+
+### Upload Notification
+```
+POST /webhooks/cloudinary
+Content-Type: application/json
+X-Cloudinary-Signature: sha256=... (for verification)
+
+Body:
+{
+  "event": "upload",
+  "info": {
+    "public_id": "org-uuid/project-uuid/sha256_hex",
+    "asset_id": "cloudinary-asset-id",
+    "resource_type": "image",
+    "context": { ... },  // Same as upload context
+    "metadata": { "sha256": "...", "exif": {...} },
+    "created_at": "2024-01-15T09:30:05.123Z",
+    "bytes": 2048576,
+    "format": "jpg",
+    "width": 4032,
+    "height": 3024
+  }
+}
+
+Response: 200 OK (async processing)
+```
+
+---
+
+## 3. Node API → Python ML Service
+
+**Auth: internal JWT minted by the API.** The API signs a short-TTL token carrying `org_id`,
+`job_id` and `sub`; the ML service verifies it and never accepts a bare shared secret. This
+gives a per-call audit trail and lets the ML service reject cross-org work.
+
+```
+POST /v1/detect-change
+Content-Type: application/json
+Authorization: Bearer <internal-jwt>   # HS256, 120s TTL, claims: sub, org_id, job_id
+
+Request:
+{
+  "before_url": "https://res.cloudinary.com/.../before.jpg",
+  "after_url": "https://res.cloudinary.com/.../after.jpg",
+  "sector": "forestry",
+  "project_id": "project-uuid",
+  "gps_before": {"lat": 19.1234, "lon": 72.8765},
+  "gps_after": {"lat": 19.1235, "lon": 72.8766},
+  "accuracy_before": 3.2,
+  "accuracy_after": 2.8
+}
+
+Response (200):
+{
+  "change_type": "sapling_planting",
+  "change_metrics": {
+    "saplings_planted": 49,
+    "area_covered_sqm": 1200.5,
+    "planting_density_per_sqm": 0.0408,
+    "before_count": 2,
+    "after_count": 51,
+    "alignment_quality": 0.95
+  },
+  "confidence": 0.93,
+  "diff_url": "https://res.cloudinary.com/.../diff.jpg"
+}
+```
+
+### Classify Activity
+```
+POST /v1/classify-activity
+Content-Type: application/json
+Authorization: Bearer <internal-jwt>
+
+Request:
+{
+  "asset_url": "https://res.cloudinary.com/.../asset.jpg",
+  "sector": "forestry"
+}
+
+Response (200):
+{
+  "activity_type": "planting",
+  "phase": "after",
+  "confidence": 0.85,
+  "indicators": {
+    "saplings_visible": 45,
+    "people_visible": 3,
+    "tools_visible": 2
+  }
+}
+```
+
+### Extract Visual Signals
+```
+POST /v1/extract-signals
+Content-Type: application/json
+Authorization: Bearer <internal-jwt>
+
+Request:
+{
+  "asset_url": "https://res.cloudinary.com/.../asset.jpg",
+  "sector": "forestry"
+}
+
+Response (200):
+{
+  "vegetation_index": 0.42,
+  "water_present": false,
+  "smoke": false,
+  "machinery": [],
+  "bare_ground_pct": 0.15,
+  "canopy_cover_pct": 0.68
+}
+```
+
+---
+
+## 4. Dashboard → Node API (REST)
+
+### Authentication
+```
+Authorization: Bearer <supabase-jwt>
+```
+
+### Projects
+
+#### List Projects
+```
+GET /v1/projects?limit=20&cursor=eyJvIjoxMDB9
+
+Response (200):
+{
+  "data": [
+    {
+      "id": "project-uuid",
+      "org_id": "org-uuid",
+      "name": "Mangrove Phase 2",
+      "sector": "forestry",
+      "geometry": {"type": "Polygon", "coordinates": [...]},
+      "start_date": "2024-01-01",
+      "end_date": "2024-12-31",
+      "config": {...},
+      "created_at": "2024-01-01T00:00:00Z"
+    }
+  ],
+  "total": 1
+}
+```
+
+#### Get Project
+```
+GET /v1/projects/{project_id}
+Response (200): Project object
+```
+
+#### Create Project
+```
+POST /v1/projects
+Body: {name, sector, geometry?, start_date, end_date, config?}
+Response (201): Project object
+```
+
+### Assets
+
+#### List Assets (with filters)
+```
+GET /v1/projects/{project_id}/assets?
+  bbox=minLon,minLat,maxLon,maxLat&
+  date_from=2024-01-01&
+  date_to=2024-01-31&
+  tags=tree,planting&
+  observation_type=planting&
+  phase=before&
+  gps_accuracy_max=10&
+  limit=20&cursor=eyJvIjoxMDB9
+
+Response (200):
+{
+  "data": [
+    {
+      "id": "asset-uuid",
+      "project_id": "project-uuid",
+      "cloudinary_public_id": "org-uuid/project-uuid/sha256_hex",
+      "asset_type": "image",
+      "device_capture_timestamp": "2024-01-15T09:30:00Z",
+      "gps_point": {"type": "Point", "coordinates": [72.8765, 19.1234]},
+      "gps_accuracy_meters": 3.2,
+      "gps_provider": "fused",
+      "caption": "Planted 50 saplings",
+      "caption_signature": "base64...",
+      "ai_tags": ["tree", "planting", "soil"],
+      "observation_type": "planting",
+      "phase": "before",
+      "server_upload_timestamp": "2024-01-15T09:30:05Z",
+      "upload_status": "verified"
+    }
+  ],
+  "total": 100
+}
+```
+
+#### Get Asset with Integrity
+```
+GET /v1/assets/{asset_id}/integrity
+Response (200):
+{
+  "asset_id": "asset-uuid",
+  "device_capture_timestamp": "2024-01-15T09:30:00Z",
+  "server_upload_timestamp": "2024-01-15T09:30:05Z",
+  "server_received_at": "2024-01-15T09:30:05.123Z",
+  "clock_drift_seconds": 5,
+  "gps_accuracy_meters": 3.2,
+  "gps_provider": "fused",
+  "device_signature_verified": true,
+  "exif_hash_verified": true,
+  "caption_signature_verified": true,
+  "audit_chain_intact": true,
+  "sha256_matches_commit": true
+}
+```
+
+### Change Events
+
+#### List Change Events
+```
+GET /v1/projects/{project_id}/change-events
+Response (200):
+{
+  "data": [
+    {
+      "id": "change-uuid",
+      "project_id": "project-uuid",
+      "before_asset_id": "asset-uuid-1",
+      "after_asset_id": "asset-uuid-2",
+      "change_type": "sapling_planting",
+      "change_metrics": {...},
+      "confidence": 0.93,
+      "diff_asset_cloudinary_id": "org-uuid/project-uuid/diff_sha256",
+      "gps_distance_meters": 2.1,
+      "time_difference_hours": 5.5,
+      "created_at": "2024-01-15T15:00:00Z"
+    }
+  ]
+}
+```
+
+### Search
+
+#### Global Search
+```
+GET /v1/search?
+  q=planting&
+  bbox=72.8,19.1,72.9,19.2&
+  date_from=2024-01-01&
+  date_to=2024-01-31&
+  gps_accuracy_max=10&
+  tags=tree,sapling&
+  limit=20&cursor=eyJvIjoxMDB9
+
+Response (200): Asset list with relevance scoring, plus
+  "truncated": true,          // true when total > 1000
+  "total_matched": 14203,
+  "facet_counts": { "phase": { "before": 7211, "after": 6992 } },
+  "next_cursor": "eyJvIjoyMH0"
+```
+
+`limit` defaults to 20 and is clamped to 100. `total_matched` and `facet_counts` are computed
+over the full match set, not the returned page, so the UI can state the real number.
+
+### Reports
+
+#### Generate Report
+```
+POST /v1/reports/generate
+Body:
+{
+  "project_id": "project-uuid",
+  "template_id": "template-uuid",  // or "forestry_donor"
+  "change_event_ids": ["change-uuid-1", "change-uuid-2"],
+  "include_integrity_appendix": true
+}
+
+Response (200):
+{
+  "report_id": "report-uuid",
+  "self_contained": true,
+  "pdf_url": "https://res.cloudinary.com/.../report.pdf",
+  "html_url": "https://res.cloudinary.com/.../report.html",
+  "byte_size": 41_200_000,
+  "manifest": [
+    {
+      "ordinal": 1,
+      "role": "photo",
+      "cloudinary_public_id": "org/proj/sha256_before",
+      "derivative_public_id": "org/proj/report_full_v1/sha256_before",
+      "sha256_hash": "9f2c...",
+      "verified": true
+    },
+    { "ordinal": 2, "role": "diff", "derivative_public_id": "org/proj/report_diff_v1/...", "sha256_hash": "41ab...", "verified": true }
+  ],
+  "blocked_reason": null,
+  "generated_at": "2024-01-15T15:30:00Z",
+  "template_version": "forestry_donor@3"
+}
+```
+
+**`self_contained: true` is a contract, not a convenience.** All media is inlined into the
+artifact at generation time. A finalized report renders identically with no network and no valid
+token, which is the only way an audit artifact stays trustworthy years later. The `manifest`
+is the integrity appendix: it maps every inlined element back to a `public_id` + `sha256`.
+
+The same report also self-validates against the same inputs. Metrics are serialized with
+**Decimal.js**, never float `JSON.stringify`, so `0.1 + 0.2` style drift cannot change a
+document byte between runs. `template_version` is pinned; changing a template changes the hash,
+deliberately, so two reports built from different template versions are never confused.
+
+`social_assets` were removed from this response: gen-AI edits and crops are asynchronous
+(420/423) and cannot be produced inside a synchronous generate call. Social variants are a
+separate long-running job; see `ARCHITECTURE.md` §3.2.3.
+
+#### List Templates
+```
+GET /v1/report-templates?sector=forestry
+Response (200): Template list
+```
+
+### Audit Trail
+
+#### Get Audit Log
+```
+GET /v1/assets/{asset_id}/audit-trail
+Response (200):
+{
+  "data": [
+    {
+      "id": 1,
+      "action": "upload",
+      "actor_type": "system",
+      "actor_id": "cloudinary",
+      "details": {...},
+      "previous_hash": "genesis",
+      "current_hash": "sha256...",
+      "created_at": "2024-01-15T09:30:05Z"
+    }
+  ]
+}
+```
+
+---
+
+## 5. Delivery URLs
+
+Two endpoints, because originals and derivatives use different Cloudinary access mechanisms.
+See `DATABASE_SCHEMA.md` §"Delivery URL Generator" and `ARCHITECTURE.md` §3.2.2.
+
+### Original asset (authenticated, real expiry)
+```
+POST /v1/assets/{asset_id}/original-url
+Authorization: Bearer <supabase-jwt>
+Body: { "ttl_seconds": 300 }
+
+Response (200):
+{
+  "url": "https://res.cloudinary.com/.../image/authenticated/...__cld_token__=stp=..&exp=..&url=..&hmac=..",
+  "expires_at": 1705345800
+}
+```
+
+`public_id` is **not** accepted from the client. The API looks it up by `asset_id` under RLS,
+so a caller cannot request another org's media by guessing a hash.
+
+### Derivative (signed, CDN-cacheable)
+```
+POST /v1/assets/{asset_id}/derivative-url
+Authorization: Bearer <supabase-jwt>
+Body: { "transformation": "c_lfill,g_auto,w_400,h_300,f_auto,q_auto:eco" }
+
+Response (200):
+{
+  "url": "https://res.cloudinary.com/.../image/upload/c_lfill,g_auto,.../s--<hmac-sha1>--/v1/org/proj/sha256"
+}
+```
+
+`transformation` is validated against an allowlist of our named transforms plus a small set of
+safe delivery parameters (`w_`, `h_`, `c_` (fill, lfill, limit, scale, pad, fill_pad), `g_auto`, `f_auto`, `q_auto`, `dpr_auto`). Arbitrary
+transformation strings are rejected with 422 — a signed URL with attacker-chosen parameters is
+a free resize and gen-AI billing primitive.
+
+### Org provisioning (platform_admin only)
+```
+POST /v1/orgs
+Authorization: Bearer <supabase-jwt>       # must carry role = platform_admin
+Body: { "name": "Kenya Forestry Agency", "type": "government" }
+
+Response (200): { "org_id": "uuid", "invite_url": "https://.../invite/<token>" }
+```
+
+There is no public signup endpoint. Orgs are provisioned by a platform admin, who then invites
+the first `org_admin`. Invite tokens are single-use, expire in 72 hours, and are stored hashed.
+
+---
+
+## 6. Error Responses
+
+All APIs return consistent error format:
+```json
+{
+  "error": {
+    "code": "VALIDATION_ERROR|UNAUTHORIZED|FORBIDDEN|NOT_FOUND|INTERNAL_ERROR",
+    "message": "Human-readable description",
+    "details": {}  // Optional field-specific errors
+  }
+}
+```
+
+HTTP Status Codes:
+- 200: Success
+- 201: Created
+- 400: Bad Request (validation)
+- 401: Unauthorized (invalid/expired JWT)
+- 403: Forbidden (RLS/org scope)
+- 404: Not Found
+- 422: Unprocessable Entity (business logic)
+- 429: Rate Limited
+- 500: Internal Server Error
+
+---
+
+## 7. Rate Limits and Pagination
+
+**Rate limits** — per user, sliding window, `429` with `Retry-After` when exceeded.
+
+| Endpoint | Limit |
+|----------|-------|
+| `GET /v1/projects` | 100 req/min |
+| `GET /v1/projects/{id}/assets` | 200 req/min |
+| `GET /v1/search` | 50 req/min |
+| `POST /v1/reports/generate` | 10 req/min |
+| `GET /v1/assets/{id}/integrity` | 100 req/min |
+| `POST /v1/assets/{id}/original-url` | 300 req/min |
+| `POST /v1/assets/{id}/derivative-url` | 600 req/min |
+| `POST /v1/orgs` | 5 req/hour, `platform_admin` only |
+| ML `/v1/detect-change` | 20 req/min per org |
+| Cloudinary webhook | 2000 req/min, burst 4000 |
+
+**Pagination** — every list endpoint is paginated. Unbounded result sets are a denial-of-service
+vector and the reason a "search is slow" bug usually turns out to be an unpaginated query.
+
+| Parameter | Default | Max | Notes |
+|-----------|---------|-----|-------|
+| `limit` | 20 | **100** | Values above 100 are clamped, not rejected |
+| `offset` | 0 | — | Use `cursor` for deep paging; offset degrades on large tables |
+
+Every list response returns a `next_cursor` (opaque, base64 of the sort key). The dashboard
+(TanStack Query `useInfiniteQuery`) pages with the cursor, never by incrementing an offset.
+`GET /v1/search` additionally hard-caps at 1000 total matches and returns
+`"truncated": true` plus facet counts for the true total, so the UI can say "showing 100 of
+14,203" rather than silently lying.
+
+---
+
+## 8. Webhook Events (Node API → External)
+
+```
+POST {configured_webhook_url}
+Content-Type: application/json
+X-Webhook-Signature: sha256=...
+
+Events:
+- asset.uploaded
+- asset.verified
+- asset.flagged
+- change_event.detected
+- report.generated
+- integrity.check_failed
+
+Payload:
+{
+  "event": "asset.verified",
+  "timestamp": "2024-01-15T09:30:05Z",
+  "data": {...}  // Asset object
+}
+```

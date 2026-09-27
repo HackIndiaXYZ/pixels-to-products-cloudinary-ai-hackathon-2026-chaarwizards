@@ -1,0 +1,10 @@
+node_modules
+dist
+build
+.turbo
+.vite
+.opencode
+coverage
+pnpm-lock.yaml
+apps/ml-service
+*.md
