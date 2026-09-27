@@ -1,0 +1,182 @@
+/**
+ * Dependency ports. Routes depend on these interfaces, never on a concrete
+ * client, so the app can be driven in tests with in-memory fakes and in
+ * production with Supabase / Cloudinary / BullMQ. This is also how the isolation
+ * story stays testable: every data method takes an {@link AuthContext} or an
+ * explicit service marker, so a route can never "forget" to scope by org.
+ */
+import type {
+  Asset,
+  AssetDerivative,
+  Org,
+  Project,
+  ProjectConfig,
+  Role,
+  VerificationState,
+} from '@impact/shared';
+import type { AuthContext } from './types.js';
+
+/** A page of rows plus an opaque cursor for the next page. */
+export interface Page<T> {
+  readonly rows: readonly T[];
+  readonly nextCursor: string | null;
+  /** True total behind the query, for `search` truncation reporting. */
+  readonly totalMatched?: number;
+  readonly truncated?: boolean;
+}
+
+export interface ListParams {
+  readonly limit: number;
+  readonly cursor: string | null;
+}
+
+/** Row inserted by the webhook ingest path (service role, RLS bypassed). */
+export interface AssetInsert {
+  readonly project_id: string;
+  readonly org_id: string;
+  readonly cloudinary_public_id: string;
+  readonly cloudinary_asset_id: string | null;
+  readonly asset_type: 'image' | 'video' | null;
+  readonly device_capture_timestamp: string;
+  readonly device_commit_hash: string;
+  readonly device_id: string;
+  readonly device_public_key: string;
+  readonly capture_signature: string;
+  readonly device_monotonic_ms: number | null;
+  readonly ntp_offset_seconds: number | null;
+  readonly gps_lat: number | null;
+  readonly gps_lon: number | null;
+  readonly gps_accuracy_meters: number | null;
+  readonly gps_altitude: number | null;
+  readonly gps_provider: string | null;
+  readonly caption: string | null;
+  readonly caption_signature: string | null;
+  readonly caption_language: string | null;
+  readonly caption_created_at: string | null;
+  readonly exif: Record<string, unknown> | null;
+  readonly exif_hash: string;
+  readonly sha256_hash: string;
+  readonly observation_type: string | null;
+  readonly phase: 'before' | 'after' | null;
+  readonly app_version: string | null;
+  readonly server_upload_timestamp: string | null;
+  readonly upload_started_at: string | null;
+  readonly signature_tier: 'device' | 'server' | null;
+}
+
+/** Mutable verification columns the webhook / verification worker may set. */
+export interface VerificationUpdate {
+  readonly verification: 'pending' | 'passed' | 'failed' | 'unknown';
+  readonly upload_status?: 'pending' | 'verified' | 'flagged';
+  readonly verified_at?: string | null;
+  readonly quarantined_at?: string | null;
+  readonly exif_verified_at?: string | null;
+  readonly caption_verified_at?: string | null;
+  readonly signature_tier?: 'device' | 'server' | null;
+  readonly notes?: string | null;
+}
+
+/** One integrity check result (mirrors `verify_asset_integrity`). */
+export interface IntegrityCheck {
+  readonly check_name: string;
+  readonly state: VerificationState;
+  readonly details: Record<string, unknown>;
+}
+
+export interface ProjectsRepo {
+  list(ctx: AuthContext, params: ListParams): Promise<Page<Project>>;
+  get(ctx: AuthContext, id: string): Promise<Project | null>;
+  /** Recursive CTE over `parent_project_id`, org-scoped. */
+  tree(ctx: AuthContext, rootId: string): Promise<Project[]>;
+  create(ctx: AuthContext, input: Omit<Project, 'id' | 'created_at' | 'org_id'>): Promise<Project>;
+  updateConfig(ctx: AuthContext, id: string, config: ProjectConfig): Promise<Project | null>;
+}
+
+export interface AssetsRepo {
+  /** Org-scoped read (RLS). Returns null if the asset is absent or in another org. */
+  getById(ctx: AuthContext, id: string): Promise<Asset | null>;
+  list(ctx: AuthContext, projectId: string, params: ListParams): Promise<Page<Asset>>;
+
+  // --- Service-role paths (webhook / workers only) ---
+  /** Idempotency lookup: an existing row for the same content in the same project. */
+  findBySha(sha256: string, projectId: string): Promise<Asset | null>;
+  insert(row: AssetInsert): Promise<Asset>;
+  setVerification(assetId: string, update: VerificationUpdate): Promise<void>;
+}
+
+export interface OrgsRepo {
+  /** Service-role insert: orgs are provisioned by `platform_admin` via the API. */
+  create(input: { name: string; type: Org['type'] }): Promise<Org>;
+}
+
+export interface InvitesRepo {
+  /** Service-role insert of a hashed, single-use, 72h token. */
+  create(input: {
+    org_id: string;
+    email: string;
+    role: Exclude<Role, 'platform_admin'>;
+    token_hash: string;
+    expires_at: string;
+  }): Promise<{ id: string }>;
+}
+
+export interface AuditRepo {
+  /**
+   * Append one row to the per-asset hash chain via `append_audit_log`. The API
+   * supplies the RFC 8785 canonical string of `details` (AGENTS.md §3.8); the
+   * function hashes the stored `hashed_at`, not `clock_timestamp()`.
+   */
+  append(input: {
+    assetId: string;
+    action: string;
+    actorType: 'system' | 'user' | 'ml_model' | 'device';
+    actorId: string | null;
+    details: Record<string, unknown>;
+  }): Promise<void>;
+}
+
+export interface IntegrityRepo {
+  /** Org-scoped call to `verify_asset_integrity`. */
+  verify(ctx: AuthContext, assetId: string): Promise<IntegrityCheck[]>;
+}
+
+export interface DerivativesRepo {
+  getByPublicId(ctx: AuthContext, publicId: string): Promise<AssetDerivative | null>;
+}
+
+/** The full data layer handed to the app. */
+export interface DbPort {
+  projects: ProjectsRepo;
+  assets: AssetsRepo;
+  orgs: OrgsRepo;
+  invites: InvitesRepo;
+  audit: AuditRepo;
+  integrity: IntegrityRepo;
+  derivatives: DerivativesRepo;
+  /**
+   * Service-role lookup of a project's owning org, used by the webhook to derive
+   * `org_id` from the signed `project_id` — never from the request body
+   * (AGENTS.md §3.4). Returns null if the project does not exist.
+   */
+  orgIdForProject(projectId: string): Promise<string | null>;
+  /** Liveness/readiness probe. Resolves if the DB is reachable. */
+  ping(): Promise<void>;
+}
+
+/** Cloudinary media-pipeline operations. Never used as a query database (§3.9). */
+export interface CloudinaryPort {
+  /** Verify a webhook notification signature with the SDK helper (§3.11). */
+  verifyNotificationSignature(body: string, timestamp: string, signature: string): boolean;
+  /** Signed, no-expiry delivery URL for a derivative (`type: upload`). */
+  signedDerivativeUrl(publicId: string, transformation: string): string;
+  /** Authenticated original URL gated by an `auth_token` with a real `exp`. */
+  originalUrl(publicId: string, ttlSeconds: number): { url: string; expiresAt: number };
+}
+
+/** Background job enqueue. Never blocks a request on a generative transform (§3.11). */
+export interface QueuePort {
+  enqueueAiEnrich(payload: { assetId: string; orgId: string }): Promise<void>;
+  /** Readiness probe for the queue backend (Redis). */
+  ping(): Promise<void>;
+  close(): Promise<void>;
+}

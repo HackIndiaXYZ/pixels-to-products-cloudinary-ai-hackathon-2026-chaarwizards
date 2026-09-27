@@ -1,0 +1,385 @@
+/**
+ * In-memory fakes for the injectable ports, plus token/config helpers. These let
+ * the gate's integration tests exercise the real Fastify app end to end without
+ * live Supabase / Cloudinary / Redis.
+ *
+ * The fake DB deliberately enforces org-scoping on every request-scoped read —
+ * that mirrors what RLS does in production, so a test asserting "org A cannot
+ * read org B" is asserting the API always scopes by the verified JWT org, never
+ * the body. Real RLS enforcement is proven separately by the Phase 1 pgTAP
+ * suite; here we prove the API boundary honours it.
+ */
+import jwt from 'jsonwebtoken';
+import { generateKeyPairSync, sign as edSign } from 'node:crypto';
+import { buildSigningPayload, type SigningPayloadInput } from '@impact/shared';
+import type { Asset, AssetDerivative, Org, Project } from '@impact/shared';
+import type { Config } from '../config.js';
+import type {
+  AssetInsert,
+  CloudinaryPort,
+  DbPort,
+  IntegrityCheck,
+  QueuePort,
+  VerificationUpdate,
+} from '../ports.js';
+import type { MlClient } from '../services/ml-client.js';
+
+export const TEST_JWT_SECRET = 'test-supabase-jwt-secret';
+export const ORG_A = '11111111-1111-1111-1111-111111111111';
+export const ORG_B = '22222222-2222-2222-2222-222222222222';
+
+export function testConfig(overrides: Partial<Config> = {}): Config {
+  return {
+    NODE_ENV: 'test',
+    HOST: '0.0.0.0',
+    PORT: 8080,
+    LOG_LEVEL: 'error',
+    SUPABASE_URL: 'http://localhost:54321',
+    SUPABASE_ANON_KEY: 'anon',
+    SUPABASE_SERVICE_KEY: 'service',
+    SUPABASE_JWT_SECRET: TEST_JWT_SECRET,
+    CLOUDINARY_CLOUD_NAME: 'demo',
+    CLOUDINARY_API_KEY: 'key',
+    CLOUDINARY_API_SECRET: 'secret',
+    CLOUDINARY_UPLOAD_PRESET: 'verified_capture',
+    INTERNAL_JWT_SECRET: 'internal-secret',
+    REDIS_URL: 'redis://localhost:6379',
+    ML_SERVICE_URL: 'http://localhost:9000',
+    DASHBOARD_URL: 'http://localhost:5173',
+    ...overrides,
+  };
+}
+
+/** Mint a Supabase-style JWT with org_id/role in app_metadata (as at redemption). */
+export function makeToken(opts: {
+  sub?: string;
+  orgId: string;
+  role: 'platform_admin' | 'org_admin' | 'member' | 'viewer';
+  email?: string;
+  expired?: boolean;
+}): string {
+  const payload: Record<string, unknown> = {
+    sub: opts.sub ?? 'user-' + opts.orgId,
+    email: opts.email ?? 'user@example.com',
+    app_metadata: { org_id: opts.orgId, role: opts.role },
+  };
+  return jwt.sign(payload, TEST_JWT_SECRET, {
+    algorithm: 'HS256',
+    expiresIn: opts.expired === true ? -10 : 3600,
+  });
+}
+
+/** A fresh Ed25519 keypair for signing capture payloads in tests. */
+export function makeDeviceKeys(): { publicKeyB64: string; privateKey: ReturnType<typeof generateKeyPairSync>['privateKey'] } {
+  const { publicKey, privateKey } = generateKeyPairSync('ed25519');
+  // Export the raw 32-byte public key (what a device transmits).
+  const der = publicKey.export({ format: 'der', type: 'spki' }) as Buffer;
+  const raw = der.subarray(der.length - 32);
+  return { publicKeyB64: raw.toString('base64'), privateKey };
+}
+
+export function signCapture(
+  payload: SigningPayloadInput,
+  privateKey: ReturnType<typeof generateKeyPairSync>['privateKey'],
+): string {
+  const canonical = buildSigningPayload(payload);
+  return edSign(null, Buffer.from(canonical, 'utf8'), privateKey).toString('base64');
+}
+
+let seq = 0;
+function uuid(): string {
+  seq += 1;
+  return `00000000-0000-4000-8000-${String(seq).padStart(12, '0')}`;
+}
+
+export interface FakeDb extends DbPort {
+  _projects: Map<string, Project>;
+  _assets: Map<string, Asset>;
+  _orgs: Map<string, Org>;
+  _invites: { org_id: string; email: string; role: string; token_hash: string; expires_at: string }[];
+  _audit: { assetId: string; action: string; details_canonical: string }[];
+  seedProject(p: Partial<Project> & { org_id: string }): Project;
+  seedAsset(a: Partial<Asset> & { org_id: string; project_id: string }): Asset;
+}
+
+export function makeFakeDb(): FakeDb {
+  const projects = new Map<string, Project>();
+  const assets = new Map<string, Asset>();
+  const orgs = new Map<string, Org>();
+  const invites: FakeDb['_invites'] = [];
+  const audit: FakeDb['_audit'] = [];
+
+  const nowIso = new Date().toISOString();
+
+  function assetFromInsert(row: AssetInsert): Asset {
+    return {
+      id: uuid(),
+      project_id: row.project_id,
+      org_id: row.org_id,
+      cloudinary_public_id: row.cloudinary_public_id,
+      cloudinary_asset_id: row.cloudinary_asset_id,
+      asset_type: row.asset_type,
+      device_capture_timestamp: row.device_capture_timestamp,
+      device_commit_hash: row.device_commit_hash,
+      device_id: row.device_id,
+      device_public_key: row.device_public_key,
+      capture_signature: row.capture_signature,
+      gps_accuracy_meters: row.gps_accuracy_meters,
+      gps_altitude: row.gps_altitude,
+      gps_provider: row.gps_provider as Asset['gps_provider'],
+      caption: row.caption,
+      caption_signature: row.caption_signature,
+      caption_language: row.caption_language,
+      caption_created_at: row.caption_created_at,
+      exif: row.exif,
+      exif_hash: row.exif_hash,
+      sha256_hash: row.sha256_hash,
+      upload_started_at: row.upload_started_at,
+      ntp_offset_seconds: row.ntp_offset_seconds,
+      signature_tier: row.signature_tier,
+      server_received_at: nowIso,
+      cloudinary_created_at: row.server_upload_timestamp,
+      observation_type: row.observation_type,
+      phase: row.phase,
+      app_version: row.app_version,
+      upload_status: 'pending',
+      created_at: nowIso,
+    } as Asset;
+  }
+
+  const db: FakeDb = {
+    _projects: projects,
+    _assets: assets,
+    _orgs: orgs,
+    _invites: invites,
+    _audit: audit,
+
+    seedProject(p) {
+      const proj: Project = {
+        id: p.id ?? uuid(),
+        org_id: p.org_id,
+        name: p.name ?? 'Test Project',
+        sector: p.sector ?? 'forestry',
+        start_date: p.start_date ?? null,
+        end_date: p.end_date ?? null,
+        config: p.config ?? { observation_types: [] },
+        parent_project_id: p.parent_project_id ?? null,
+        created_at: nowIso,
+      };
+      projects.set(proj.id, proj);
+      return proj;
+    },
+
+    seedAsset(a) {
+      const asset = { ...assetFromInsert({
+        project_id: a.project_id,
+        org_id: a.org_id,
+        cloudinary_public_id: a.cloudinary_public_id ?? `${a.org_id}/${a.project_id}/sha`,
+        cloudinary_asset_id: null,
+        asset_type: 'image',
+        device_capture_timestamp: nowIso,
+        device_commit_hash: a.sha256_hash ?? 'commit',
+        device_id: 'dev',
+        device_public_key: 'pk',
+        capture_signature: 'sig',
+        device_monotonic_ms: 0,
+        ntp_offset_seconds: null,
+        gps_lat: null,
+        gps_lon: null,
+        gps_accuracy_meters: null,
+        gps_altitude: null,
+        gps_provider: null,
+        caption: null,
+        caption_signature: null,
+        caption_language: null,
+        caption_created_at: null,
+        exif: null,
+        exif_hash: a.exif_hash ?? 'exifhash',
+        sha256_hash: a.sha256_hash ?? 'sha',
+        observation_type: 'planting',
+        phase: 'before',
+        app_version: null,
+        server_upload_timestamp: null,
+        upload_started_at: null,
+        signature_tier: 'device',
+      }), ...a, id: a.id ?? uuid() } as Asset;
+      assets.set(asset.id, asset);
+      return asset;
+    },
+
+    projects: {
+      async list(ctx, params) {
+        const rows = [...projects.values()].filter((p) => p.org_id === ctx.orgId);
+        const offset = params.cursor ? Number(Buffer.from(params.cursor, 'base64url').toString()) || 0 : 0;
+        return { rows: rows.slice(offset, offset + params.limit), nextCursor: null };
+      },
+      async get(ctx, id) {
+        const p = projects.get(id);
+        return p && p.org_id === ctx.orgId ? p : null;
+      },
+      async tree(ctx, rootId) {
+        const all = [...projects.values()].filter((p) => p.org_id === ctx.orgId);
+        const root = all.find((p) => p.id === rootId);
+        if (!root) return [];
+        const out: Project[] = [];
+        const stack = [root];
+        while (stack.length > 0) {
+          const n = stack.pop() as Project;
+          out.push(n);
+          for (const c of all.filter((p) => p.parent_project_id === n.id)) stack.push(c);
+        }
+        return out;
+      },
+      async create(ctx, input) {
+        return db.seedProject({ ...input, org_id: ctx.orgId });
+      },
+      async updateConfig(ctx, id, config) {
+        const p = projects.get(id);
+        if (!p || p.org_id !== ctx.orgId) return null;
+        const updated = { ...p, config };
+        projects.set(id, updated);
+        return updated;
+      },
+    },
+
+    assets: {
+      async getById(ctx, id) {
+        const a = assets.get(id);
+        return a && a.org_id === ctx.orgId ? a : null;
+      },
+      async list(ctx, projectId, params) {
+        const rows = [...assets.values()].filter(
+          (a) => a.org_id === ctx.orgId && a.project_id === projectId,
+        );
+        return { rows: rows.slice(0, params.limit), nextCursor: null };
+      },
+      async findBySha(sha256, projectId) {
+        return (
+          [...assets.values()].find(
+            (a) => a.sha256_hash === sha256 && a.project_id === projectId,
+          ) ?? null
+        );
+      },
+      async insert(row) {
+        const a = assetFromInsert(row);
+        assets.set(a.id, a);
+        return a;
+      },
+      async setVerification(assetId, update: VerificationUpdate) {
+        const a = assets.get(assetId);
+        if (!a) return;
+        assets.set(assetId, {
+          ...a,
+          upload_status: update.upload_status ?? a.upload_status,
+        } as Asset);
+      },
+    },
+
+    orgs: {
+      async create(input) {
+        const org: Org = {
+          id: uuid(),
+          name: input.name,
+          type: input.type ?? null,
+          settings: {},
+          quota_bytes: 53687091200,
+          bytes_used: 0,
+          retention_years: 7,
+          created_at: nowIso,
+        };
+        orgs.set(org.id, org);
+        return org;
+      },
+    },
+
+    invites: {
+      async create(input) {
+        invites.push(input);
+        return { id: uuid() };
+      },
+    },
+
+    audit: {
+      async append(input) {
+        audit.push({
+          assetId: input.assetId,
+          action: input.action,
+          details_canonical: JSON.stringify(input.details),
+        });
+      },
+    },
+
+    integrity: {
+      async verify(ctx, assetId): Promise<IntegrityCheck[]> {
+        const a = assets.get(assetId);
+        const failed = a?.upload_status === 'flagged';
+        return [
+          {
+            check_name: 'sha256_matches_commit',
+            state: failed ? 'fail' : 'pass',
+            details: {},
+          },
+          { check_name: 'clock_skew', state: 'unknown', details: {} },
+        ];
+      },
+    },
+
+    derivatives: {
+      async getByPublicId(): Promise<AssetDerivative | null> {
+        return null;
+      },
+    },
+
+    async orgIdForProject(projectId) {
+      return projects.get(projectId)?.org_id ?? null;
+    },
+
+    async ping() {
+      /* always ready */
+    },
+  };
+
+  return db;
+}
+
+export function makeFakeCloudinary(opts: { signatureValid?: boolean } = {}): CloudinaryPort {
+  return {
+    verifyNotificationSignature() {
+      return opts.signatureValid !== false;
+    },
+    signedDerivativeUrl(publicId, transformation) {
+      return `https://res.cloudinary.com/demo/image/upload/${transformation}/s--sig--/v1/${publicId}`;
+    },
+    originalUrl(publicId, ttlSeconds) {
+      return {
+        url: `https://res.cloudinary.com/demo/image/authenticated/${publicId}?__cld_token__=exp`,
+        expiresAt: Math.floor(Date.now() / 1000) + ttlSeconds,
+      };
+    },
+  };
+}
+
+export function makeFakeQueue(): QueuePort & { _jobs: { assetId: string }[] } {
+  const jobs: { assetId: string }[] = [];
+  return {
+    _jobs: jobs,
+    async enqueueAiEnrich(payload) {
+      // Idempotent by assetId, matching the BullMQ jobId behaviour.
+      if (!jobs.some((j) => j.assetId === payload.assetId)) jobs.push({ assetId: payload.assetId });
+    },
+    async ping() {
+      /* ready */
+    },
+    async close() {
+      /* noop */
+    },
+  };
+}
+
+export function makeFakeMl(): MlClient {
+  return {
+    async detectChange() {
+      return { change_type: 'x', change_metrics: {}, confidence: 1 };
+    },
+  };
+}
