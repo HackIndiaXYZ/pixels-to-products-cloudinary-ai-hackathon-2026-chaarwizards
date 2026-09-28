@@ -1,0 +1,46 @@
+{
+  "expo": {
+    "name": "Impact Capture",
+    "slug": "impact-capture",
+    "version": "0.0.0",
+    "orientation": "portrait",
+    "scheme": "impactcapture",
+    "userInterfaceStyle": "automatic",
+    "newArchEnabled": true,
+    "ios": {
+      "supportsTablet": false,
+      "bundleIdentifier": "com.impact.capture",
+      "infoPlist": {
+        "NSCameraUsageDescription": "Impact Capture records geo-tagged evidence photos and video.",
+        "NSLocationWhenInUseUsageDescription": "Impact Capture records the GPS location and accuracy of each captured asset.",
+        "NSMicrophoneUsageDescription": "Impact Capture records audio with evidence video."
+      }
+    },
+    "android": {
+      "package": "com.impact.capture",
+      "permissions": [
+        "CAMERA",
+        "RECORD_AUDIO",
+        "ACCESS_FINE_LOCATION",
+        "ACCESS_COARSE_LOCATION"
+      ]
+    },
+    "plugins": [
+      [
+        "expo-camera",
+        {
+          "cameraPermission": "Impact Capture records geo-tagged evidence photos and video.",
+          "microphonePermission": "Impact Capture records audio with evidence video.",
+          "recordAudioAndroid": true
+        }
+      ],
+      [
+        "expo-location",
+        {
+          "locationWhenInUsePermission": "Impact Capture records the GPS location and accuracy of each captured asset."
+        }
+      ],
+      "expo-secure-store"
+    ]
+  }
+}

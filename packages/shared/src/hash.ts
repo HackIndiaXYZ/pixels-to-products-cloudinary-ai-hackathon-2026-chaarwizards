@@ -6,12 +6,18 @@
  * bytes are identical to the Python implementation (AGENTS.md §3.8). Never hash
  * `JSON.stringify(value)` or a Postgres `jsonb::text` — those serializers do not
  * agree byte-for-byte.
+ *
+ * Uses pure-JS `@noble/hashes` rather than `node:crypto` so the exact same
+ * implementation runs under Node (API, tests) and under React Native (the
+ * capture app), which has no `node:crypto`. The digest is byte-identical to a
+ * `node:crypto` SHA-256 — both are the standard algorithm.
  */
-import { createHash } from 'node:crypto';
+import { sha256 } from '@noble/hashes/sha256';
+import { bytesToHex } from '@noble/hashes/utils';
 import { canonicalize, type JsonValue } from './canonicalize.js';
 
 /** Lowercase-hex SHA-256 of the canonical JSON encoding of `value`. */
 export function sha256Canonical(value: JsonValue): string {
   const canonical = canonicalize(value);
-  return createHash('sha256').update(canonical, 'utf8').digest('hex');
+  return bytesToHex(sha256(new TextEncoder().encode(canonical)));
 }
