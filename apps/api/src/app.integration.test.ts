@@ -43,7 +43,7 @@ const CAPTURE_TS = '2024-01-15T09:30:00.000Z';
 const LAT = 19.1234;
 const LON = 72.8765;
 
-function buildWebhook(projectId: string, orgId: string, opts: { tamperExif?: boolean } = {}): {
+function buildWebhook(projectId: string, orgId: string, opts: { tamperExif?: boolean; tags?: string[] } = {}): {
   body: string;
   bytes: Buffer;
   sha256: string;
@@ -97,6 +97,12 @@ function buildWebhook(projectId: string, orgId: string, opts: { tamperExif?: boo
       metadata: { sha256, exif: deliveredExif },
     },
   };
+  if (opts.tags !== undefined) {
+    (body.info as Record<string, unknown>).tags = opts.tags;
+    (body.info as Record<string, unknown>).info = {
+      categorization: { google_tagging: { data: opts.tags.map((t) => ({ tag: t, confidence: 0.9 })) } },
+    };
+  }
   return { body: JSON.stringify(body), bytes, sha256 };
 }
 
@@ -192,6 +198,54 @@ describe('Phase 3 gate — webhook ingest', () => {
       payload: body,
     });
     expect(res.statusCode).toBe(404);
+  });
+});
+
+describe('Phase 5 gate — AI tags copied into observations (§3.9)', () => {
+  let h: Harness;
+  beforeEach(async () => {
+    h = await harness({ fetchBytes: async () => Buffer.from('the-original-image-bytes') });
+  });
+
+  it('writes Cloudinary tags to observations at ingest, never queried back', async () => {
+    const project = h.db.seedProject({ org_id: ORG_A });
+    const { body } = buildWebhook(project.id, ORG_A, { tags: ['tree', 'sapling', 'soil'] });
+    const res = await h.app.inject({
+      method: 'POST',
+      url: '/webhooks/cloudinary',
+      headers: webhookHeaders(),
+      payload: body,
+    });
+    expect(res.statusCode).toBe(200);
+    expect(h.db._observations.length).toBe(1);
+    const obs = h.db._observations[0]!;
+    expect(obs.org_id).toBe(ORG_A);
+    expect(obs.notes).toBe('cloudinary_ai_tags');
+    expect((obs.metrics as { tags: string[] }).tags).toEqual(['tree', 'sapling', 'soil']);
+  });
+
+  it('does not write an observation when there are no tags', async () => {
+    const project = h.db.seedProject({ org_id: ORG_A });
+    const { body } = buildWebhook(project.id, ORG_A);
+    await h.app.inject({
+      method: 'POST',
+      url: '/webhooks/cloudinary',
+      headers: webhookHeaders(),
+      payload: body,
+    });
+    expect(h.db._observations.length).toBe(0);
+  });
+
+  it('does not write tags for a quarantined (tampered) asset', async () => {
+    const project = h.db.seedProject({ org_id: ORG_A });
+    const { body } = buildWebhook(project.id, ORG_A, { tamperExif: true, tags: ['tree'] });
+    await h.app.inject({
+      method: 'POST',
+      url: '/webhooks/cloudinary',
+      headers: webhookHeaders(),
+      payload: body,
+    });
+    expect(h.db._observations.length).toBe(0);
   });
 });
 

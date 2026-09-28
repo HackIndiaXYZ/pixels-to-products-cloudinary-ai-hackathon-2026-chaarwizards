@@ -33,6 +33,7 @@ Cloudinary stores media and performs transformations. **Every product read goes 
 | `SUPABASE_URL` | ✓ | ✓ | `VITE_` | `EXPO_PUBLIC_` | public |
 | `SUPABASE_ANON_KEY` | ✓ | — | `VITE_` | `EXPO_PUBLIC_` | public |
 | `SUPABASE_SERVICE_KEY` | ✓ | ✓ | **never** | **never** | 🔴 secret |
+| `SUPABASE_JWT_SECRET` | ✓ | — | **never** | **never** | 🔴 secret |
 | `CLOUDINARY_CLOUD_NAME` | ✓ | ✓ | `VITE_` | `EXPO_PUBLIC_` | public |
 | `CLOUDINARY_API_KEY` | ✓ | ✓ | **never** | **never** | semi-public |
 | `CLOUDINARY_API_SECRET` | ✓ | ✓ | **never** | **never** | 🔴 secret |
@@ -49,7 +50,7 @@ Cloudinary stores media and performs transformations. **Every product read goes 
 - `EXPO_PUBLIC_*` → inlined into the app binary, readable on a jailbroken device
 - **A secret with either prefix is a leaked secret.** Renaming is not a fix.
 
-**`SUPABASE_JWT_SECRET` does not exist.** Tokens are validated via `auth.getUser()` against Supabase's servers (`apps/api/src/plugins/supabase.ts`), not by local JWT decode. Do not add it.
+**`SUPABASE_JWT_SECRET` is required and server-only.** The API verifies Supabase-issued JWTs *locally* with the project's HS256 JWT secret (`apps/api/src/plugins/auth.ts` → `jwt.verify(token, secret, { algorithms: ['HS256'] })`, wired in `apps/api/src/app.ts`), rather than a round-trip to `auth.getUser()`. It is a 🔴 secret: no `VITE_`/`EXPO_PUBLIC_` prefix, never returned in a response, and redacted from logs. Source it from Supabase → Project Settings → API → JWT Secret. (An earlier revision of this doc claimed the variable did not exist; that was wrong — the local-verification design needs it.)
 
 **`INTERNAL_JWT_SECRET` must be byte-identical** in api and ml-service. They sign and verify the same token; a mismatch makes every API→ML call 401.
 

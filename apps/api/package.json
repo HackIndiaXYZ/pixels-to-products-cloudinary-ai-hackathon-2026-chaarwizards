@@ -10,7 +10,9 @@
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "test": "vitest run",
     "dev": "tsx watch src/start.ts",
-    "start": "node dist/start.js"
+    "start": "node dist/start.js",
+    "reconcile": "node dist/jobs/reconcile.js",
+    "setup:preset": "node dist/jobs/setup-preset.js"
   },
   "dependencies": {
     "@fastify/rate-limit": "^10.2.1",

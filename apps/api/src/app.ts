@@ -58,7 +58,10 @@ export async function buildApp(deps: AppDeps): Promise<FastifyInstance> {
   const app = Fastify({
     logger: {
       level: deps.config.LOG_LEVEL,
-      // Never let a secret or GPS coordinate reach a log line (AGENTS.md §3.5).
+      // Never let a secret, a bearer token, or a GPS coordinate reach a log line
+      // (AGENTS.md §3.5). This covers the Cloudinary/Supabase secrets, the raw
+      // Supabase JWT (carried on `request.auth.jwt`), and the local HS256
+      // verification secret, wherever they might be nested in a logged object.
       redact: {
         paths: [
           'req.headers.authorization',
@@ -66,6 +69,10 @@ export async function buildApp(deps: AppDeps): Promise<FastifyInstance> {
           '*.api_secret',
           '*.service_role',
           '*.token',
+          '*.jwt',
+          'req.auth.jwt',
+          '*.SUPABASE_JWT_SECRET',
+          '*.jwt_secret',
         ],
         remove: true,
       },

@@ -19,7 +19,12 @@ const ConfigSchema = z.object({
   SUPABASE_URL: z.string().min(1),
   SUPABASE_ANON_KEY: z.string().min(1),
   SUPABASE_SERVICE_KEY: z.string().min(1),
-  // HS256 secret used to verify Supabase-issued JWTs. Server-only.
+  // 🔴 SECRET. HS256 secret used to verify Supabase-issued JWTs LOCALLY
+  // (`plugins/auth.ts` → `jwt.verify(token, secret, { algorithms: ['HS256'] })`),
+  // so the caller identity in `app.ts` is trusted without a round-trip. Server-only
+  // (AGENTS.md §3.5): it carries no `VITE_`/`EXPO_PUBLIC_` prefix, is never returned
+  // in a response body, and is redacted from every log line (see `buildApp` redact
+  // paths). Sourced from Supabase → Project Settings → API → JWT Secret.
   SUPABASE_JWT_SECRET: z.string().min(1),
 
   // Cloudinary — media pipeline, never a query DB (AGENTS.md §3.9).
