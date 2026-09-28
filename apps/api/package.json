@@ -12,7 +12,8 @@
     "dev": "tsx watch src/start.ts",
     "start": "node dist/start.js",
     "reconcile": "node dist/jobs/reconcile.js",
-    "setup:preset": "node dist/jobs/setup-preset.js"
+    "setup:preset": "node dist/jobs/setup-preset.js",
+    "workers": "node dist/jobs/workers.js"
   },
   "dependencies": {
     "@fastify/rate-limit": "^10.2.1",

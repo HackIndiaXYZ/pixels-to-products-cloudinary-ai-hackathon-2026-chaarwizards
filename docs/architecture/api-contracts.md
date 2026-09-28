@@ -381,6 +381,42 @@ Response (200):
 }
 ```
 
+#### Manual Pairing Override (Phase 7)
+
+A reviewer can link two assets into a before/after pair, or split a pair the
+automated worker got wrong. Both actions resolve every id under the caller's RLS
+scope — a crafted id from another org returns `404`, never a silent success
+(§3.4) — and both append to the audit chain. `org_id` comes from the verified
+JWT, never the body. A manual link carries no CV metric: `change_metrics` is
+empty and `model_version` is the `manual` sentinel (§3.2).
+
+```
+POST /v1/pairs                     # member+ ; org_admin ; platform_admin
+Body:
+{
+  "before_asset_id": "asset-uuid-1",
+  "after_asset_id":  "asset-uuid-2"   # must differ and share a project
+}
+
+Response (201): the created change_event
+{
+  "id": "change-uuid",
+  "status": "manual",
+  "detection_method": "manual",
+  "model_version": "manual",
+  "before_asset_id": "asset-uuid-1",
+  "after_asset_id":  "asset-uuid-2",
+  "change_metrics": {},
+  ...
+}
+Errors: 400 (same asset / cross-project), 403 (viewer), 404 (asset not in org)
+
+POST /v1/pairs/{change_event_id}/split    # member+ ; org_admin ; platform_admin
+Response (200): the change_event with "status": "split"
+Errors: 403 (viewer), 404 (pair not in org)
+```
+
+
 ### Search
 
 #### Global Search
@@ -589,6 +625,7 @@ HTTP Status Codes:
 | `POST /v1/assets/{id}/original-url` | 300 req/min |
 | `POST /v1/assets/{id}/derivative-url` | 600 req/min |
 | `POST /v1/orgs` | 5 req/hour, `platform_admin` only |
+| `POST /v1/pairs`, `POST /v1/pairs/{id}/split` | 60 req/min per user |
 | ML `/v1/detect-change` | 20 req/min per org |
 | Cloudinary webhook | 2000 req/min, burst 4000 |
 

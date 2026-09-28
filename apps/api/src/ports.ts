@@ -8,6 +8,7 @@
 import type {
   Asset,
   AssetDerivative,
+  ChangeEvent,
   Org,
   Project,
   ProjectConfig,
@@ -16,6 +17,7 @@ import type {
 } from '@impact/shared';
 import type { AuthContext } from './types.js';
 import type { UploadPresetDefinition } from './lib/cloudinary-preset.js';
+import type { PairingAsset } from './services/pairing.js';
 
 /** A page of rows plus an opaque cursor for the next page. */
 export interface Page<T> {
@@ -105,6 +107,71 @@ export interface AssetsRepo {
   getByIdService(id: string): Promise<Asset | null>;
   insert(row: AssetInsert): Promise<Asset>;
   setVerification(assetId: string, update: VerificationUpdate): Promise<void>;
+  /**
+   * Service-role read of every pairing-eligible asset in a project (Phase 7).
+   * Only `verified` assets are returned (ARCHITECTURE.md §"Only `ready` assets
+   * are selectable for pairing"), with lat/lon extracted from `gps_point` so the
+   * pure pairing algorithm never touches PostGIS.
+   */
+  listForPairing(projectId: string): Promise<PairingAssetRow[]>;
+}
+
+/** A pairing-eligible asset row (service role), with resolved coordinates. */
+export interface PairingAssetRow extends PairingAsset {
+  readonly org_id: string;
+  readonly project_id: string;
+  readonly cloudinary_public_id: string;
+  readonly asset_type: 'image' | 'video' | null;
+}
+
+/** Row inserted by the detect-change worker (service role). */
+export interface ChangeEventInsert {
+  readonly project_id: string;
+  readonly org_id: string;
+  readonly before_asset_id: string;
+  readonly after_asset_id: string;
+  readonly change_type: string | null;
+  readonly change_metrics: Record<string, unknown>;
+  readonly detection_method: string;
+  /** NOT NULL (§3.2). A failed row carries the sentinel 'none'; manual 'manual'. */
+  readonly model_version: string;
+  readonly confidence: number | null;
+  readonly diff_asset_cloudinary_id: string | null;
+  readonly gps_distance_meters: number | null;
+  readonly time_difference_hours: number | null;
+  readonly status: 'detected' | 'failed' | 'manual';
+  /** Required iff status is 'failed' (§3.6); the DB CHECK enforces this too. */
+  readonly failure_reason: string | null;
+}
+
+/** Manual link created through the override endpoint (request-scoped, RLS). */
+export interface ManualPairInsert {
+  readonly project_id: string;
+  readonly before_asset_id: string;
+  readonly after_asset_id: string;
+  readonly gps_distance_meters: number | null;
+  readonly time_difference_hours: number | null;
+}
+
+export interface ChangeEventsRepo {
+  /**
+   * Service-role idempotency lookup: an existing (non-split) row for the same
+   * ordered pair. The pairing worker skips a pair that already has one, so a
+   * re-run over an unchanged window creates no duplicates.
+   */
+  findPair(beforeAssetId: string, afterAssetId: string): Promise<ChangeEvent | null>;
+  /** Service-role insert of a detected/failed result. */
+  insert(row: ChangeEventInsert): Promise<ChangeEvent>;
+  /** Org-scoped read (RLS). Null if absent or in another org → the caller 404s. */
+  getById(ctx: AuthContext, id: string): Promise<ChangeEvent | null>;
+  /** Request-scoped manual link: org_id is forced to the caller's verified org. */
+  createManual(ctx: AuthContext, input: ManualPairInsert): Promise<ChangeEvent>;
+  /** Request-scoped status change (manual split). Null if not in the caller's org. */
+  setStatus(
+    ctx: AuthContext,
+    id: string,
+    status: 'split',
+  ): Promise<ChangeEvent | null>;
 }
 
 export interface OrgsRepo {
@@ -195,6 +262,13 @@ export interface DbPort {
   integrity: IntegrityRepo;
   derivatives: DerivativesRepo;
   observations: ObservationsRepo;
+  changeEvents: ChangeEventsRepo;
+  /**
+   * Service-role project read (Phase 7 pairing). Returns sector + config so the
+   * worker can resolve each observation type's gps_radius and metrics schema
+   * without a request-scoped client.
+   */
+  getProjectService(projectId: string): Promise<Project | null>;
   /**
    * Service-role lookup of a project's owning org, used by the webhook to derive
    * `org_id` from the signed `project_id` — never from the request body
@@ -284,6 +358,20 @@ export interface CloudinaryAdminPort {
 /** Background job enqueue. Never blocks a request on a generative transform (§3.11). */
 export interface QueuePort {
   enqueueAiEnrich(payload: { assetId: string; orgId: string }): Promise<void>;
+  /** Kick off pairing for a project (Phase 7 pair-assets worker). */
+  enqueuePairAssets(payload: { projectId: string; orgId: string }): Promise<void>;
+  /**
+   * Enqueue detection for one before/after pair (Phase 7 detect-change worker).
+   * The jobId is keyed on the ordered pair so a replay never doubles a job.
+   */
+  enqueueDetectChange(payload: {
+    projectId: string;
+    orgId: string;
+    beforeAssetId: string;
+    afterAssetId: string;
+    gpsDistanceMeters: number | null;
+    timeDifferenceHours: number | null;
+  }): Promise<void>;
   /** Readiness probe for the queue backend (Redis). */
   ping(): Promise<void>;
   close(): Promise<void>;
