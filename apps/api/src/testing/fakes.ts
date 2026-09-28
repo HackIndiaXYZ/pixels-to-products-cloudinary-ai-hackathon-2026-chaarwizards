@@ -12,21 +12,24 @@
 import jwt from 'jsonwebtoken';
 import { generateKeyPairSync, sign as edSign } from 'node:crypto';
 import { buildSigningPayload, type SigningPayloadInput } from '@impact/shared';
-import type { Asset, AssetDerivative, Observation, Org, Project } from '@impact/shared';
+import type { Asset, AssetDerivative, ChangeEvent, Observation, Org, Project } from '@impact/shared';
 import type { Config } from '../config.js';
 import type {
   AssetInsert,
+  ChangeEventInsert,
   CloudinaryAdminPort,
   CloudinaryPort,
   CloudinaryResource,
   DbPort,
   DerivativeInsert,
   IntegrityCheck,
+  ManualPairInsert,
   ObservationInsert,
+  PairingAssetRow,
   QueuePort,
   VerificationUpdate,
 } from '../ports.js';
-import type { MlClient } from '../services/ml-client.js';
+import type { DetectChangeRequest, DetectChangeResponse, MlClient } from '../services/ml-client.js';
 
 export const TEST_JWT_SECRET = 'test-supabase-jwt-secret';
 export const ORG_A = '11111111-1111-1111-1111-111111111111';
@@ -102,10 +105,14 @@ export interface FakeDb extends DbPort {
   _orgs: Map<string, Org>;
   _derivatives: Map<string, AssetDerivative>;
   _observations: Observation[];
+  _changeEvents: Map<string, ChangeEvent>;
+  _pairingCoords: Map<string, { lat: number; lon: number }>;
   _invites: { org_id: string; email: string; role: string; token_hash: string; expires_at: string }[];
   _audit: { assetId: string; action: string; details_canonical: string }[];
   seedProject(p: Partial<Project> & { org_id: string }): Project;
-  seedAsset(a: Partial<Asset> & { org_id: string; project_id: string }): Asset;
+  seedAsset(
+    a: Partial<Asset> & { org_id: string; project_id: string; gps_lat?: number; gps_lon?: number },
+  ): Asset;
   seedDerivative(d: Partial<AssetDerivative> & { parent_asset_id: string; org_id: string }): AssetDerivative;
 }
 
@@ -115,6 +122,8 @@ export function makeFakeDb(): FakeDb {
   const orgs = new Map<string, Org>();
   const derivatives = new Map<string, AssetDerivative>();
   const observations: Observation[] = [];
+  const changeEvents = new Map<string, ChangeEvent>();
+  const pairingCoords = new Map<string, { lat: number; lon: number }>();
   const invites: FakeDb['_invites'] = [];
   const audit: FakeDb['_audit'] = [];
 
@@ -162,6 +171,8 @@ export function makeFakeDb(): FakeDb {
     _orgs: orgs,
     _derivatives: derivatives,
     _observations: observations,
+    _changeEvents: changeEvents,
+    _pairingCoords: pairingCoords,
     _invites: invites,
     _audit: audit,
 
@@ -182,6 +193,7 @@ export function makeFakeDb(): FakeDb {
     },
 
     seedAsset(a) {
+      const { gps_lat, gps_lon, ...assetOverrides } = a;
       const asset = { ...assetFromInsert({
         project_id: a.project_id,
         org_id: a.org_id,
@@ -213,8 +225,11 @@ export function makeFakeDb(): FakeDb {
         server_upload_timestamp: null,
         upload_started_at: null,
         signature_tier: 'device',
-      }), ...a, id: a.id ?? uuid() } as Asset;
+      }), ...assetOverrides, id: a.id ?? uuid() } as Asset;
       assets.set(asset.id, asset);
+      if (gps_lat !== undefined && gps_lon !== undefined) {
+        pairingCoords.set(asset.id, { lat: gps_lat, lon: gps_lon });
+      }
       return asset;
     },
 
@@ -305,6 +320,96 @@ export function makeFakeDb(): FakeDb {
           ...a,
           upload_status: update.upload_status ?? a.upload_status,
         } as Asset);
+      },
+      async listForPairing(projectId): Promise<PairingAssetRow[]> {
+        // Mirror assets_for_pairing: verified + located only.
+        return [...assets.values()]
+          .filter((a) => a.project_id === projectId && a.upload_status === 'verified')
+          .map((a) => {
+            const coords = pairingCoords.get(a.id);
+            if (coords === undefined) return null;
+            return {
+              id: a.id,
+              org_id: a.org_id,
+              project_id: a.project_id,
+              observation_type: a.observation_type ?? null,
+              phase: a.phase ?? null,
+              device_capture_timestamp: a.device_capture_timestamp,
+              gps_lat: coords.lat,
+              gps_lon: coords.lon,
+              cloudinary_public_id: a.cloudinary_public_id,
+              asset_type: a.asset_type ?? null,
+            } satisfies PairingAssetRow;
+          })
+          .filter((r): r is PairingAssetRow => r !== null);
+      },
+    },
+
+    changeEvents: {
+      async findPair(beforeAssetId, afterAssetId) {
+        return (
+          [...changeEvents.values()].find(
+            (e) =>
+              e.before_asset_id === beforeAssetId &&
+              e.after_asset_id === afterAssetId &&
+              e.status !== 'split',
+          ) ?? null
+        );
+      },
+      async insert(row: ChangeEventInsert) {
+        const event: ChangeEvent = {
+          id: uuid(),
+          project_id: row.project_id,
+          org_id: row.org_id,
+          before_asset_id: row.before_asset_id,
+          after_asset_id: row.after_asset_id,
+          change_type: row.change_type,
+          change_metrics: row.change_metrics,
+          detection_method: row.detection_method,
+          model_version: row.model_version,
+          confidence: row.confidence,
+          diff_asset_cloudinary_id: row.diff_asset_cloudinary_id,
+          gps_distance_meters: row.gps_distance_meters,
+          time_difference_hours: row.time_difference_hours,
+          status: row.status,
+          failure_reason: row.failure_reason,
+          created_at: nowIso,
+        };
+        changeEvents.set(event.id, event);
+        return event;
+      },
+      async getById(ctx, id) {
+        const e = changeEvents.get(id);
+        return e && e.org_id === ctx.orgId ? e : null;
+      },
+      async createManual(ctx, input: ManualPairInsert) {
+        const event: ChangeEvent = {
+          id: uuid(),
+          project_id: input.project_id,
+          org_id: ctx.orgId,
+          before_asset_id: input.before_asset_id,
+          after_asset_id: input.after_asset_id,
+          change_type: null,
+          change_metrics: {},
+          detection_method: 'manual',
+          model_version: 'manual',
+          confidence: null,
+          diff_asset_cloudinary_id: null,
+          gps_distance_meters: input.gps_distance_meters,
+          time_difference_hours: input.time_difference_hours,
+          status: 'manual',
+          failure_reason: null,
+          created_at: nowIso,
+        };
+        changeEvents.set(event.id, event);
+        return event;
+      },
+      async setStatus(ctx, id, status) {
+        const e = changeEvents.get(id);
+        if (!e || e.org_id !== ctx.orgId) return null;
+        const updated = { ...e, status };
+        changeEvents.set(id, updated);
+        return updated;
       },
     },
 
@@ -429,6 +534,10 @@ export function makeFakeDb(): FakeDb {
       return projects.get(projectId)?.org_id ?? null;
     },
 
+    async getProjectService(projectId) {
+      return projects.get(projectId) ?? null;
+    },
+
     async ping() {
       /* always ready */
     },
@@ -491,13 +600,40 @@ export function makeFakeCloudinaryAdmin(
   };
 }
 
-export function makeFakeQueue(): QueuePort & { _jobs: { assetId: string }[] } {
+export function makeFakeQueue(): QueuePort & {
+  _jobs: { assetId: string }[];
+  _pairJobs: { projectId: string }[];
+  _detectJobs: { beforeAssetId: string; afterAssetId: string }[];
+} {
   const jobs: { assetId: string }[] = [];
+  const pairJobs: { projectId: string }[] = [];
+  const detectJobs: { beforeAssetId: string; afterAssetId: string }[] = [];
   return {
     _jobs: jobs,
+    _pairJobs: pairJobs,
+    _detectJobs: detectJobs,
     async enqueueAiEnrich(payload) {
       // Idempotent by assetId, matching the BullMQ jobId behaviour.
       if (!jobs.some((j) => j.assetId === payload.assetId)) jobs.push({ assetId: payload.assetId });
+    },
+    async enqueuePairAssets(payload) {
+      if (!pairJobs.some((j) => j.projectId === payload.projectId)) {
+        pairJobs.push({ projectId: payload.projectId });
+      }
+    },
+    async enqueueDetectChange(payload) {
+      // Idempotent by ordered pair, matching the BullMQ jobId behaviour.
+      if (
+        !detectJobs.some(
+          (j) =>
+            j.beforeAssetId === payload.beforeAssetId && j.afterAssetId === payload.afterAssetId,
+        )
+      ) {
+        detectJobs.push({
+          beforeAssetId: payload.beforeAssetId,
+          afterAssetId: payload.afterAssetId,
+        });
+      }
     },
     async ping() {
       /* ready */
@@ -508,10 +644,36 @@ export function makeFakeQueue(): QueuePort & { _jobs: { assetId: string }[] } {
   };
 }
 
-export function makeFakeMl(): MlClient {
+/**
+ * Configurable fake ML client. Defaults to a valid forestry detection carrying a
+ * model_version. Override to exercise the unsupported envelope (§3.3), a thrown
+ * transport error, or off-schema metrics (§3.2).
+ */
+export function makeFakeMl(
+  opts: {
+    response?: DetectChangeResponse;
+    throwError?: boolean;
+    onRequest?: (req: DetectChangeRequest) => DetectChangeResponse;
+  } = {},
+): MlClient {
   return {
-    async detectChange() {
-      return { change_type: 'x', change_metrics: {}, confidence: 1 };
+    async detectChange(_ctx, req) {
+      if (opts.throwError === true) {
+        throw new Error('ml transport failure');
+      }
+      if (opts.onRequest !== undefined) {
+        return opts.onRequest(req);
+      }
+      if (opts.response !== undefined) {
+        return opts.response;
+      }
+      return {
+        change_type: 'sapling_planting',
+        change_metrics: { saplings_planted: 49, area_covered_sqm: 1200.5 },
+        model_version: 'v1-placeholder',
+        confidence: 0.9,
+        diff_url: 'https://res.cloudinary.com/demo/image/upload/diff.jpg',
+      };
     },
   };
 }

@@ -376,11 +376,28 @@ CREATE TABLE change_events (
   gps_distance_meters FLOAT,
   time_difference_hours FLOAT,
   
+  -- Pairing lifecycle (Phase 7 — migration 20260927140000). status persists a
+  -- detection that could not run rather than dropping it (§3.6); failure_reason
+  -- is required iff status = 'failed'. A failed/manual row carries NO metric, so
+  -- model_version is a non-model sentinel ('none' / 'manual') — NOT NULL still
+  -- holds and §3.2 is not in tension (there is no number to trace).
+  status TEXT NOT NULL DEFAULT 'detected'
+    CHECK (status IN ('detected', 'failed', 'manual', 'split')),
+  failure_reason TEXT,
+  CONSTRAINT change_events_failure_reason_ck CHECK (
+    (status = 'failed' AND failure_reason IS NOT NULL)
+    OR (status <> 'failed' AND failure_reason IS NULL)
+  ),
+  
   created_at TIMESTAMPTZ DEFAULT now()
 );
 
 CREATE INDEX idx_change_project ON change_events(project_id);
 CREATE INDEX idx_change_assets ON change_events(before_asset_id, after_asset_id);
+CREATE INDEX idx_change_events_status ON change_events(status);
+-- Idempotency: at most one live (non-split) pair per ordered (before, after).
+CREATE UNIQUE INDEX uq_change_events_pair
+  ON change_events (before_asset_id, after_asset_id) WHERE status <> 'split';
 
 ALTER TABLE change_events ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "change_events_org_read" ON change_events FOR SELECT
@@ -645,6 +662,17 @@ CREATE POLICY "sync_state_org_read" ON sync_state FOR SELECT
 ---
 
 ## Helper Functions
+
+### Pairing Source (Phase 7)
+
+`assets_for_pairing(p_project_id UUID)` — service-role source for the pairing
+worker (migration `20260927140000`). Coordinates live in `gps_point
+GEOGRAPHY(POINT,4326)`, which PostgREST does not expose as numbers, so this
+function projects the pairing-relevant columns and extracts `gps_lat`/`gps_lon`
+via `ST_Y`/`ST_X`. It returns ONLY `upload_status = 'verified'` assets with a
+location — the architecture allows only ready assets to be paired, and an asset
+with no fix cannot be clustered. This is a Postgres read (the system of record),
+not a Cloudinary query, so §3.9 is unaffected.
 
 ### Hash Chain Append
 

@@ -30,10 +30,16 @@ export function mintInternalJwt(secret: string, claims: InternalJwtClaims): stri
 }
 
 const DetectChangeResponseSchema = z.object({
-  change_type: z.string(),
-  change_metrics: z.record(z.string(), z.unknown()),
-  confidence: z.number(),
+  change_type: z.string().optional(),
+  change_metrics: z.record(z.string(), z.unknown()).optional(),
+  confidence: z.number().optional(),
   diff_url: z.string().optional(),
+  /**
+   * The model_registry version that produced every number (§3.2). Present on a
+   * successful detection; absent on the `{ "status": "unsupported" }` envelope a
+   * sector with no trained model returns (§3.3).
+   */
+  model_version: z.string().optional(),
   status: z.string().optional(),
 });
 export type DetectChangeResponse = z.infer<typeof DetectChangeResponseSchema>;

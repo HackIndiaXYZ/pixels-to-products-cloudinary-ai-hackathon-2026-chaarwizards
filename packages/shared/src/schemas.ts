@@ -17,6 +17,7 @@ import {
   ASSET_PHASES,
   ASSET_TYPES,
   AUDIT_ACTOR_TYPES,
+  CHANGE_EVENT_STATUSES,
   EVIDENCE_PACKAGE_STATES,
   GPS_PROVIDERS,
   MANIFEST_ROLES,
@@ -180,6 +181,14 @@ export const ChangeEventSchema = z.object({
   diff_asset_cloudinary_id: z.string().nullable().optional(),
   gps_distance_meters: z.number().nullable().optional(),
   time_difference_hours: z.number().nullable().optional(),
+  /**
+   * Pairing lifecycle (Phase 7). `failed` rows persist a `failure_reason` so a
+   * detection that could not run is never a silent drop (§3.6); `manual`/`split`
+   * are human overrides. Defaults to `detected` for rows written before the
+   * column existed.
+   */
+  status: z.enum(CHANGE_EVENT_STATUSES).default('detected'),
+  failure_reason: z.string().nullable().optional(),
   created_at: isoDateTime,
 });
 export type ChangeEvent = z.infer<typeof ChangeEventSchema>;

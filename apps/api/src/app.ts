@@ -24,6 +24,7 @@ import { registerProjectRoutes } from './routes/projects.js';
 import { registerAssetRoutes } from './routes/assets.js';
 import { registerOrgRoutes } from './routes/orgs.js';
 import { registerIntegrityRoutes } from './routes/integrity.js';
+import { registerPairRoutes } from './routes/pairs.js';
 import { registerCloudinaryWebhook } from './routes/webhooks/cloudinary.js';
 
 export interface AppDeps {
@@ -149,6 +150,7 @@ export async function buildApp(deps: AppDeps): Promise<FastifyInstance> {
   await registerAssetRoutes(app);
   await registerOrgRoutes(app);
   await registerIntegrityRoutes(app);
+  await registerPairRoutes(app);
   await registerCloudinaryWebhook(app);
 
   return app;

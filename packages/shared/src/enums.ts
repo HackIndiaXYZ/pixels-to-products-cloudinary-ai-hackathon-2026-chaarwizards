@@ -54,6 +54,15 @@ export type InviteRole = (typeof INVITE_ROLES)[number];
 export const MODEL_STATUSES = ['trained', 'prebuilt', 'unsupported'] as const;
 export type ModelStatus = (typeof MODEL_STATUSES)[number];
 
+/**
+ * `change_events.status` (Phase 7). `detected` carries a CV metric; `failed`
+ * persists a detection that could not run, with a reason (§3.6 — never a silent
+ * drop); `manual` is a human-declared link (no CV metric); `split` is a manual
+ * unlink.
+ */
+export const CHANGE_EVENT_STATUSES = ['detected', 'failed', 'manual', 'split'] as const;
+export type ChangeEventStatus = (typeof CHANGE_EVENT_STATUSES)[number];
+
 /** GPS fix provider recorded at capture. */
 export const GPS_PROVIDERS = ['gps', 'network', 'fused', 'passive'] as const;
 export type GpsProvider = (typeof GPS_PROVIDERS)[number];

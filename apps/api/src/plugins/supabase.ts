@@ -19,6 +19,7 @@ import {
   ProjectSchema,
   AssetSchema,
   AssetDerivativeSchema,
+  ChangeEventSchema,
   OrgSchema,
 } from '@impact/shared';
 import type { JsonValue, Project } from '@impact/shared';
@@ -26,8 +27,11 @@ import type { Config } from '../config.js';
 import type {
   AssetInsert,
   AuditRepo,
+  ChangeEventInsert,
   DbPort,
   IntegrityCheck,
+  ManualPairInsert,
+  PairingAssetRow,
   Page,
   VerificationUpdate,
 } from '../ports.js';
@@ -180,6 +184,122 @@ export function createSupabaseDb(config: Config): DbPort {
         const { error } = await service.from('assets').update(update).eq('id', assetId);
         if (error) throw errors.internal('set verification failed', { cause: error.message });
       },
+      async listForPairing(projectId): Promise<PairingAssetRow[]> {
+        const { data, error } = await service.rpc('assets_for_pairing', {
+          p_project_id: projectId,
+        });
+        if (error) throw errors.internal('pairing asset list failed', { cause: error.message });
+        return ((data ?? []) as unknown[]).map((r) => {
+          const row = r as {
+            id: string;
+            org_id: string;
+            project_id: string;
+            observation_type: string | null;
+            phase: 'before' | 'after' | null;
+            device_capture_timestamp: string;
+            gps_lat: number | null;
+            gps_lon: number | null;
+            cloudinary_public_id: string;
+            asset_type: 'image' | 'video' | null;
+          };
+          return {
+            id: row.id,
+            org_id: row.org_id,
+            project_id: row.project_id,
+            observation_type: row.observation_type,
+            phase: row.phase,
+            device_capture_timestamp: row.device_capture_timestamp,
+            gps_lat: row.gps_lat,
+            gps_lon: row.gps_lon,
+            cloudinary_public_id: row.cloudinary_public_id,
+            asset_type: row.asset_type,
+          };
+        });
+      },
+    },
+
+    changeEvents: {
+      async findPair(beforeAssetId, afterAssetId) {
+        const { data, error } = await service
+          .from('change_events')
+          .select('*')
+          .eq('before_asset_id', beforeAssetId)
+          .eq('after_asset_id', afterAssetId)
+          .neq('status', 'split')
+          .maybeSingle();
+        if (error) throw errors.internal('find pair failed', { cause: error.message });
+        return data ? ChangeEventSchema.parse(data) : null;
+      },
+      async insert(row: ChangeEventInsert) {
+        const { data, error } = await service
+          .from('change_events')
+          .insert({
+            project_id: row.project_id,
+            org_id: row.org_id,
+            before_asset_id: row.before_asset_id,
+            after_asset_id: row.after_asset_id,
+            change_type: row.change_type,
+            change_metrics: row.change_metrics,
+            detection_method: row.detection_method,
+            model_version: row.model_version,
+            confidence: row.confidence,
+            diff_asset_cloudinary_id: row.diff_asset_cloudinary_id,
+            gps_distance_meters: row.gps_distance_meters,
+            time_difference_hours: row.time_difference_hours,
+            status: row.status,
+            failure_reason: row.failure_reason,
+          })
+          .select('*')
+          .single();
+        if (error) throw errors.internal('change event insert failed', { cause: error.message });
+        return ChangeEventSchema.parse(data);
+      },
+      async getById(ctx, id) {
+        const { data, error } = await scoped(ctx)
+          .from('change_events')
+          .select('*')
+          .eq('id', id)
+          .maybeSingle();
+        if (error) throw errors.internal('get change event failed', { cause: error.message });
+        return data ? ChangeEventSchema.parse(data) : null;
+      },
+      async createManual(ctx, input: ManualPairInsert) {
+        // Request-scoped insert: RLS forces the row into the caller's org, and
+        // org_id is set from the verified JWT, never the body (§3.4). A manual
+        // link has no CV metric, so model_version is the 'manual' sentinel (§3.2).
+        const { data, error } = await scoped(ctx)
+          .from('change_events')
+          .insert({
+            project_id: input.project_id,
+            org_id: ctx.orgId,
+            before_asset_id: input.before_asset_id,
+            after_asset_id: input.after_asset_id,
+            change_type: null,
+            change_metrics: {},
+            detection_method: 'manual',
+            model_version: 'manual',
+            confidence: null,
+            diff_asset_cloudinary_id: null,
+            gps_distance_meters: input.gps_distance_meters,
+            time_difference_hours: input.time_difference_hours,
+            status: 'manual',
+            failure_reason: null,
+          })
+          .select('*')
+          .single();
+        if (error) throw errors.internal('manual pair insert failed', { cause: error.message });
+        return ChangeEventSchema.parse(data);
+      },
+      async setStatus(ctx, id, status) {
+        const { data, error } = await scoped(ctx)
+          .from('change_events')
+          .update({ status })
+          .eq('id', id)
+          .select('*')
+          .maybeSingle();
+        if (error) throw errors.internal('set pair status failed', { cause: error.message });
+        return data ? ChangeEventSchema.parse(data) : null;
+      },
     },
 
     orgs: {
@@ -325,6 +445,16 @@ export function createSupabaseDb(config: Config): DbPort {
         .maybeSingle();
       if (error) throw errors.internal('org lookup failed', { cause: error.message });
       return data ? (data as { org_id: string }).org_id : null;
+    },
+
+    async getProjectService(projectId) {
+      const { data, error } = await service
+        .from('projects')
+        .select('*')
+        .eq('id', projectId)
+        .maybeSingle();
+      if (error) throw errors.internal('service project lookup failed', { cause: error.message });
+      return data ? ProjectSchema.parse(data) : null;
     },
   };
 }
