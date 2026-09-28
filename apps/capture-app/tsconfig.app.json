@@ -1,0 +1,23 @@
+{
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    "noEmit": true,
+    "lib": ["ES2022", "DOM"],
+    "jsx": "react-jsx",
+    "module": "ESNext",
+    "moduleResolution": "Bundler",
+    "types": ["react", "react-native", "node"],
+    "declaration": false,
+    "declarationMap": false,
+    "sourceMap": false
+  },
+  "include": [
+    "index.ts",
+    "App.tsx",
+    "src/native/**/*.ts",
+    "src/native/**/*.tsx",
+    "src/screens/**/*.tsx",
+    "src/screens/**/*.ts"
+  ],
+  "exclude": ["node_modules", "dist"]
+}

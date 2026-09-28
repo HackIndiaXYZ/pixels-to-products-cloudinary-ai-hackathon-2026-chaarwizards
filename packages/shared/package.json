@@ -9,6 +9,10 @@
     ".": {
       "types": "./dist/index.d.ts",
       "default": "./dist/index.js"
+    },
+    "./rn": {
+      "types": "./dist/rn.d.ts",
+      "default": "./dist/rn.js"
     }
   },
   "scripts": {
@@ -22,6 +26,7 @@
     "vitest": "^2.1.8"
   },
   "dependencies": {
+    "@noble/hashes": "1.5.0",
     "zod": "^4.6.5"
   }
 }

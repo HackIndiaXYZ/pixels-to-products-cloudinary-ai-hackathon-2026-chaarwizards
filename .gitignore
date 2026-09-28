@@ -45,3 +45,5 @@ weights/
 # local — never commit
 .DS_Store
 *.log
+.agents/*
+skills-lock.json
