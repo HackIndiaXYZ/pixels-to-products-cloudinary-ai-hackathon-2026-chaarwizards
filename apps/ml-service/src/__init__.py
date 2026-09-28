@@ -1,8 +1,10 @@
 """@impact/ml-service — computer-vision ML service.
 
-Phase 0 ships only the package skeleton and toolchain (ruff, mypy --strict,
-pytest). The FastAPI app, model registry loader, forestry pipeline, and the
-Python RFC 8785 canonicalizer land in Phase 6.
+FastAPI service that turns verified before/after evidence into quantified,
+versioned change metrics. Every number it returns originates from a model
+resolved through ``model_registry`` — never from an LLM (AGENTS.md §3.2) — and
+it refuses to borrow another sector's model (§3.3), returning
+``{"status": "unsupported"}`` instead.
 """
 
-ML_SERVICE_VERSION: str = "0.0.0"
+ML_SERVICE_VERSION: str = "0.6.0"

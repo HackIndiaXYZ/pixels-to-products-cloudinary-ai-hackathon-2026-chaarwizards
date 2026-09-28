@@ -147,10 +147,56 @@ Response (200):
     "after_count": 51,
     "alignment_quality": 0.95
   },
+  "model_version": "v1-placeholder",
   "confidence": 0.93,
   "diff_url": "https://res.cloudinary.com/.../diff.jpg"
 }
+
+# `model_version` is the model_registry version that produced every number and
+# is what change_events.model_version records (AGENTS.md §3.2). A sector with no
+# trained model returns 200 with the envelope below instead of metrics — never a
+# borrowed number from another sector (§3.3):
+#   { "status": "unsupported" }
 ```
+
+### Detect Change (video)
+```
+POST /v1/detect-change-video
+Content-Type: application/json
+Authorization: Bearer <internal-jwt>
+
+Request:
+{
+  "video_url": "https://res.cloudinary.com/.../clip.mp4",
+  "sector": "forestry",
+  "project_id": "project-uuid",
+  "gps": {"lat": 19.1234, "lon": 72.8765}
+}
+
+Response (200):
+{
+  "change_type": "sapling_planting",
+  "change_metrics": { "...": "aggregate (first vs last keyframe)" },
+  "keyframes": [
+    { "index": 1, "alignment_quality": 0.9, "change_metrics": { "...": "..." } }
+  ],
+  "model_version": "v1-placeholder",
+  "confidence": 0.9
+}
+# ffmpeg keyframe extraction → ORB + homography alignment → per-keyframe change
+# + aggregate. Unsupported sectors return { "status": "unsupported" }.
+```
+
+### Health & Model Info
+```
+GET /health                         -> { "status": "ok", "version": "0.6.0" }
+
+GET /model-info?key=forestry        # requires the internal JWT
+  -> { "key": "forestry", "version": "v1-placeholder",
+       "sector": "forestry", "status": "trained" }
+  # a non-trained key returns { "status": "unsupported" }
+```
+
 
 ### Classify Activity
 ```
@@ -173,8 +219,10 @@ Response (200):
     "saplings_visible": 45,
     "people_visible": 3,
     "tools_visible": 2
-  }
+  },
+  "model_version": "v1-placeholder"
 }
+# Unsupported sectors return { "status": "unsupported" }.
 ```
 
 ### Extract Visual Signals
@@ -196,8 +244,10 @@ Response (200):
   "smoke": false,
   "machinery": [],
   "bare_ground_pct": 0.15,
-  "canopy_cover_pct": 0.68
+  "canopy_cover_pct": 0.68,
+  "model_version": "v1-placeholder"
 }
+# Unsupported sectors return { "status": "unsupported" }.
 ```
 
 ---

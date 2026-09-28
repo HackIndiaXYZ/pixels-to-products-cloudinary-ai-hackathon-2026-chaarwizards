@@ -18,6 +18,15 @@ src = ["src", "tests"]
 [tool.ruff.lint]
 select = ["E", "F", "I", "UP", "B", "SIM"]
 
+# FastAPI's dependency-injection idiom puts `Depends(...)` / `Query(...)` /
+# `Header(...)` calls in argument defaults; they are evaluated once and are safe.
+[tool.ruff.lint.flake8-bugbear]
+extend-immutable-calls = [
+  "fastapi.Depends",
+  "fastapi.Query",
+  "fastapi.Header",
+]
+
 [tool.black]
 line-length = 100
 target-version = ["py311"]
@@ -28,6 +37,29 @@ strict = true
 warn_unused_configs = true
 disallow_untyped_defs = true
 files = ["src"]
+
+# Third-party libraries without usable type stubs are wrapped at the module
+# boundary; their stubs are skipped here rather than sprinkling `type: ignore`.
+# opencv ships partial stubs whose MatLike alias fights our uint8 arrays, so we
+# skip following it and treat cv2 as untyped at the boundary.
+[[tool.mypy.overrides]]
+module = ["cv2", "cv2.*"]
+follow_imports = "skip"
+follow_imports_for_stubs = true
+ignore_missing_imports = true
+
+[[tool.mypy.overrides]]
+module = [
+  "torch",
+  "torch.*",
+  "ultralytics",
+  "ultralytics.*",
+  "jose",
+  "jose.*",
+  "cloudinary",
+  "cloudinary.*",
+]
+ignore_missing_imports = true
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

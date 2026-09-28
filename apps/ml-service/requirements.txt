@@ -1,3 +1,22 @@
-# Runtime dependencies for the ML service land in Phase 6
-# (fastapi, uvicorn, torch, ultralytics, opencv-python-headless, cloudinary,
-#  pydantic, python-jose, ...). Pinned there against the trained-weights work.
+# Runtime dependencies for the ML service (Phase 6). Pinned.
+# Server-only service; secrets come from the environment (see .env.example).
+#
+# torch + ultralytics are the learned-weights path (YOLOv8n sapling detector,
+# COCO base detector, ChangeFormer). They are heavy and are imported lazily in
+# src/models/forestry.py, so the service, its tests, and the deterministic
+# baseline in src/models/synthetic.py all run without them installed. Pin the
+# MAJOR version; the exact build is resolved against the trained weights.
+fastapi==0.115.6
+uvicorn[standard]==0.34.0
+pydantic==2.10.4
+python-jose[cryptography]==3.3.0
+numpy==2.2.1
+opencv-python-headless==4.10.0.84
+pillow==11.0.0
+httpx==0.28.1
+cloudinary==1.41.0
+
+# Learned CV path — lazy imported (see note above). ffmpeg is a system package
+# pinned in the container image (major version 8.x), not a pip dependency.
+torch>=2.2,<3
+ultralytics>=8.2,<9
