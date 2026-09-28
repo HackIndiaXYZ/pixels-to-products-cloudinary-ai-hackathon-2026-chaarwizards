@@ -72,6 +72,17 @@ const WebhookBodySchema = z.object({
     metadata: MetadataSchema,
     created_at: z.string().optional(),
     bytes: z.number().optional(),
+    // AI tagging from the upload preset (`categorization`/`detection`). Copied
+    // into `observations` at ingest and NEVER queried back from Cloudinary
+    // (AGENTS.md §3.9). Shapes are permissive: Cloudinary's analysis payload is
+    // a third-party boundary.
+    tags: z.array(z.string()).optional(),
+    info: z
+      .object({
+        categorization: z.record(z.string(), z.unknown()).optional(),
+        detection: z.record(z.string(), z.unknown()).optional(),
+      })
+      .optional(),
   }),
 });
 
@@ -252,6 +263,30 @@ export async function registerCloudinaryWebhook(app: FastifyInstance): Promise<v
         // keyed on the asset, so a replay cannot double-enqueue.
         if (existing === null && verification !== 'failed') {
           await app.deps.queue.enqueueAiEnrich({ assetId: asset.id, orgId });
+        }
+
+        // Copy Cloudinary AI tags into Postgres `observations` at ingest (§3.9).
+        // Tags are write-only to us: we store them here and never query Cloudinary
+        // back for them. Only on a fresh, non-quarantined asset, and only when the
+        // preset actually returned something to record.
+        const tags = body.info.tags ?? [];
+        const categorization = body.info.info?.categorization;
+        const detection = body.info.info?.detection;
+        const hasTags =
+          tags.length > 0 || categorization !== undefined || detection !== undefined;
+        if (existing === null && verification !== 'failed' && hasTags) {
+          await app.deps.db.observations.insert({
+            asset_id: asset.id,
+            project_id: ctx.project_id,
+            org_id: orgId,
+            observation_type: ctx.observation_type,
+            metrics: {
+              tags,
+              ...(categorization !== undefined ? { categorization } : {}),
+              ...(detection !== undefined ? { detection } : {}),
+            },
+            notes: 'cloudinary_ai_tags',
+          });
         }
 
         return ok({

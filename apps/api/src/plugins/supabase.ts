@@ -153,6 +153,15 @@ export function createSupabaseDb(config: Config): DbPort {
         if (error) throw errors.internal('idempotency lookup failed', { cause: error.message });
         return data ? AssetSchema.parse(data) : null;
       },
+      async getByIdService(id) {
+        const { data, error } = await service
+          .from('assets')
+          .select('*')
+          .eq('id', id)
+          .maybeSingle();
+        if (error) throw errors.internal('service asset lookup failed', { cause: error.message });
+        return data ? AssetSchema.parse(data) : null;
+      },
       async insert(row: AssetInsert) {
         const gps =
           row.gps_lat !== null && row.gps_lon !== null
@@ -223,6 +232,84 @@ export function createSupabaseDb(config: Config): DbPort {
         if (error) throw errors.internal('get derivative failed', { cause: error.message });
         return data ? AssetDerivativeSchema.parse(data) : null;
       },
+      async getById(id) {
+        const { data, error } = await service
+          .from('asset_derivatives')
+          .select('*')
+          .eq('id', id)
+          .maybeSingle();
+        if (error) throw errors.internal('get derivative failed', { cause: error.message });
+        return data ? AssetDerivativeSchema.parse(data) : null;
+      },
+      async insert(row) {
+        // Service role: derivatives have no INSERT policy, they are written by
+        // the transformation worker (§3.1). org_id is forced to the parent's org
+        // by a DB trigger, so it is not supplied here.
+        const { data, error } = await service
+          .from('asset_derivatives')
+          .insert({
+            parent_asset_id: row.parent_asset_id,
+            transformation: row.transformation,
+            kind: row.kind,
+            public_id: row.public_id,
+            is_generative: row.is_generative,
+            cloudinary_asset_id: row.cloudinary_asset_id,
+            cloudinary_version: row.cloudinary_version,
+            byte_size: row.byte_size,
+            sha256_hash: row.sha256_hash,
+          })
+          .select('*')
+          .single();
+        if (error) throw errors.internal('derivative insert failed', { cause: error.message });
+        return AssetDerivativeSchema.parse(data);
+      },
+    },
+
+    observations: {
+      async insert(row) {
+        const { data, error } = await service
+          .from('observations')
+          .insert({
+            asset_id: row.asset_id,
+            project_id: row.project_id,
+            org_id: row.org_id,
+            observation_type: row.observation_type,
+            metrics: row.metrics,
+            notes: row.notes,
+          })
+          .select('id')
+          .single();
+        if (error) throw errors.internal('observation insert failed', { cause: error.message });
+        return { id: (data as { id: string }).id };
+      },
+    },
+
+    async listAssetPublicIds() {
+      const { data, error } = await service.from('assets').select('cloudinary_public_id, org_id');
+      if (error) throw errors.internal('reconcile asset list failed', { cause: error.message });
+      return (data ?? []).map((r) => {
+        const row = r as { cloudinary_public_id: string; org_id: string };
+        return { public_id: row.cloudinary_public_id, org_id: row.org_id };
+      });
+    },
+
+    async listDerivativePublicIds() {
+      const { data, error } = await service.from('asset_derivatives').select('public_id, org_id');
+      if (error) throw errors.internal('reconcile derivative list failed', { cause: error.message });
+      return (data ?? []).map((r) => {
+        const row = r as { public_id: string; org_id: string };
+        return { public_id: row.public_id, org_id: row.org_id };
+      });
+    },
+
+    async setOrgBytesUsed(orgId, bytesUsed) {
+      // bytes_used is not evidence and carries no immutability trigger, so the
+      // reconciliation job may recompute it (ARCHITECTURE.md §3.2).
+      const { error } = await service
+        .from('orgs')
+        .update({ bytes_used: bytesUsed })
+        .eq('id', orgId);
+      if (error) throw errors.internal('set bytes_used failed', { cause: error.message });
     },
 
     async ping() {

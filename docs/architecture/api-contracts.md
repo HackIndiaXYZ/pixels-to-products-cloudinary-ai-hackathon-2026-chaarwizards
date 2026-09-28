@@ -104,6 +104,13 @@ Body:
 Response: 200 OK (async processing)
 ```
 
+**AI tags at ingest (Phase 5).** The `verified_capture` preset runs
+`categorization: google_tagging` + `detection: openimages`, so the notification
+may carry `info.tags` and `info.info.categorization` / `info.info.detection`.
+On a fresh, non-quarantined asset the API copies these into Postgres
+`observations` (`notes = 'cloudinary_ai_tags'`) and never queries Cloudinary
+back for them (AGENTS.md §3.9). Tags on a quarantined asset are discarded.
+
 ---
 
 ## 3. Node API → Python ML Service
@@ -477,6 +484,18 @@ Response (200): { "org_id": "uuid", "invite_url": "https://.../invite/<token>" }
 
 There is no public signup endpoint. Orgs are provisioned by a platform admin, who then invites
 the first `org_admin`. Invite tokens are single-use, expire in 72 hours, and are stored hashed.
+
+---
+
+## 5b. Internal Media Pipeline (Phase 5, not HTTP endpoints)
+
+These are server-side operations, never client-facing routes.
+
+| Operation | Where | Notes |
+|---|---|---|
+| Derivative writer | `services/derivatives.ts` `createDerivative(parentAssetId, transformation, kind, isGenerative)` | Applies an eager transformation, inserts an append-only `asset_derivatives` row (`parent_asset_id` + exact transformation string, §3.1), appends an audit row. Generative edits are permitted **only** on a report-copy derivative; a generative call on an original is rejected. Generative transforms are async (420/423) and reported `pending`, never fetched synchronously (§3.11). |
+| Reconciliation job | `jobs/reconcile.ts` (nightly) | One-way Cloudinary→Postgres integrity check (§3.9): reports orphans (in Cloudinary, no DB row) and missing (DB row, no bytes), and recomputes `orgs.bytes_used`. The only sanctioned Admin-API listing. |
+| Upload-preset setup | `jobs/setup-preset.ts` (one-time) | Provisions the unsigned `verified_capture` preset: `overwrite:false`, `invalidate:false`, `type:authenticated`, allowed formats + `max_file_size`, AI tagging, and the signed incoming webhook. |
 
 ---
 

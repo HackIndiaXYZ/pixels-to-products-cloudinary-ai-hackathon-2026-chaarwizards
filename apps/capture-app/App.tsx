@@ -17,16 +17,18 @@ import { CameraScreen } from './src/screens/CameraScreen.js';
 import { ProjectPickerScreen } from './src/screens/ProjectPickerScreen.js';
 import { QueueScreen } from './src/screens/QueueScreen.js';
 import { createCaptureRuntime, registerSyncTriggers, type CaptureRuntime } from './src/native/index.js';
+import { getSessionToken } from './src/native/session.js';
+import { fetchProjects } from './src/api.js';
 import type { CaptureSelection } from './src/projects.js';
 import type { Project } from '@impact/shared/rn';
 
 type Screen = 'picker' | 'camera' | 'queue';
 
 /**
- * DEV-ONLY seed. Used purely so the picker → camera → queue flow is explorable
- * on a device/emulator before the real API (Phase 5) is wired. Never a
- * production data source: the moment `EXPO_PUBLIC_API_URL` is set, the app loads
- * projects from the API and this is ignored.
+ * DEV-ONLY seed. Explorable UI before a Supabase login exists (Phase 8). Gated
+ * behind an explicit `EXPO_PUBLIC_DEV_SEED=1` opt-in — NOT "API unset" — so a
+ * real build can never silently show fake projects. Never a production data
+ * source: with a real session the app loads projects from the API.
  */
 const DEV_SEED_PROJECTS: Project[] = [
   {
@@ -52,16 +54,20 @@ const DEV_SEED_PROJECTS: Project[] = [
 ];
 
 async function loadProjects(): Promise<Project[]> {
+  // Explicit dev opt-in only, so the UI is explorable without a backend/login.
+  if (process.env.EXPO_PUBLIC_DEV_SEED === '1') return DEV_SEED_PROJECTS;
+
   const base = process.env.EXPO_PUBLIC_API_URL;
-  // No API configured → DEV seed, so the UI is explorable before Phase 5 wires
-  // the real /v1/projects endpoint. This is a dev affordance, not silent
-  // degradation of the evidence pipeline (AGENTS.md §3.6): captures still sign,
-  // hash, and queue exactly as in production.
-  if (base === undefined || base === '') return DEV_SEED_PROJECTS;
-  const response = await fetch(`${base}/v1/projects`);
-  if (!response.ok) throw new Error(`GET /v1/projects failed: ${response.status}`);
-  const body = (await response.json()) as { data?: Project[] };
-  return body.data ?? [];
+  if (base === undefined || base === '') {
+    throw new Error('EXPO_PUBLIC_API_URL is not set — cannot load projects');
+  }
+  // org_id/auth come from the verified Supabase JWT (AGENTS.md §3.4), never from
+  // env or a request body. No session → no projects, not a silent fallback.
+  const token = await getSessionToken();
+  if (token === null) {
+    throw new Error('Not signed in — a Supabase session is required to load projects');
+  }
+  return fetchProjects({ baseUrl: base, token });
 }
 
 export default function App(): JSX.Element {

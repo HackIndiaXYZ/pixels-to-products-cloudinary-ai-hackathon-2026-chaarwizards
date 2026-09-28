@@ -15,6 +15,7 @@ import type {
   VerificationState,
 } from '@impact/shared';
 import type { AuthContext } from './types.js';
+import type { UploadPresetDefinition } from './lib/cloudinary-preset.js';
 
 /** A page of rows plus an opaque cursor for the next page. */
 export interface Page<T> {
@@ -100,6 +101,8 @@ export interface AssetsRepo {
   // --- Service-role paths (webhook / workers only) ---
   /** Idempotency lookup: an existing row for the same content in the same project. */
   findBySha(sha256: string, projectId: string): Promise<Asset | null>;
+  /** Service-role read by id (no RLS), used by the derivative writer for lineage. */
+  getByIdService(id: string): Promise<Asset | null>;
   insert(row: AssetInsert): Promise<Asset>;
   setVerification(assetId: string, update: VerificationUpdate): Promise<void>;
 }
@@ -140,8 +143,46 @@ export interface IntegrityRepo {
   verify(ctx: AuthContext, assetId: string): Promise<IntegrityCheck[]>;
 }
 
+/** Row inserted by the derivative writer (service role; append-only §3.1). */
+export interface DerivativeInsert {
+  readonly parent_asset_id: string;
+  readonly transformation: string;
+  readonly kind: string | null;
+  readonly public_id: string;
+  readonly is_generative: boolean;
+  readonly cloudinary_asset_id: string | null;
+  readonly cloudinary_version: string | null;
+  readonly byte_size: number | null;
+  readonly sha256_hash: string | null;
+}
+
 export interface DerivativesRepo {
   getByPublicId(ctx: AuthContext, publicId: string): Promise<AssetDerivative | null>;
+  /** Service-role read of a derivative by id, used to resolve a generative source. */
+  getById(id: string): Promise<AssetDerivative | null>;
+  /** Service-role, append-only insert of a new derivative (§3.1). */
+  insert(row: DerivativeInsert): Promise<AssetDerivative>;
+}
+
+/** Row inserted at ingest when Cloudinary returns AI tags (§3.9: tags are copied in). */
+export interface ObservationInsert {
+  readonly asset_id: string;
+  readonly project_id: string;
+  readonly org_id: string;
+  readonly observation_type: string | null;
+  readonly metrics: Record<string, unknown> | null;
+  readonly notes: string | null;
+}
+
+export interface ObservationsRepo {
+  /** Service-role insert. Cloudinary tags are written here, never queried back. */
+  insert(row: ObservationInsert): Promise<{ id: string }>;
+}
+
+/** A stored asset/derivative identity for the reconciliation join (service role). */
+export interface ReconcilePublicId {
+  readonly public_id: string;
+  readonly org_id: string;
 }
 
 /** The full data layer handed to the app. */
@@ -153,12 +194,22 @@ export interface DbPort {
   audit: AuditRepo;
   integrity: IntegrityRepo;
   derivatives: DerivativesRepo;
+  observations: ObservationsRepo;
   /**
    * Service-role lookup of a project's owning org, used by the webhook to derive
    * `org_id` from the signed `project_id` — never from the request body
    * (AGENTS.md §3.4). Returns null if the project does not exist.
    */
   orgIdForProject(projectId: string): Promise<string | null>;
+  /**
+   * Reconciliation-only (§3.9): every stored asset / derivative `public_id` with
+   * its owning org, so the nightly job can join the Cloudinary resource list
+   * against Postgres and recompute per-org byte usage. Never a product read.
+   */
+  listAssetPublicIds(): Promise<ReconcilePublicId[]>;
+  listDerivativePublicIds(): Promise<ReconcilePublicId[]>;
+  /** Reconciliation-only: recompute `orgs.bytes_used` from authoritative totals. */
+  setOrgBytesUsed(orgId: string, bytesUsed: number): Promise<void>;
   /** Liveness/readiness probe. Resolves if the DB is reachable. */
   ping(): Promise<void>;
 }
@@ -171,6 +222,63 @@ export interface CloudinaryPort {
   signedDerivativeUrl(publicId: string, transformation: string): string;
   /** Authenticated original URL gated by an `auth_token` with a real `exp`. */
   originalUrl(publicId: string, ttlSeconds: number): { url: string; expiresAt: number };
+  /**
+   * Apply a transformation to an existing asset as an EAGER derivative and return
+   * the derived asset's identity. Generative transforms are asynchronous
+   * (420 Pending / 423 Locked); the live account reports them as `status:
+   * 'processing'` (or 'pending') with the destination URL already present but the
+   * bytes not yet generated. Whenever the derivative is still generating, `status`
+   * is `'pending'` and `secure_url` is null — the caller must never block on it or
+   * serve the URL early (AGENTS.md §3.11, CLOUDINARY_TRANSFORMATIONS.md §4).
+   * Signing is done by the SDK; no HMAC is hand-rolled.
+   */
+  createEagerDerivative(input: EagerDerivativeInput): Promise<EagerDerivativeResult>;
+  /**
+   * Produce a request signature via the SDK helper. Exposed so the gate can prove
+   * signatures come from the SDK, not string concatenation plus a manual digest.
+   */
+  signRequest(params: Record<string, unknown>): string;
+}
+
+export interface EagerDerivativeInput {
+  readonly sourcePublicId: string;
+  readonly sourceType: 'authenticated' | 'upload';
+  readonly resourceType: 'image' | 'video';
+  /** Exact transformation string (§3.1), e.g. a named or generative transform. */
+  readonly transformation: string;
+  readonly isGenerative: boolean;
+}
+
+export interface EagerDerivativeResult {
+  /** `'pending'` when the derivative is still generating (420/423). */
+  readonly status: 'ready' | 'pending';
+  readonly publicId: string;
+  readonly secureUrl: string | null;
+  readonly bytes: number | null;
+  readonly cloudinaryAssetId: string | null;
+  readonly version: string | null;
+}
+
+/** One Cloudinary-stored resource, as returned by the reconciliation listing. */
+export interface CloudinaryResource {
+  readonly public_id: string;
+  readonly asset_id: string | null;
+  readonly bytes: number;
+  readonly created_at: string;
+  readonly resource_type: string;
+}
+
+/**
+ * Admin-API surface. Per AGENTS.md §3.9 the ONLY legitimate Admin API uses are
+ * the nightly reconciliation (a one-way integrity check) and operational setup
+ * such as provisioning the upload preset. It is never used to serve a product
+ * read — that is what would leak one org's assets to another.
+ */
+export interface CloudinaryAdminPort {
+  /** Reconciliation only: list every stored resource (one-way integrity check). */
+  listAllResources(): Promise<CloudinaryResource[]>;
+  /** Operational setup: create/update the unsigned `verified_capture` preset. */
+  ensureUploadPreset(definition: UploadPresetDefinition): Promise<void>;
 }
 
 /** Background job enqueue. Never blocks a request on a generative transform (§3.11). */

@@ -12,13 +12,17 @@
 import jwt from 'jsonwebtoken';
 import { generateKeyPairSync, sign as edSign } from 'node:crypto';
 import { buildSigningPayload, type SigningPayloadInput } from '@impact/shared';
-import type { Asset, AssetDerivative, Org, Project } from '@impact/shared';
+import type { Asset, AssetDerivative, Observation, Org, Project } from '@impact/shared';
 import type { Config } from '../config.js';
 import type {
   AssetInsert,
+  CloudinaryAdminPort,
   CloudinaryPort,
+  CloudinaryResource,
   DbPort,
+  DerivativeInsert,
   IntegrityCheck,
+  ObservationInsert,
   QueuePort,
   VerificationUpdate,
 } from '../ports.js';
@@ -96,16 +100,21 @@ export interface FakeDb extends DbPort {
   _projects: Map<string, Project>;
   _assets: Map<string, Asset>;
   _orgs: Map<string, Org>;
+  _derivatives: Map<string, AssetDerivative>;
+  _observations: Observation[];
   _invites: { org_id: string; email: string; role: string; token_hash: string; expires_at: string }[];
   _audit: { assetId: string; action: string; details_canonical: string }[];
   seedProject(p: Partial<Project> & { org_id: string }): Project;
   seedAsset(a: Partial<Asset> & { org_id: string; project_id: string }): Asset;
+  seedDerivative(d: Partial<AssetDerivative> & { parent_asset_id: string; org_id: string }): AssetDerivative;
 }
 
 export function makeFakeDb(): FakeDb {
   const projects = new Map<string, Project>();
   const assets = new Map<string, Asset>();
   const orgs = new Map<string, Org>();
+  const derivatives = new Map<string, AssetDerivative>();
+  const observations: Observation[] = [];
   const invites: FakeDb['_invites'] = [];
   const audit: FakeDb['_audit'] = [];
 
@@ -151,6 +160,8 @@ export function makeFakeDb(): FakeDb {
     _projects: projects,
     _assets: assets,
     _orgs: orgs,
+    _derivatives: derivatives,
+    _observations: observations,
     _invites: invites,
     _audit: audit,
 
@@ -207,6 +218,25 @@ export function makeFakeDb(): FakeDb {
       return asset;
     },
 
+    seedDerivative(d) {
+      const derivative: AssetDerivative = {
+        id: d.id ?? uuid(),
+        parent_asset_id: d.parent_asset_id,
+        org_id: d.org_id,
+        transformation: d.transformation ?? 'report_full',
+        kind: d.kind ?? null,
+        public_id: d.public_id ?? `${d.org_id}/deriv/${uuid()}`,
+        is_generative: d.is_generative ?? false,
+        cloudinary_asset_id: d.cloudinary_asset_id ?? null,
+        cloudinary_version: d.cloudinary_version ?? null,
+        byte_size: d.byte_size ?? null,
+        sha256_hash: d.sha256_hash ?? null,
+        created_at: nowIso,
+      };
+      derivatives.set(derivative.id, derivative);
+      return derivative;
+    },
+
     projects: {
       async list(ctx, params) {
         const rows = [...projects.values()].filter((p) => p.org_id === ctx.orgId);
@@ -259,6 +289,9 @@ export function makeFakeDb(): FakeDb {
             (a) => a.sha256_hash === sha256 && a.project_id === projectId,
           ) ?? null
         );
+      },
+      async getByIdService(id) {
+        return assets.get(id) ?? null;
       },
       async insert(row) {
         const a = assetFromInsert(row);
@@ -325,9 +358,71 @@ export function makeFakeDb(): FakeDb {
     },
 
     derivatives: {
-      async getByPublicId(): Promise<AssetDerivative | null> {
-        return null;
+      async getByPublicId(ctx, publicId): Promise<AssetDerivative | null> {
+        const d = [...derivatives.values()].find((x) => x.public_id === publicId);
+        return d && d.org_id === ctx.orgId ? d : null;
       },
+      async getById(id): Promise<AssetDerivative | null> {
+        return derivatives.get(id) ?? null;
+      },
+      async insert(row: DerivativeInsert): Promise<AssetDerivative> {
+        // Mirror the DB trigger: org_id is forced to the parent asset's org.
+        const parent = assets.get(row.parent_asset_id);
+        if (parent === undefined) throw new Error('parent asset does not exist');
+        const derivative: AssetDerivative = {
+          id: uuid(),
+          parent_asset_id: row.parent_asset_id,
+          org_id: parent.org_id,
+          transformation: row.transformation,
+          kind: row.kind,
+          public_id: row.public_id,
+          is_generative: row.is_generative,
+          cloudinary_asset_id: row.cloudinary_asset_id,
+          cloudinary_version: row.cloudinary_version,
+          byte_size: row.byte_size,
+          sha256_hash: row.sha256_hash,
+          created_at: nowIso,
+        };
+        derivatives.set(derivative.id, derivative);
+        return derivative;
+      },
+    },
+
+    observations: {
+      async insert(row: ObservationInsert) {
+        const obs: Observation = {
+          id: uuid(),
+          asset_id: row.asset_id,
+          project_id: row.project_id,
+          org_id: row.org_id,
+          observer_id: null,
+          observation_type: row.observation_type,
+          metrics: row.metrics,
+          notes: row.notes,
+          created_at: nowIso,
+        };
+        observations.push(obs);
+        return { id: obs.id };
+      },
+    },
+
+    async listAssetPublicIds() {
+      return [...assets.values()].map((a) => ({
+        public_id: a.cloudinary_public_id,
+        org_id: a.org_id,
+      }));
+    },
+
+    async listDerivativePublicIds() {
+      return [...derivatives.values()].map((d) => ({
+        public_id: d.public_id,
+        org_id: d.org_id,
+      }));
+    },
+
+    async setOrgBytesUsed(orgId, bytesUsed) {
+      const org = orgs.get(orgId);
+      if (org !== undefined) orgs.set(orgId, { ...org, bytes_used: bytesUsed } as Org);
     },
 
     async orgIdForProject(projectId) {
@@ -342,7 +437,9 @@ export function makeFakeDb(): FakeDb {
   return db;
 }
 
-export function makeFakeCloudinary(opts: { signatureValid?: boolean } = {}): CloudinaryPort {
+export function makeFakeCloudinary(
+  opts: { signatureValid?: boolean; generativePending?: boolean } = {},
+): CloudinaryPort {
   return {
     verifyNotificationSignature() {
       return opts.signatureValid !== false;
@@ -355,6 +452,41 @@ export function makeFakeCloudinary(opts: { signatureValid?: boolean } = {}): Clo
         url: `https://res.cloudinary.com/demo/image/authenticated/${publicId}?__cld_token__=exp`,
         expiresAt: Math.floor(Date.now() / 1000) + ttlSeconds,
       };
+    },
+    async createEagerDerivative(input) {
+      // Generative transforms are asynchronous: unless told otherwise, a
+      // generative request comes back `pending` (mirrors a 420/423), and the
+      // caller must not block on it. Non-generative eager derivatives are ready.
+      const pending = input.isGenerative && opts.generativePending !== false;
+      return {
+        status: pending ? 'pending' : 'ready',
+        publicId: input.sourcePublicId,
+        secureUrl: pending
+          ? null
+          : `https://res.cloudinary.com/demo/${input.resourceType}/${input.sourceType}/${input.transformation}/v1/${input.sourcePublicId}`,
+        bytes: pending ? null : 12345,
+        cloudinaryAssetId: pending ? null : `cld-${input.sourcePublicId}`,
+        version: pending ? null : '1700000000',
+      };
+    },
+    signRequest(params) {
+      // Deterministic stand-in for the SDK signature (tests never hit Cloudinary).
+      return `fake-sdk-signature-${Object.keys(params).sort().join('.')}`;
+    },
+  };
+}
+
+export function makeFakeCloudinaryAdmin(
+  resources: CloudinaryResource[] = [],
+): CloudinaryAdminPort & { _presets: unknown[] } {
+  const presets: unknown[] = [];
+  return {
+    _presets: presets,
+    async listAllResources() {
+      return resources;
+    },
+    async ensureUploadPreset(definition) {
+      presets.push(definition);
     },
   };
 }
