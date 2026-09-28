@@ -14,9 +14,11 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     "ffmpeg=7:*" \
     && rm -rf /var/lib/apt/lists/*
 
-# Python deps first for layer caching.
-COPY requirements.txt .
-RUN pip install --no-cache-dir -r requirements.txt
+# Python deps first for layer caching. requirements.txt is the light runtime;
+# requirements-ml.txt adds the heavy learned-weights path (torch, ultralytics)
+# the production image needs once real forestry weights land.
+COPY requirements.txt requirements-ml.txt ./
+RUN pip install --no-cache-dir -r requirements.txt -r requirements-ml.txt
 
 # App code. Model weights are gitignored and provided at deploy time (mounted
 # volume or a build arg that downloads them into WEIGHTS_DIR). When absent the

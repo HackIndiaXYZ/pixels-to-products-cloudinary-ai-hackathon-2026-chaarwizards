@@ -1,0 +1,13 @@
+# Learned-weights CV path for the ML service (Phase 6 / Phase 6.5). Pinned MAJOR.
+#
+# These power the YOLOv8n sapling detector, the COCO base detector, and the
+# ChangeFormer change mask in src/models/forestry.py. They are HEAVY and are
+# imported lazily, so they are deliberately kept OUT of requirements.txt:
+#   - CI, `pnpm test`, `pnpm typecheck`, and the deterministic baseline
+#     (src/models/synthetic.py) all run WITHOUT them.
+#   - The production image installs them alongside requirements.txt.
+#   - Fine-tuning (Phase 6.5) also needs them; training pins its own copy.
+#
+# ffmpeg is a system package pinned in the container image, not a pip dependency.
+torch>=2.2,<3
+ultralytics>=8.2,<9

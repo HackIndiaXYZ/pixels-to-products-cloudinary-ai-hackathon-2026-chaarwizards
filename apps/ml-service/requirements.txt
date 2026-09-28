@@ -2,10 +2,11 @@
 # Server-only service; secrets come from the environment (see .env.example).
 #
 # torch + ultralytics are the learned-weights path (YOLOv8n sapling detector,
-# COCO base detector, ChangeFormer). They are heavy and are imported lazily in
+# COCO base detector, ChangeFormer). They are heavy and imported lazily in
 # src/models/forestry.py, so the service, its tests, and the deterministic
-# baseline in src/models/synthetic.py all run without them installed. Pin the
-# MAJOR version; the exact build is resolved against the trained weights.
+# baseline in src/models/synthetic.py all run without them. They live in a
+# SEPARATE file (requirements-ml.txt) so CI and the test venv stay light; the
+# production image installs both. Do not add them back here.
 fastapi==0.115.6
 uvicorn[standard]==0.34.0
 pydantic==2.10.4
@@ -16,7 +17,3 @@ pillow==11.0.0
 httpx==0.28.1
 cloudinary==1.41.0
 
-# Learned CV path — lazy imported (see note above). ffmpeg is a system package
-# pinned in the container image (major version 8.x), not a pip dependency.
-torch>=2.2,<3
-ultralytics>=8.2,<9
