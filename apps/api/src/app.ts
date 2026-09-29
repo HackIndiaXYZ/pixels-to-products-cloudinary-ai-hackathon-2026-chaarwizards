@@ -12,19 +12,22 @@
  */
 import Fastify, { type FastifyInstance, type FastifyRequest } from 'fastify';
 import rateLimit from '@fastify/rate-limit';
+import cors from '@fastify/cors';
 import { ZodError } from 'zod';
 import { fail, type Role } from '@impact/shared';
 import type { Config } from './config.js';
 import type { CloudinaryPort, DbPort, QueuePort } from './ports.js';
 import type { MlClient } from './services/ml-client.js';
 import { HttpError, errors, type AuthContext } from './types.js';
-import { extractBearer, verifySupabaseJwt } from './plugins/auth.js';
+import { extractBearer, verifySupabaseJwtAsync, JwksCache } from './plugins/auth.js';
 import { registerHealthRoutes } from './routes/health.js';
 import { registerProjectRoutes } from './routes/projects.js';
 import { registerAssetRoutes } from './routes/assets.js';
 import { registerOrgRoutes } from './routes/orgs.js';
 import { registerIntegrityRoutes } from './routes/integrity.js';
 import { registerPairRoutes } from './routes/pairs.js';
+import { registerSearchRoutes } from './routes/search.js';
+import { registerReadRoutes } from './routes/reads.js';
 import { registerCloudinaryWebhook } from './routes/webhooks/cloudinary.js';
 
 export interface AppDeps {
@@ -47,6 +50,8 @@ export interface AppDeps {
 declare module 'fastify' {
   interface FastifyRequest {
     auth: AuthContext | null;
+    /** Verification error captured by the auth preHandler, re-thrown by `authenticate`. */
+    authError: unknown;
   }
   interface FastifyInstance {
     deps: AppDeps;
@@ -83,6 +88,30 @@ export async function buildApp(deps: AppDeps): Promise<FastifyInstance> {
 
   app.decorate('deps', deps);
   app.decorateRequest('auth', null);
+  app.decorateRequest('authError', null);
+
+  // JWKS cache for asymmetric (ES256/RS256) Supabase tokens. HS256 tokens do not
+  // touch it (they verify with the shared secret).
+  const jwks = new JwksCache(
+    `${deps.config.SUPABASE_URL.replace(/\/$/, '')}/auth/v1/.well-known/jwks.json`,
+  );
+
+  // CORS: the dashboard is a browser SPA on a different origin, so it cannot call
+  // the API without CORS headers. Lock the allowed origin to the configured
+  // dashboard URL in production; in dev also accept any localhost/127.0.0.1 port
+  // (Vite). Auth is a Bearer header, not a cookie, so credentials stay off.
+  await app.register(cors, {
+    origin: (origin, cb) => {
+      if (origin === undefined) return cb(null, true); // non-browser / same-origin
+      const allowed =
+        origin === deps.config.DASHBOARD_URL ||
+        (deps.config.NODE_ENV !== 'production' &&
+          /^http:\/\/(localhost|127\.0\.0\.1):\d+$/.test(origin));
+      cb(null, allowed);
+    },
+    methods: ['GET', 'POST', 'PATCH', 'DELETE'],
+    allowedHeaders: ['Authorization', 'Content-Type', 'Accept'],
+  });
 
   // request_id echoed on every response.
   app.addHook('onSend', async (request, reply, payload) => {
@@ -90,12 +119,35 @@ export async function buildApp(deps: AppDeps): Promise<FastifyInstance> {
     return payload;
   });
 
+  // Verify the bearer token once, before handlers, so verification can be async
+  // (a JWKS fetch on a cache miss) while `authenticate`/`requireRole` stay
+  // synchronous readers. A route with no Authorization header is left
+  // unauthenticated; whether that is an error is the route's call (health and
+  // the Cloudinary webhook never call `authenticate`). A present-but-invalid
+  // token is captured and re-thrown when a handler asks for the identity.
+  app.addHook('preHandler', async (request) => {
+    const header = request.headers.authorization;
+    if (header === undefined) return;
+    try {
+      const token = extractBearer(header);
+      const identity = await verifySupabaseJwtAsync(token, {
+        secret: deps.config.SUPABASE_JWT_SECRET,
+        jwks,
+      });
+      request.auth = { ...identity, jwt: token };
+    } catch (err) {
+      request.authError = err;
+    }
+  });
+
   app.decorate('authenticate', (request: FastifyRequest): AuthContext => {
-    const token = extractBearer(request.headers.authorization);
-    const identity = verifySupabaseJwt(token, deps.config.SUPABASE_JWT_SECRET);
-    const ctx: AuthContext = { ...identity, jwt: token };
-    request.auth = ctx;
-    return ctx;
+    if (request.authError !== null && request.authError !== undefined) {
+      throw request.authError;
+    }
+    if (request.auth === null) {
+      throw errors.unauthorized('missing Authorization header');
+    }
+    return request.auth;
   });
 
   app.decorate('requireRole', (request: FastifyRequest, ...roles: Role[]): AuthContext => {
@@ -151,6 +203,8 @@ export async function buildApp(deps: AppDeps): Promise<FastifyInstance> {
   await registerOrgRoutes(app);
   await registerIntegrityRoutes(app);
   await registerPairRoutes(app);
+  await registerSearchRoutes(app);
+  await registerReadRoutes(app);
   await registerCloudinaryWebhook(app);
 
   return app;

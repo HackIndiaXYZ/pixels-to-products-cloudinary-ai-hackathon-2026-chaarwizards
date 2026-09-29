@@ -14,6 +14,7 @@
  * its own org's projects to begin with.
  */
 import { createClient, type SupabaseClient } from '@supabase/supabase-js';
+import { z } from 'zod';
 import {
   canonicalize,
   ProjectSchema,
@@ -22,7 +23,154 @@ import {
   ChangeEventSchema,
   OrgSchema,
 } from '@impact/shared';
-import type { JsonValue, Project } from '@impact/shared';
+import type { JsonValue, Project, VerificationState, GpsProvider } from '@impact/shared';
+import { verifyExifHash, verifyCaptureSignature } from '../services/verification.js';
+
+/**
+ * Runtime validation of the `search_assets` JSONB envelope (AGENTS.md §4 —
+ * validate every trust boundary, and a Postgres function's return value is one).
+ * A malformed row is a hard error, never silently coerced.
+ */
+const SearchRowSchema = z.object({
+  id: z.string(),
+  project_id: z.string(),
+  cloudinary_public_id: z.string(),
+  asset_type: z.enum(['image', 'video']).nullable(),
+  device_capture_timestamp: z.string(),
+  gps_point: z
+    .object({ type: z.literal('Point'), coordinates: z.tuple([z.number(), z.number()]) })
+    .nullable(),
+  gps_accuracy_meters: z.number().nullable(),
+  gps_provider: z.string().nullable(),
+  caption: z.string().nullable(),
+  ai_tags: z.array(z.string()),
+  observation_type: z.string().nullable(),
+  phase: z.enum(['before', 'after']).nullable(),
+  upload_status: z.enum(['pending', 'verified', 'flagged']),
+});
+
+const SearchEnvelopeSchema = z.object({
+  data: z.array(SearchRowSchema),
+  total_matched: z.number().int().nonnegative(),
+  truncated: z.boolean(),
+  facet_counts: z.record(z.string(), z.record(z.string(), z.number())).optional(),
+  next_cursor: z.number().int().nonnegative().nullable(),
+});
+
+/** Raw `asset_integrity` JSONB: DB-decidable checks plus the crypto inputs. */
+const IntegrityRawSchema = z.object({
+  asset_id: z.string(),
+  device_capture_timestamp: z.string(),
+  server_upload_timestamp: z.string().nullable(),
+  server_received_at: z.string().nullable(),
+  clock_drift_seconds: z.number().nullable(),
+  gps_accuracy_meters: z.number().nullable(),
+  gps_provider: z.string().nullable(),
+  caption_present: z.boolean(),
+  caption_signature_present: z.boolean(),
+  audit_chain_intact: z.boolean().nullable(),
+  sha256_matches_commit: z.boolean().nullable(),
+  crypto_inputs: z.object({
+    exif: z.record(z.string(), z.unknown()).nullable(),
+    exif_hash: z.string().nullable(),
+    sha256: z.string().nullable(),
+    capture_signature: z.string().nullable(),
+    device_public_key: z.string().nullable(),
+    captured_at_ms: z.number().int().nullable(),
+    device_monotonic_ms: z.number().int().nullable(),
+    lat_e7: z.number().int().nullable(),
+    lon_e7: z.number().int().nullable(),
+    accuracy_m: z.number().nullable(),
+    altitude_m: z.number().nullable(),
+    provider: z.string().nullable(),
+    project_id: z.string(),
+    observation_type: z.string().nullable(),
+    phase: z.enum(['before', 'after']).nullable(),
+    caption: z.string().nullable(),
+  }),
+});
+
+type IntegrityRaw = z.infer<typeof IntegrityRawSchema>;
+
+function stateToBool(state: VerificationState): boolean | null {
+  return state === 'pass' ? true : state === 'fail' ? false : null;
+}
+
+/**
+ * Resolve the two API-side checks (Ed25519 signature over the re-derived
+ * canonical payload, and the RFC 8785 EXIF hash) and assemble the flat contract.
+ * A missing input yields `null` (unknown), never a false `pass` (AGENTS.md §3.7).
+ */
+function resolveIntegrityContract(raw: IntegrityRaw): IntegrityContract {
+  const ci = raw.crypto_inputs;
+
+  let exifVerified: boolean | null;
+  if (ci.exif === null || ci.exif_hash === null) {
+    exifVerified = null;
+  } else {
+    exifVerified = stateToBool(verifyExifHash(ci.exif, ci.exif_hash));
+  }
+
+  let signatureVerified: boolean | null;
+  if (
+    ci.sha256 === null ||
+    ci.exif_hash === null ||
+    ci.captured_at_ms === null ||
+    ci.device_monotonic_ms === null ||
+    ci.lat_e7 === null ||
+    ci.lon_e7 === null ||
+    ci.observation_type === null ||
+    ci.phase === null ||
+    ci.capture_signature === null ||
+    ci.device_public_key === null
+  ) {
+    signatureVerified = null;
+  } else {
+    signatureVerified = stateToBool(
+      verifyCaptureSignature(
+        {
+          v: 1,
+          sha256: ci.sha256,
+          exif_hash: ci.exif_hash,
+          captured_at_ms: ci.captured_at_ms,
+          device_monotonic_ms: ci.device_monotonic_ms,
+          gps: {
+            lat_e7: ci.lat_e7,
+            lon_e7: ci.lon_e7,
+            ...(ci.accuracy_m !== null ? { accuracy_m: ci.accuracy_m } : {}),
+            ...(ci.altitude_m !== null ? { altitude_m: ci.altitude_m } : {}),
+            ...(ci.provider !== null ? { provider: ci.provider as GpsProvider } : {}),
+          },
+          project_id: ci.project_id,
+          observation_type: ci.observation_type,
+          phase: ci.phase,
+          caption: ci.caption,
+        },
+        ci.capture_signature,
+        ci.device_public_key,
+      ),
+    );
+  }
+
+  // An absent caption is `pass` (nothing to forge); a signed caption is verified
+  // in a later phase, so it is reported as `unknown` rather than a false `pass`.
+  const captionVerified: boolean | null = !raw.caption_present ? true : null;
+
+  return {
+    asset_id: raw.asset_id,
+    device_capture_timestamp: raw.device_capture_timestamp,
+    server_upload_timestamp: raw.server_upload_timestamp,
+    server_received_at: raw.server_received_at,
+    clock_drift_seconds: raw.clock_drift_seconds,
+    gps_accuracy_meters: raw.gps_accuracy_meters,
+    gps_provider: raw.gps_provider,
+    device_signature_verified: signatureVerified,
+    exif_hash_verified: exifVerified,
+    caption_signature_verified: captionVerified,
+    audit_chain_intact: raw.audit_chain_intact,
+    sha256_matches_commit: raw.sha256_matches_commit,
+  };
+}
 import type { Config } from '../config.js';
 import type {
   AssetInsert,
@@ -30,6 +178,7 @@ import type {
   ChangeEventInsert,
   DbPort,
   IntegrityCheck,
+  IntegrityContract,
   ManualPairInsert,
   PairingAssetRow,
   Page,
@@ -147,6 +296,31 @@ export function createSupabaseDb(config: Config): DbPort {
         const rows = (data ?? []).map((r) => AssetSchema.parse(r));
         return pageFrom(rows, offset, limit);
       },
+      async searchAssets(ctx, filters, params) {
+        const limit = clampLimit(params.limit);
+        const offset = decodeCursor(params.cursor);
+        const { data, error } = await scoped(ctx).rpc('search_assets', {
+          p_q: filters.q ?? null,
+          p_bbox: filters.bbox ? [...filters.bbox] : null,
+          p_date_from: filters.dateFrom ?? null,
+          p_date_to: filters.dateTo ?? null,
+          p_tags: filters.tags ? [...filters.tags] : null,
+          p_gps_accuracy_max: filters.gpsAccuracyMax ?? null,
+          p_asset_type: filters.assetType ?? null,
+          p_phase: filters.phase ?? null,
+          p_limit: limit,
+          p_offset: offset,
+        });
+        if (error) throw errors.internal('search failed', { cause: error.message });
+        const env = SearchEnvelopeSchema.parse(data);
+        return {
+          rows: env.data,
+          totalMatched: env.total_matched,
+          truncated: env.truncated,
+          facetCounts: env.facet_counts ?? {},
+          nextCursor: env.next_cursor === null ? null : encodeCursor(env.next_cursor),
+        };
+      },
       async findBySha(sha256, projectId) {
         const { data, error } = await service
           .from('assets')
@@ -263,6 +437,19 @@ export function createSupabaseDb(config: Config): DbPort {
         if (error) throw errors.internal('get change event failed', { cause: error.message });
         return data ? ChangeEventSchema.parse(data) : null;
       },
+      async listByProject(ctx, projectId, params) {
+        const limit = clampLimit(params.limit);
+        const offset = decodeCursor(params.cursor);
+        const { data, error } = await scoped(ctx)
+          .from('change_events')
+          .select('*')
+          .eq('project_id', projectId)
+          .order('created_at', { ascending: false })
+          .range(offset, offset + limit - 1);
+        if (error) throw errors.internal('list change events failed', { cause: error.message });
+        const rows = (data ?? []).map((r) => ChangeEventSchema.parse(r));
+        return pageFrom(rows, offset, limit);
+      },
       async createManual(ctx, input: ManualPairInsert) {
         // Request-scoped insert: RLS forces the row into the caller's org, and
         // org_id is set from the verified JWT, never the body (§3.4). A manual
@@ -340,6 +527,15 @@ export function createSupabaseDb(config: Config): DbPort {
         if (error) throw errors.internal('integrity check failed', { cause: error.message });
         return (data ?? []) as IntegrityCheck[];
       },
+      async contract(ctx, assetId) {
+        const { data, error } = await scoped(ctx).rpc('asset_integrity', {
+          p_asset_id: assetId,
+        });
+        if (error) throw errors.internal('integrity contract failed', { cause: error.message });
+        if (data === null || data === undefined) return null;
+        const raw = IntegrityRawSchema.parse(data);
+        return resolveIntegrityContract(raw);
+      },
     },
 
     derivatives: {
@@ -351,6 +547,15 @@ export function createSupabaseDb(config: Config): DbPort {
           .maybeSingle();
         if (error) throw errors.internal('get derivative failed', { cause: error.message });
         return data ? AssetDerivativeSchema.parse(data) : null;
+      },
+      async listByParent(ctx, parentAssetId) {
+        const { data, error } = await scoped(ctx)
+          .from('asset_derivatives')
+          .select('*')
+          .eq('parent_asset_id', parentAssetId)
+          .order('created_at', { ascending: true });
+        if (error) throw errors.internal('list derivatives failed', { cause: error.message });
+        return (data ?? []).map((r) => AssetDerivativeSchema.parse(r));
       },
       async getById(id) {
         const { data, error } = await service

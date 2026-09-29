@@ -86,6 +86,27 @@ export interface IntegrityCheck {
   readonly details: Record<string, unknown>;
 }
 
+/**
+ * The documented flat integrity contract (api-contracts.md §4 "Get Asset with
+ * Integrity"), consumed by the dashboard's integrity panel. Every boolean is
+ * tri-state: `true`/`false`/`null`, where `null` renders as `unknown` and is
+ * NEVER shown as `pass` (AGENTS.md §3.7).
+ */
+export interface IntegrityContract {
+  readonly asset_id: string;
+  readonly device_capture_timestamp: string;
+  readonly server_upload_timestamp: string | null;
+  readonly server_received_at: string | null;
+  readonly clock_drift_seconds: number | null;
+  readonly gps_accuracy_meters: number | null;
+  readonly gps_provider: string | null;
+  readonly device_signature_verified: boolean | null;
+  readonly exif_hash_verified: boolean | null;
+  readonly caption_signature_verified: boolean | null;
+  readonly audit_chain_intact: boolean | null;
+  readonly sha256_matches_commit: boolean | null;
+}
+
 export interface ProjectsRepo {
   list(ctx: AuthContext, params: ListParams): Promise<Page<Project>>;
   get(ctx: AuthContext, id: string): Promise<Project | null>;
@@ -95,11 +116,54 @@ export interface ProjectsRepo {
   updateConfig(ctx: AuthContext, id: string, config: ProjectConfig): Promise<Project | null>;
 }
 
+/** One row of the `search_assets` result (api-contracts.md §4 "Global Search"). */
+export interface SearchResultRow {
+  readonly id: string;
+  readonly project_id: string;
+  readonly cloudinary_public_id: string;
+  readonly asset_type: 'image' | 'video' | null;
+  readonly device_capture_timestamp: string;
+  readonly gps_point: { readonly type: 'Point'; readonly coordinates: [number, number] } | null;
+  readonly gps_accuracy_meters: number | null;
+  readonly gps_provider: string | null;
+  readonly caption: string | null;
+  readonly ai_tags: readonly string[];
+  readonly observation_type: string | null;
+  readonly phase: 'before' | 'after' | null;
+  readonly upload_status: 'pending' | 'verified' | 'flagged';
+}
+
+/** The seven search facets. An unset facet is omitted so filters compose (§4). */
+export interface SearchFilters {
+  readonly q?: string;
+  readonly bbox?: readonly [number, number, number, number];
+  readonly dateFrom?: string;
+  readonly dateTo?: string;
+  readonly tags?: readonly string[];
+  readonly gpsAccuracyMax?: number;
+  readonly assetType?: 'image' | 'video';
+  readonly phase?: 'before' | 'after';
+}
+
+/** The `search_assets` JSONB envelope, computed over the full match set. */
+export interface SearchResult {
+  readonly rows: readonly SearchResultRow[];
+  readonly totalMatched: number;
+  readonly truncated: boolean;
+  readonly facetCounts: Readonly<Record<string, Readonly<Record<string, number>>>>;
+  readonly nextCursor: string | null;
+}
+
 export interface AssetsRepo {
   /** Org-scoped read (RLS). Returns null if the asset is absent or in another org. */
   getById(ctx: AuthContext, id: string): Promise<Asset | null>;
   list(ctx: AuthContext, projectId: string, params: ListParams): Promise<Page<Asset>>;
-
+  /**
+   * Org-scoped global search (RLS). Runs the `search_assets` SQL function, which
+   * is SECURITY INVOKER so results are scoped to the caller's org by Postgres,
+   * never a Cloudinary query (AGENTS.md §3.9).
+   */
+  searchAssets(ctx: AuthContext, filters: SearchFilters, params: ListParams): Promise<SearchResult>;
   // --- Service-role paths (webhook / workers only) ---
   /** Idempotency lookup: an existing row for the same content in the same project. */
   findBySha(sha256: string, projectId: string): Promise<Asset | null>;
@@ -164,6 +228,8 @@ export interface ChangeEventsRepo {
   insert(row: ChangeEventInsert): Promise<ChangeEvent>;
   /** Org-scoped read (RLS). Null if absent or in another org → the caller 404s. */
   getById(ctx: AuthContext, id: string): Promise<ChangeEvent | null>;
+  /** Org-scoped list of a project's change events (RLS), newest first. */
+  listByProject(ctx: AuthContext, projectId: string, params: ListParams): Promise<Page<ChangeEvent>>;
   /** Request-scoped manual link: org_id is forced to the caller's verified org. */
   createManual(ctx: AuthContext, input: ManualPairInsert): Promise<ChangeEvent>;
   /** Request-scoped status change (manual split). Null if not in the caller's org. */
@@ -208,6 +274,12 @@ export interface AuditRepo {
 export interface IntegrityRepo {
   /** Org-scoped call to `verify_asset_integrity`. */
   verify(ctx: AuthContext, assetId: string): Promise<IntegrityCheck[]>;
+  /**
+   * Org-scoped integrity in the documented flat contract shape. Runs
+   * `asset_integrity` (RLS-scoped) and resolves the Ed25519 + RFC 8785 checks in
+   * Node (AGENTS.md §3.8). Returns null if the asset is absent or in another org.
+   */
+  contract(ctx: AuthContext, assetId: string): Promise<IntegrityContract | null>;
 }
 
 /** Row inserted by the derivative writer (service role; append-only §3.1). */
@@ -225,6 +297,8 @@ export interface DerivativeInsert {
 
 export interface DerivativesRepo {
   getByPublicId(ctx: AuthContext, publicId: string): Promise<AssetDerivative | null>;
+  /** Org-scoped append-only lineage for one parent asset (RLS), oldest first (§3.1). */
+  listByParent(ctx: AuthContext, parentAssetId: string): Promise<AssetDerivative[]>;
   /** Service-role read of a derivative by id, used to resolve a generative source. */
   getById(id: string): Promise<AssetDerivative | null>;
   /** Service-role, append-only insert of a new derivative (§3.1). */

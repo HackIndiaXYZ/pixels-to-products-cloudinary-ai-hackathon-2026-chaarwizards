@@ -356,6 +356,39 @@ Response (200):
 }
 ```
 
+#### Get Asset Derivative Lineage
+
+The append-only `asset_derivatives` lineage for an asset (§3.1), read by the
+dashboard's asset-detail lineage tree (Phase 8). Every row carries the exact
+`transformation` string and `is_generative`, so a reviewer sees which bytes are
+the pristine original and which are derived. Resolved by `asset_id` under RLS —
+a cross-org id returns `404`.
+
+```
+GET /v1/assets/{asset_id}/derivatives
+Response (200):
+{
+  "data": [
+    {
+      "id": "derivative-uuid",
+      "parent_asset_id": "asset-uuid",
+      "org_id": "org-uuid",
+      "transformation": "c_lfill,g_auto,w_400,h_300,f_auto,q_auto:eco",
+      "kind": "report_thumb",
+      "public_id": "org/proj/report_thumb/sha256",
+      "is_generative": false,
+      "created_at": "2024-01-15T10:00:00Z"
+    }
+  ]
+}
+```
+
+> **Status:** implemented in Phase 8 as a read-only handler
+> (`GET /v1/assets/:id/derivatives`, `routes/reads.ts`): the parent asset is
+> resolved under RLS (a cross-org id is a `404`), then its `asset_derivatives`
+> rows are returned oldest-first. The dashboard lineage tree consumes it live.
+
+
 ### Change Events
 
 #### List Change Events

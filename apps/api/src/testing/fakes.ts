@@ -23,6 +23,7 @@ import type {
   DbPort,
   DerivativeInsert,
   IntegrityCheck,
+  IntegrityContract,
   ManualPairInsert,
   ObservationInsert,
   PairingAssetRow,
@@ -298,6 +299,81 @@ export function makeFakeDb(): FakeDb {
         );
         return { rows: rows.slice(0, params.limit), nextCursor: null };
       },
+      async searchAssets(ctx, filters, params) {
+        // Mirror search_assets: RLS-equivalent org scope, then the seven facets,
+        // with total_matched/facet_counts over the FULL filtered set.
+        const tagList = (a: Asset): string[] => {
+          const raw = (a as { ai_tags?: unknown }).ai_tags;
+          return Array.isArray(raw) ? (raw as unknown[]).map((t) => String(t)) : [];
+        };
+        const coords = (a: Asset): [number, number] | null => {
+          const c = pairingCoords.get(a.id);
+          return c ? [c.lon, c.lat] : null;
+        };
+        const all = [...assets.values()]
+          .filter((a) => a.org_id === ctx.orgId)
+          .filter((a) => filters.assetType === undefined || a.asset_type === filters.assetType)
+          .filter((a) => filters.phase === undefined || a.phase === filters.phase)
+          .filter((a) => filters.dateFrom === undefined || a.device_capture_timestamp >= filters.dateFrom)
+          .filter((a) => filters.dateTo === undefined || a.device_capture_timestamp <= filters.dateTo)
+          .filter(
+            (a) =>
+              filters.gpsAccuracyMax === undefined ||
+              (a.gps_accuracy_meters !== null &&
+                a.gps_accuracy_meters !== undefined &&
+                a.gps_accuracy_meters <= filters.gpsAccuracyMax),
+          )
+          .filter((a) => {
+            if (filters.tags === undefined || filters.tags.length === 0) return true;
+            const have = new Set(tagList(a));
+            return filters.tags.every((t) => have.has(t));
+          })
+          .filter((a) => {
+            if (filters.bbox === undefined) return true;
+            const c = coords(a);
+            if (c === null) return false;
+            const [minLon, minLat, maxLon, maxLat] = filters.bbox;
+            return c[0] >= minLon && c[0] <= maxLon && c[1] >= minLat && c[1] <= maxLat;
+          })
+          .filter((a) => {
+            if (filters.q === undefined || filters.q === '') return true;
+            const q = filters.q.toLowerCase();
+            return (
+              (a.caption ?? '').toLowerCase().includes(q) ||
+              (a.observation_type ?? '').toLowerCase().includes(q) ||
+              tagList(a).join(',').toLowerCase().includes(q)
+            );
+          })
+          .sort((x, y) => (x.device_capture_timestamp < y.device_capture_timestamp ? 1 : -1));
+
+        const limit = params.limit;
+        const page = all.slice(0, limit).map((a) => ({
+          id: a.id,
+          project_id: a.project_id,
+          cloudinary_public_id: a.cloudinary_public_id,
+          asset_type: a.asset_type ?? null,
+          device_capture_timestamp: a.device_capture_timestamp,
+          gps_point: coords(a) ? { type: 'Point' as const, coordinates: coords(a) as [number, number] } : null,
+          gps_accuracy_meters: a.gps_accuracy_meters ?? null,
+          gps_provider: a.gps_provider ?? null,
+          caption: a.caption ?? null,
+          ai_tags: tagList(a),
+          observation_type: a.observation_type ?? null,
+          phase: a.phase ?? null,
+          upload_status: a.upload_status,
+        }));
+        const facetPhase: Record<string, number> = {};
+        for (const a of all) {
+          if (a.phase) facetPhase[a.phase] = (facetPhase[a.phase] ?? 0) + 1;
+        }
+        return {
+          rows: page,
+          totalMatched: all.length,
+          truncated: all.length > 1000,
+          facetCounts: { phase: facetPhase },
+          nextCursor: null,
+        };
+      },
       async findBySha(sha256, projectId) {
         return (
           [...assets.values()].find(
@@ -382,6 +458,12 @@ export function makeFakeDb(): FakeDb {
         const e = changeEvents.get(id);
         return e && e.org_id === ctx.orgId ? e : null;
       },
+      async listByProject(ctx, projectId, params) {
+        const rows = [...changeEvents.values()]
+          .filter((e) => e.org_id === ctx.orgId && e.project_id === projectId)
+          .sort((x, y) => (x.created_at < y.created_at ? 1 : -1));
+        return { rows: rows.slice(0, params.limit), nextCursor: null };
+      },
       async createManual(ctx, input: ManualPairInsert) {
         const event: ChangeEvent = {
           id: uuid(),
@@ -460,12 +542,39 @@ export function makeFakeDb(): FakeDb {
           { check_name: 'clock_skew', state: 'unknown', details: {} },
         ];
       },
+      async contract(ctx, assetId): Promise<IntegrityContract | null> {
+        const a = assets.get(assetId);
+        if (a === undefined || a.org_id !== ctx.orgId) return null;
+        const flagged = a.upload_status === 'flagged';
+        // A flagged asset fails its content check; a verified one passes every
+        // DB-decidable check. The two crypto checks are `unknown` in the fake
+        // (no real key material), which the panel renders honestly (§3.7).
+        return {
+          asset_id: a.id,
+          device_capture_timestamp: a.device_capture_timestamp,
+          server_upload_timestamp: a.server_upload_timestamp ?? null,
+          server_received_at: a.server_received_at ?? null,
+          clock_drift_seconds: null,
+          gps_accuracy_meters: a.gps_accuracy_meters ?? null,
+          gps_provider: a.gps_provider ?? null,
+          device_signature_verified: flagged ? false : null,
+          exif_hash_verified: flagged ? false : null,
+          caption_signature_verified: a.caption ? null : true,
+          audit_chain_intact: true,
+          sha256_matches_commit: !flagged,
+        };
+      },
     },
 
     derivatives: {
       async getByPublicId(ctx, publicId): Promise<AssetDerivative | null> {
         const d = [...derivatives.values()].find((x) => x.public_id === publicId);
         return d && d.org_id === ctx.orgId ? d : null;
+      },
+      async listByParent(ctx, parentAssetId): Promise<AssetDerivative[]> {
+        return [...derivatives.values()]
+          .filter((d) => d.org_id === ctx.orgId && d.parent_asset_id === parentAssetId)
+          .sort((x, y) => (x.created_at < y.created_at ? -1 : 1));
       },
       async getById(id): Promise<AssetDerivative | null> {
         return derivatives.get(id) ?? null;
