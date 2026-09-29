@@ -475,6 +475,15 @@ over the full match set, not the returned page, so the UI can state the real num
 
 ### Reports
 
+> **Implemented (Phase 9).** `POST /v1/reports/generate` (`apps/api/src/routes/reports.ts`
+> → `services/report-generation.ts`) and `GET /v1/report-templates` are live. Generation
+> refuses if any selected asset is not `verified`, inlines a `report_full` derivative of every
+> photo as a base64 data URI (self-contained, offline), writes one `report_manifest_entries`
+> row per inlined element with the SHA-256 of the embedded bytes, and pins `template_version`.
+> Metrics are serialized with Decimal.js for byte-identical regeneration. Gen-AI social variants
+> are a **separate** BullMQ job (`report-genai`, `services/report-genai.ts`) applied only to
+> report copies — the generate call returns the report + manifest and does not block on them.
+
 #### Generate Report
 ```
 POST /v1/reports/generate

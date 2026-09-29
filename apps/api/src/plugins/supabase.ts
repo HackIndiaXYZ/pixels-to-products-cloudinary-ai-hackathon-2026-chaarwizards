@@ -22,6 +22,8 @@ import {
   AssetDerivativeSchema,
   ChangeEventSchema,
   OrgSchema,
+  ReportSchema,
+  ReportManifestEntrySchema,
 } from '@impact/shared';
 import type { JsonValue, Project, VerificationState, GpsProvider } from '@impact/shared';
 import { verifyExifHash, verifyCaptureSignature } from '../services/verification.js';
@@ -91,6 +93,19 @@ const IntegrityRawSchema = z.object({
 });
 
 type IntegrityRaw = z.infer<typeof IntegrityRawSchema>;
+
+/** Runtime validation of a `report_templates` row (Phase 9 trust boundary). */
+const ReportTemplateRowSchema = z.object({
+  id: z.string(),
+  org_id: z.string().nullable(),
+  sector: z.string().nullable(),
+  name: z.string(),
+  description: z.string().nullable(),
+  handlebars_template: z.string(),
+  config: z.record(z.string(), z.unknown()).default({}),
+  is_default: z.boolean().default(false),
+  created_at: z.string(),
+});
 
 function stateToBool(state: VerificationState): boolean | null {
   return state === 'pass' ? true : state === 'fail' ? false : null;
@@ -217,6 +232,31 @@ export function createSupabaseDb(config: Config): DbPort {
         p_details_canonical: details_canonical,
       });
       if (error) throw errors.internal('audit append failed', { cause: error.message });
+    },
+    async chainForAsset(assetId) {
+      // Service-role read of the append-only chain in insertion order (id is a
+      // global BIGSERIAL, so it orders across partitions — see the audit_logs
+      // migration). The tip's current_hash is what the report appendix prints.
+      const { data, error } = await service
+        .from('audit_logs')
+        .select('action, previous_hash, current_hash, hashed_at')
+        .eq('asset_id', assetId)
+        .order('id', { ascending: true });
+      if (error) throw errors.internal('audit chain read failed', { cause: error.message });
+      return ((data ?? []) as unknown[]).map((r) => {
+        const row = r as {
+          action: string;
+          previous_hash: string | null;
+          current_hash: string;
+          hashed_at: string;
+        };
+        return {
+          action: row.action,
+          previous_hash: row.previous_hash,
+          current_hash: row.current_hash,
+          hashed_at: row.hashed_at,
+        };
+      });
     },
   };
 
@@ -606,6 +646,91 @@ export function createSupabaseDb(config: Config): DbPort {
           .single();
         if (error) throw errors.internal('observation insert failed', { cause: error.message });
         return { id: (data as { id: string }).id };
+      },
+    },
+
+    reports: {
+      async listTemplates(ctx, sector) {
+        let query = scoped(ctx).from('report_templates').select('*');
+        if (sector !== undefined) query = query.eq('sector', sector);
+        const { data, error } = await query.order('created_at', { ascending: false });
+        if (error) throw errors.internal('list templates failed', { cause: error.message });
+        return ((data ?? []) as unknown[]).map((r) => ReportTemplateRowSchema.parse(r));
+      },
+      async getTemplate(ctx, id) {
+        const { data, error } = await scoped(ctx)
+          .from('report_templates')
+          .select('*')
+          .eq('id', id)
+          .maybeSingle();
+        if (error) throw errors.internal('get template failed', { cause: error.message });
+        return data ? ReportTemplateRowSchema.parse(data) : null;
+      },
+      async createPackage(input) {
+        // Service role: org_id comes from the verified JWT via the caller, never
+        // a request body (§3.4).
+        const { data, error } = await service
+          .from('evidence_packages')
+          .insert({
+            project_id: input.project_id,
+            org_id: input.org_id,
+            name: input.name,
+            asset_ids: [...input.asset_ids],
+            change_event_ids: [...input.change_event_ids],
+            template_id: input.template_id,
+            template_version: input.template_version,
+            status: input.status,
+            audit_trail: input.audit_trail,
+          })
+          .select('*')
+          .single();
+        if (error) throw errors.internal('report package insert failed', { cause: error.message });
+        return ReportSchema.parse(data);
+      },
+      async getPackage(ctx, id) {
+        const { data, error } = await scoped(ctx)
+          .from('evidence_packages')
+          .select('*')
+          .eq('id', id)
+          .maybeSingle();
+        if (error) throw errors.internal('get report package failed', { cause: error.message });
+        return data ? ReportSchema.parse(data) : null;
+      },
+      async finalizePackage(id, input) {
+        const { error } = await service
+          .from('evidence_packages')
+          .update({
+            report_cloudinary_url: input.reportCloudinaryUrl,
+            report_html_url: input.reportHtmlUrl,
+            byte_size: input.byteSize,
+            status: input.status,
+          })
+          .eq('id', id);
+        if (error) throw errors.internal('report finalize failed', { cause: error.message });
+      },
+      async insertManifestEntry(input) {
+        // Service role: manifests have no INSERT policy (report worker only). The
+        // DB trigger forces org_id to the parent package's org, so it is not sent.
+        const { error } = await service.from('report_manifest_entries').insert({
+          evidence_package_id: input.evidence_package_id,
+          ordinal: input.ordinal,
+          role: input.role,
+          cloudinary_public_id: input.cloudinary_public_id,
+          derivative_public_id: input.derivative_public_id,
+          sha256_hash: input.sha256_hash,
+          byte_size: input.byte_size,
+          verified_at: input.verified_at,
+        });
+        if (error) throw errors.internal('manifest insert failed', { cause: error.message });
+      },
+      async listManifest(ctx, packageId) {
+        const { data, error } = await scoped(ctx)
+          .from('report_manifest_entries')
+          .select('*')
+          .eq('evidence_package_id', packageId)
+          .order('ordinal', { ascending: true });
+        if (error) throw errors.internal('list manifest failed', { cause: error.message });
+        return ((data ?? []) as unknown[]).map((r) => ReportManifestEntrySchema.parse(r));
       },
     },
 

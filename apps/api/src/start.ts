@@ -9,6 +9,9 @@ import { createSupabaseDb } from './plugins/supabase.js';
 import { createCloudinaryAdapter } from './plugins/cloudinary.js';
 import { createQueue } from './plugins/queue.js';
 import { createMlClient } from './services/ml-client.js';
+import { createPuppeteerRenderer, loadFontFaceCss } from './reports/renderer.js';
+import { fileURLToPath } from 'node:url';
+import { dirname, join } from 'node:path';
 
 async function main(): Promise<void> {
   const config = loadConfig();
@@ -17,12 +20,20 @@ async function main(): Promise<void> {
   const queue = createQueue(config);
   const ml = createMlClient(config);
 
+  // Report rendering (Phase 9): Puppeteer for PDF, Inter font bytes inlined from
+  // the fonts directory so cross-machine line-wrapping is stable.
+  const fontsDir = join(dirname(fileURLToPath(import.meta.url)), 'reports', 'fonts');
+  const renderer = createPuppeteerRenderer(fontsDir);
+  const reportFontCss = await loadFontFaceCss(fontsDir);
+
   const app = await buildApp({
     config,
     db,
     cloudinary: cloudinaryAdapter,
     queue,
     ml,
+    renderer,
+    reportFontCss,
     fetchBytes: async (url) => Buffer.from(await (await fetch(url)).arrayBuffer()),
   });
 

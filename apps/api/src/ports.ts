@@ -12,6 +12,8 @@ import type {
   Org,
   Project,
   ProjectConfig,
+  Report,
+  ReportManifestEntry,
   Role,
   VerificationState,
 } from '@impact/shared';
@@ -269,6 +271,20 @@ export interface AuditRepo {
     actorId: string | null;
     details: Record<string, unknown>;
   }): Promise<void>;
+  /**
+   * Service-role read of one asset's hash chain in insertion order, for the
+   * report integrity appendix (Phase 9). The tip row's `current_hash` is the
+   * value the appendix prints and a verifier re-derives (AGENTS.md §3.8).
+   */
+  chainForAsset(assetId: string): Promise<AuditChainRow[]>;
+}
+
+/** One row of an asset's audit hash chain (append-only, §3.8). */
+export interface AuditChainRow {
+  readonly action: string;
+  readonly previous_hash: string | null;
+  readonly current_hash: string;
+  readonly hashed_at: string;
 }
 
 export interface IntegrityRepo {
@@ -305,6 +321,74 @@ export interface DerivativesRepo {
   insert(row: DerivativeInsert): Promise<AssetDerivative>;
 }
 
+/** A `report_templates` row (Phase 9). Org-scoped read; org may be null for a built-in. */
+export interface ReportTemplateRow {
+  readonly id: string;
+  readonly org_id: string | null;
+  readonly sector: string | null;
+  readonly name: string;
+  readonly description: string | null;
+  readonly handlebars_template: string;
+  readonly config: Record<string, unknown>;
+  readonly is_default: boolean;
+  readonly created_at: string;
+}
+
+/** Service-role insert of a draft/finalized report (`evidence_packages`). */
+export interface ReportPackageInsert {
+  readonly project_id: string;
+  readonly org_id: string;
+  readonly name: string | null;
+  readonly asset_ids: readonly string[];
+  readonly change_event_ids: readonly string[];
+  readonly template_id: string | null;
+  /** Pinned template version, e.g. `forestry_donor@1` (§determinism). */
+  readonly template_version: string;
+  readonly status: 'draft' | 'finalized' | 'exported';
+  readonly audit_trail: Record<string, unknown> | null;
+}
+
+/** Service-role finalize: attaches the rendered artifact URLs + size. */
+export interface ReportFinalizeInput {
+  readonly reportCloudinaryUrl: string;
+  readonly reportHtmlUrl: string | null;
+  readonly byteSize: number;
+  readonly status: 'finalized';
+}
+
+/**
+ * Service-role manifest insert. `org_id` is intentionally NOT accepted — the DB
+ * trigger forces it to the parent package's org (AGENTS.md §3.4), so a caller
+ * can never file a manifest row under another org.
+ */
+export interface ManifestEntryInsert {
+  readonly evidence_package_id: string;
+  readonly ordinal: number;
+  readonly role: 'photo' | 'diff' | 'map' | 'chart' | 'video_clip' | 'qr';
+  readonly cloudinary_public_id: string | null;
+  readonly derivative_public_id: string | null;
+  readonly sha256_hash: string | null;
+  readonly byte_size: number | null;
+  readonly verified_at: string | null;
+}
+
+export interface ReportsRepo {
+  /** Org-scoped template list (RLS), optionally filtered by sector. */
+  listTemplates(ctx: AuthContext, sector?: string): Promise<ReportTemplateRow[]>;
+  /** Org-scoped template read (RLS). Null if absent or in another org. */
+  getTemplate(ctx: AuthContext, id: string): Promise<ReportTemplateRow | null>;
+  /** Service-role insert of the report row. */
+  createPackage(input: ReportPackageInsert): Promise<Report>;
+  /** Org-scoped read (RLS). Null if absent or in another org → the caller 404s. */
+  getPackage(ctx: AuthContext, id: string): Promise<Report | null>;
+  /** Service-role finalize once the artifact is rendered + uploaded. */
+  finalizePackage(id: string, input: ReportFinalizeInput): Promise<void>;
+  /** Service-role, append-only manifest insert (org forced by the trigger). */
+  insertManifestEntry(input: ManifestEntryInsert): Promise<void>;
+  /** Org-scoped read of a report's manifest (RLS), by ordinal. */
+  listManifest(ctx: AuthContext, packageId: string): Promise<ReportManifestEntry[]>;
+}
+
 /** Row inserted at ingest when Cloudinary returns AI tags (§3.9: tags are copied in). */
 export interface ObservationInsert {
   readonly asset_id: string;
@@ -337,6 +421,7 @@ export interface DbPort {
   derivatives: DerivativesRepo;
   observations: ObservationsRepo;
   changeEvents: ChangeEventsRepo;
+  reports: ReportsRepo;
   /**
    * Service-role project read (Phase 7 pairing). Returns sector + config so the
    * worker can resolve each observation type's gps_radius and metrics schema
@@ -386,6 +471,26 @@ export interface CloudinaryPort {
    * signatures come from the SDK, not string concatenation plus a manual digest.
    */
   signRequest(params: Record<string, unknown>): string;
+  /**
+   * Upload a finalized report artifact (PDF or self-contained HTML) into the
+   * media pipeline (Phase 9 "Renderer": upload to Cloudinary). This is a WRITE,
+   * not a query — it never lists or searches Cloudinary (AGENTS.md §3.9). Signing
+   * is done by the SDK; no HMAC is hand-rolled (§3.11).
+   */
+  uploadArtifact(input: ArtifactUploadInput): Promise<ArtifactUploadResult>;
+}
+
+export interface ArtifactUploadInput {
+  readonly publicId: string;
+  readonly bytes: Buffer;
+  readonly format: 'pdf' | 'html';
+}
+
+export interface ArtifactUploadResult {
+  readonly url: string;
+  readonly publicId: string;
+  readonly bytes: number;
+  readonly version: string | null;
 }
 
 export interface EagerDerivativeInput {
@@ -445,6 +550,23 @@ export interface QueuePort {
     afterAssetId: string;
     gpsDistanceMeters: number | null;
     timeDifferenceHours: number | null;
+  }): Promise<void>;
+  /**
+   * Enqueue the asynchronous gen-AI social-variant job for a finalized report
+   * (Phase 9 "Async gen-AI job"). Gen-AI transforms return 420/423, so they run
+   * OUT of the synchronous `POST /v1/reports/generate` path and poll to
+   * completion here. Each edit targets a report-copy derivative, never an
+   * original (AGENTS.md §3.1).
+   */
+  enqueueReportGenAi(payload: {
+    reportId: string;
+    orgId: string;
+    edits: ReadonlyArray<{
+      parentAssetId: string;
+      sourceDerivativeId: string;
+      transformation: string;
+      kind: string;
+    }>;
   }): Promise<void>;
   /** Readiness probe for the queue backend (Redis). */
   ping(): Promise<void>;

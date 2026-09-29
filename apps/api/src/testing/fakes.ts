@@ -10,9 +10,9 @@
  * suite; here we prove the API boundary honours it.
  */
 import jwt from 'jsonwebtoken';
-import { generateKeyPairSync, sign as edSign } from 'node:crypto';
+import { createHash, generateKeyPairSync, sign as edSign } from 'node:crypto';
 import { buildSigningPayload, type SigningPayloadInput } from '@impact/shared';
-import type { Asset, AssetDerivative, ChangeEvent, Observation, Org, Project } from '@impact/shared';
+import type { Asset, AssetDerivative, ChangeEvent, Observation, Org, Project, Report, ReportManifestEntry } from '@impact/shared';
 import type { Config } from '../config.js';
 import type {
   AssetInsert,
@@ -24,13 +24,17 @@ import type {
   DerivativeInsert,
   IntegrityCheck,
   IntegrityContract,
+  ManifestEntryInsert,
   ManualPairInsert,
   ObservationInsert,
   PairingAssetRow,
   QueuePort,
+  ReportPackageInsert,
+  ReportTemplateRow,
   VerificationUpdate,
 } from '../ports.js';
 import type { DetectChangeRequest, DetectChangeResponse, MlClient } from '../services/ml-client.js';
+import type { ReportRenderer } from '../reports/renderer.js';
 
 export const TEST_JWT_SECRET = 'test-supabase-jwt-secret';
 export const ORG_A = '11111111-1111-1111-1111-111111111111';
@@ -109,12 +113,24 @@ export interface FakeDb extends DbPort {
   _changeEvents: Map<string, ChangeEvent>;
   _pairingCoords: Map<string, { lat: number; lon: number }>;
   _invites: { org_id: string; email: string; role: string; token_hash: string; expires_at: string }[];
-  _audit: { assetId: string; action: string; details_canonical: string }[];
+  _audit: {
+    assetId: string;
+    action: string;
+    details_canonical: string;
+    previous_hash: string | null;
+    current_hash: string;
+    hashed_at: string;
+  }[];
+  _templates: Map<string, ReportTemplateRow>;
+  _packages: Map<string, Report>;
+  _manifest: ReportManifestEntry[];
   seedProject(p: Partial<Project> & { org_id: string }): Project;
   seedAsset(
     a: Partial<Asset> & { org_id: string; project_id: string; gps_lat?: number; gps_lon?: number },
   ): Asset;
   seedDerivative(d: Partial<AssetDerivative> & { parent_asset_id: string; org_id: string }): AssetDerivative;
+  seedTemplate(t: Partial<ReportTemplateRow> & { org_id: string; handlebars_template: string; name: string }): ReportTemplateRow;
+  seedChangeEvent(e: Partial<ChangeEvent> & { org_id: string; project_id: string }): ChangeEvent;
 }
 
 export function makeFakeDb(): FakeDb {
@@ -127,6 +143,9 @@ export function makeFakeDb(): FakeDb {
   const pairingCoords = new Map<string, { lat: number; lon: number }>();
   const invites: FakeDb['_invites'] = [];
   const audit: FakeDb['_audit'] = [];
+  const templates = new Map<string, ReportTemplateRow>();
+  const packages = new Map<string, Report>();
+  const manifest: ReportManifestEntry[] = [];
 
   const nowIso = new Date().toISOString();
 
@@ -176,6 +195,9 @@ export function makeFakeDb(): FakeDb {
     _pairingCoords: pairingCoords,
     _invites: invites,
     _audit: audit,
+    _templates: templates,
+    _packages: packages,
+    _manifest: manifest,
 
     seedProject(p) {
       const proj: Project = {
@@ -251,6 +273,45 @@ export function makeFakeDb(): FakeDb {
       };
       derivatives.set(derivative.id, derivative);
       return derivative;
+    },
+
+    seedTemplate(t) {
+      const template: ReportTemplateRow = {
+        id: t.id ?? uuid(),
+        org_id: t.org_id,
+        sector: t.sector ?? 'forestry',
+        name: t.name,
+        description: t.description ?? null,
+        handlebars_template: t.handlebars_template,
+        config: t.config ?? {},
+        is_default: t.is_default ?? false,
+        created_at: nowIso,
+      };
+      templates.set(template.id, template);
+      return template;
+    },
+
+    seedChangeEvent(e) {
+      const event: ChangeEvent = {
+        id: e.id ?? uuid(),
+        project_id: e.project_id,
+        org_id: e.org_id,
+        before_asset_id: e.before_asset_id ?? null,
+        after_asset_id: e.after_asset_id ?? null,
+        change_type: e.change_type ?? 'sapling_planting',
+        change_metrics: e.change_metrics ?? { saplings_planted: 49, area_covered_sqm: 1200.5 },
+        detection_method: e.detection_method ?? 'ml',
+        model_version: e.model_version ?? 'v1-placeholder',
+        confidence: e.confidence ?? 0.9,
+        diff_asset_cloudinary_id: e.diff_asset_cloudinary_id ?? null,
+        gps_distance_meters: e.gps_distance_meters ?? 3.2,
+        time_difference_hours: e.time_difference_hours ?? 72,
+        status: e.status ?? 'detected',
+        failure_reason: e.failure_reason ?? null,
+        created_at: nowIso,
+      };
+      changeEvents.set(event.id, event);
+      return event;
     },
 
     projects: {
@@ -521,11 +582,36 @@ export function makeFakeDb(): FakeDb {
 
     audit: {
       async append(input) {
+        // Mirror append_audit_log: a per-asset hash chain over the canonical
+        // details and the STORED hashed_at (§3.8). Deterministic so a report
+        // appendix can assert the tip matches this store.
+        const details_canonical = JSON.stringify(input.details);
+        const prior = audit.filter((r) => r.assetId === input.assetId);
+        const previous_hash = prior.length > 0 ? (prior[prior.length - 1] as { current_hash: string }).current_hash : null;
+        // A stable hashed_at derived from position, never wall-clock, so the
+        // chain is reproducible across runs.
+        const hashed_at = new Date(1700000000000 + prior.length * 1000).toISOString();
+        const current_hash = createHash('sha256')
+          .update(`${previous_hash ?? ''}|${input.action}|${details_canonical}|${hashed_at}`)
+          .digest('hex');
         audit.push({
           assetId: input.assetId,
           action: input.action,
-          details_canonical: JSON.stringify(input.details),
+          details_canonical,
+          previous_hash,
+          current_hash,
+          hashed_at,
         });
+      },
+      async chainForAsset(assetId) {
+        return audit
+          .filter((r) => r.assetId === assetId)
+          .map((r) => ({
+            action: r.action,
+            previous_hash: r.previous_hash,
+            current_hash: r.current_hash,
+            hashed_at: r.hashed_at,
+          }));
       },
     },
 
@@ -620,6 +706,67 @@ export function makeFakeDb(): FakeDb {
       },
     },
 
+    reports: {
+      async listTemplates(ctx, sector) {
+        return [...templates.values()]
+          .filter((t) => t.org_id === ctx.orgId)
+          .filter((t) => sector === undefined || t.sector === sector);
+      },
+      async getTemplate(ctx, id) {
+        const t = templates.get(id);
+        return t && t.org_id === ctx.orgId ? t : null;
+      },
+      async createPackage(input: ReportPackageInsert) {
+        const report: Report = {
+          id: uuid(),
+          project_id: input.project_id,
+          org_id: input.org_id,
+          name: input.name,
+          asset_ids: [...input.asset_ids],
+          change_event_ids: [...input.change_event_ids],
+          report_cloudinary_url: null,
+          audit_trail: input.audit_trail,
+          status: input.status,
+          generated_at: nowIso,
+        };
+        packages.set(report.id, report);
+        return report;
+      },
+      async getPackage(ctx, id) {
+        const p = packages.get(id);
+        return p && p.org_id === ctx.orgId ? p : null;
+      },
+      async finalizePackage(id, input) {
+        const p = packages.get(id);
+        if (p !== undefined) {
+          packages.set(id, { ...p, report_cloudinary_url: input.reportCloudinaryUrl, status: input.status });
+        }
+      },
+      async insertManifestEntry(input: ManifestEntryInsert) {
+        // Mirror the DB trigger: org_id is forced to the parent package's org.
+        const parent = packages.get(input.evidence_package_id);
+        if (parent === undefined) throw new Error('evidence_package does not exist');
+        manifest.push({
+          id: manifest.length + 1,
+          evidence_package_id: input.evidence_package_id,
+          org_id: parent.org_id ?? '',
+          ordinal: input.ordinal,
+          role: input.role,
+          cloudinary_public_id: input.cloudinary_public_id,
+          derivative_public_id: input.derivative_public_id,
+          sha256_hash: input.sha256_hash,
+          byte_size: input.byte_size,
+          verified_at: input.verified_at,
+          created_at: nowIso,
+        });
+      },
+      async listManifest(ctx, packageId) {
+        return manifest
+          .filter((m) => m.evidence_package_id === packageId && m.org_id === ctx.orgId)
+          .sort((a, b) => a.ordinal - b.ordinal);
+      },
+    },
+
     async listAssetPublicIds() {
       return [...assets.values()].map((a) => ({
         public_id: a.cloudinary_public_id,
@@ -657,8 +804,15 @@ export function makeFakeDb(): FakeDb {
 
 export function makeFakeCloudinary(
   opts: { signatureValid?: boolean; generativePending?: boolean } = {},
-): CloudinaryPort {
+): CloudinaryPort & {
+  _artifacts: { publicId: string; format: 'pdf' | 'html'; bytes: Buffer }[];
+  _eagerCalls: { sourcePublicId: string; transformation: string; isGenerative: boolean }[];
+} {
+  const artifacts: { publicId: string; format: 'pdf' | 'html'; bytes: Buffer }[] = [];
+  const eagerCalls: { sourcePublicId: string; transformation: string; isGenerative: boolean }[] = [];
   return {
+    _artifacts: artifacts,
+    _eagerCalls: eagerCalls,
     verifyNotificationSignature() {
       return opts.signatureValid !== false;
     },
@@ -675,6 +829,11 @@ export function makeFakeCloudinary(
       // Generative transforms are asynchronous: unless told otherwise, a
       // generative request comes back `pending` (mirrors a 420/423), and the
       // caller must not block on it. Non-generative eager derivatives are ready.
+      eagerCalls.push({
+        sourcePublicId: input.sourcePublicId,
+        transformation: input.transformation,
+        isGenerative: input.isGenerative,
+      });
       const pending = input.isGenerative && opts.generativePending !== false;
       return {
         status: pending ? 'pending' : 'ready',
@@ -690,6 +849,15 @@ export function makeFakeCloudinary(
     signRequest(params) {
       // Deterministic stand-in for the SDK signature (tests never hit Cloudinary).
       return `fake-sdk-signature-${Object.keys(params).sort().join('.')}`;
+    },
+    async uploadArtifact(input) {
+      artifacts.push({ publicId: input.publicId, format: input.format, bytes: input.bytes });
+      return {
+        url: `https://res.cloudinary.com/demo/raw/authenticated/v1/${input.publicId}.${input.format}`,
+        publicId: `${input.publicId}.${input.format}`,
+        bytes: input.bytes.length,
+        version: '1700000000',
+      };
     },
   };
 }
@@ -713,14 +881,25 @@ export function makeFakeQueue(): QueuePort & {
   _jobs: { assetId: string }[];
   _pairJobs: { projectId: string }[];
   _detectJobs: { beforeAssetId: string; afterAssetId: string }[];
+  _genAiJobs: {
+    reportId: string;
+    orgId: string;
+    edits: ReadonlyArray<{ parentAssetId: string; sourceDerivativeId: string; transformation: string; kind: string }>;
+  }[];
 } {
   const jobs: { assetId: string }[] = [];
   const pairJobs: { projectId: string }[] = [];
   const detectJobs: { beforeAssetId: string; afterAssetId: string }[] = [];
+  const genAiJobs: {
+    reportId: string;
+    orgId: string;
+    edits: ReadonlyArray<{ parentAssetId: string; sourceDerivativeId: string; transformation: string; kind: string }>;
+  }[] = [];
   return {
     _jobs: jobs,
     _pairJobs: pairJobs,
     _detectJobs: detectJobs,
+    _genAiJobs: genAiJobs,
     async enqueueAiEnrich(payload) {
       // Idempotent by assetId, matching the BullMQ jobId behaviour.
       if (!jobs.some((j) => j.assetId === payload.assetId)) jobs.push({ assetId: payload.assetId });
@@ -744,11 +923,32 @@ export function makeFakeQueue(): QueuePort & {
         });
       }
     },
+    async enqueueReportGenAi(payload) {
+      // Idempotent by report, matching the BullMQ jobId behaviour.
+      if (!genAiJobs.some((j) => j.reportId === payload.reportId)) {
+        genAiJobs.push({ reportId: payload.reportId, orgId: payload.orgId, edits: payload.edits });
+      }
+    },
     async ping() {
       /* ready */
     },
     async close() {
       /* noop */
+    },
+  };
+}
+
+/**
+ * Deterministic fake renderer: turns HTML into a stable pseudo-PDF buffer whose
+ * bytes are a pure function of the HTML. Lets the gate assert byte-identical
+ * regeneration without a real Chromium (the live Puppeteer render is a
+ * user-review item — no browser binary in CI/sandbox).
+ */
+export function makeFakeRenderer(): ReportRenderer {
+  return {
+    async htmlToPdf(html) {
+      const digest = createHash('sha256').update(html).digest('hex');
+      return Buffer.from(`%PDF-1.4-fake\n${digest}\n`, 'utf8');
     },
   };
 }

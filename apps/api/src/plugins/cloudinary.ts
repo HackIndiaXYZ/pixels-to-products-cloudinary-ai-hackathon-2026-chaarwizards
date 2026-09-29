@@ -123,5 +123,27 @@ export function createCloudinaryAdapter(config: Config): CloudinaryPort {
       // concatenation plus a manual digest.
       return cloudinary.utils.api_sign_request(params, config.CLOUDINARY_API_SECRET);
     },
+
+    async uploadArtifact(input) {
+      // Report artifacts are stored as `raw` resources via the SDK uploader
+      // (signed by the SDK, no hand-rolled HMAC — §3.11). This is a media
+      // pipeline WRITE, never a query (§3.9). We upload from a data URI so the
+      // in-memory bytes never touch disk.
+      const dataUri =
+        `data:${input.format === 'pdf' ? 'application/pdf' : 'text/html'};base64,` +
+        input.bytes.toString('base64');
+      const response = (await cloudinary.uploader.upload(dataUri, {
+        public_id: `${input.publicId}.${input.format}`,
+        resource_type: 'raw',
+        type: 'authenticated',
+        overwrite: false,
+      })) as UploadApiResponse & { version?: number };
+      return {
+        url: response.secure_url ?? response.url,
+        publicId: response.public_id,
+        bytes: response.bytes ?? input.bytes.length,
+        version: response.version !== undefined ? String(response.version) : null,
+      };
+    },
   };
 }

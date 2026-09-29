@@ -12,12 +12,14 @@ import type { QueuePort } from '../ports.js';
 export const AI_ENRICH_QUEUE = 'ai-enrich' as const;
 export const PAIR_ASSETS_QUEUE = 'pair-assets' as const;
 export const DETECT_CHANGE_QUEUE = 'detect-change' as const;
+export const REPORT_GENAI_QUEUE = 'report-genai' as const;
 
 export function createQueue(config: Config): QueuePort {
   const connection = new IORedis(config.REDIS_URL, { maxRetriesPerRequest: null });
   const aiEnrich = new Queue(AI_ENRICH_QUEUE, { connection });
   const pairAssets = new Queue(PAIR_ASSETS_QUEUE, { connection });
   const detectChange = new Queue(DETECT_CHANGE_QUEUE, { connection });
+  const reportGenAi = new Queue(REPORT_GENAI_QUEUE, { connection });
 
   return {
     async enqueueAiEnrich(payload) {
@@ -46,6 +48,15 @@ export function createQueue(config: Config): QueuePort {
         removeOnFail: false,
       });
     },
+    async enqueueReportGenAi(payload) {
+      // Keyed on the report so re-triggering generation coalesces the gen-AI
+      // pass. Gen-AI is async (420/423), so it never runs in the request (§3.11).
+      await reportGenAi.add('genai', payload, {
+        jobId: `report-genai:${payload.reportId}`,
+        removeOnComplete: true,
+        removeOnFail: false,
+      });
+    },
     async ping() {
       await connection.ping();
     },
@@ -53,6 +64,7 @@ export function createQueue(config: Config): QueuePort {
       await aiEnrich.close();
       await pairAssets.close();
       await detectChange.close();
+      await reportGenAi.close();
       connection.disconnect();
     },
   };

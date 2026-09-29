@@ -56,6 +56,7 @@ const app = await buildApp({
   cloudinary,
   queue,
   ml: { async detectChange() { throw new Error('not used in E2E'); } },
+  renderer: { async htmlToPdf() { throw new Error('reports not used in E2E'); } },
   rateLimitEnabled: false,
 });
 

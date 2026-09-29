@@ -13,10 +13,11 @@ import IORedis from 'ioredis';
 import { loadConfig } from '../config.js';
 import { createSupabaseDb } from '../plugins/supabase.js';
 import { configureCloudinary, createCloudinaryAdapter } from '../plugins/cloudinary.js';
-import { createQueue, PAIR_ASSETS_QUEUE, DETECT_CHANGE_QUEUE } from '../plugins/queue.js';
+import { createQueue, PAIR_ASSETS_QUEUE, DETECT_CHANGE_QUEUE, REPORT_GENAI_QUEUE } from '../plugins/queue.js';
 import { createMlClient } from '../services/ml-client.js';
 import { runPairAssets } from '../services/pair-assets.js';
 import { runDetectChange } from '../services/change-detection.js';
+import { runReportGenAi, type ReportGenAiPayload } from '../services/report-genai.js';
 
 function main(): void {
   const config = loadConfig();
@@ -78,11 +79,33 @@ function main(): void {
     { connection },
   );
 
+  // Gen-AI social variants (Phase 9): applied to report-copy derivatives only
+  // (§3.1), asynchronously, out of the request path (§3.11).
+  const genAiWorker = new Worker(
+    REPORT_GENAI_QUEUE,
+    async (job: Job<ReportGenAiPayload>) => {
+      const outcomes = await runReportGenAi(
+        { cloudinary, derivatives: db.derivatives, assets: db.assets, audit: db.audit },
+        job.data,
+      );
+      console.log(
+        JSON.stringify({
+          msg: 'report_genai_complete',
+          report_id: job.data.reportId,
+          created: outcomes.length,
+          pending: outcomes.filter((o) => !o.ready).length,
+        }),
+      );
+    },
+    { connection },
+  );
+
   // A job that throws is retried by BullMQ and, on final failure, left on the
   // failed set with its reason — never silently dropped (§3.6).
   for (const [name, worker] of [
     ['pair-assets', pairWorker],
     ['detect-change', detectWorker],
+    ['report-genai', genAiWorker],
   ] as const) {
     worker.on('failed', (job, err) => {
       console.error(
@@ -91,7 +114,12 @@ function main(): void {
     });
   }
 
-  console.log(JSON.stringify({ msg: 'workers_started', queues: [PAIR_ASSETS_QUEUE, DETECT_CHANGE_QUEUE] }));
+  console.log(
+    JSON.stringify({
+      msg: 'workers_started',
+      queues: [PAIR_ASSETS_QUEUE, DETECT_CHANGE_QUEUE, REPORT_GENAI_QUEUE],
+    }),
+  );
 }
 
 main();

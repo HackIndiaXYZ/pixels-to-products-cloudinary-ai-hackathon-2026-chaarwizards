@@ -64,6 +64,7 @@ const app = await buildApp({
   cloudinary,
   queue,
   ml: { async detectChange() { throw new Error('unused'); } },
+  renderer: { async htmlToPdf() { throw new Error('reports not used in E2E'); } },
   rateLimitEnabled: false,
 });
 await app.listen({ host: '127.0.0.1', port: 8080 });
