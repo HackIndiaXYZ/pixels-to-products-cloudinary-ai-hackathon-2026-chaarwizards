@@ -12,6 +12,7 @@ import {
   makeFakeCloudinary,
   makeFakeQueue,
   makeFakeMl,
+  makeFakeRenderer,
   makeDeviceKeys,
   signCapture,
   testConfig,
@@ -33,6 +34,7 @@ async function harness(overrides: Partial<AppDeps> = {}): Promise<Harness> {
     cloudinary: makeFakeCloudinary(),
     queue,
     ml: makeFakeMl(),
+    renderer: makeFakeRenderer(),
     rateLimitEnabled: false,
     ...overrides,
   });

@@ -420,7 +420,14 @@ CREATE TABLE evidence_packages (
   report_cloudinary_url TEXT,
   audit_trail JSONB, -- Hash chain, signatures, transformations
   status TEXT DEFAULT 'draft' CHECK (status IN ('draft', 'finalized', 'exported')),
-  generated_at TIMESTAMPTZ DEFAULT now()
+  generated_at TIMESTAMPTZ DEFAULT now(),
+  -- Phase 9 (migration 20260930010000): report regeneration + delivery.
+  -- evidence_packages is a compiled artifact record, not source evidence, so it
+  -- carries no immutability trigger; adding these nullable columns is safe.
+  template_id UUID REFERENCES report_templates(id), -- NULL for a built-in template
+  template_version TEXT,        -- pinned, e.g. forestry_donor@1 (determinism)
+  report_html_url TEXT,         -- self-contained HTML artifact (PDF is report_cloudinary_url)
+  byte_size BIGINT              -- size of the finalized artifact
 );
 
 ALTER TABLE evidence_packages ENABLE ROW LEVEL SECURITY;
@@ -430,6 +437,12 @@ CREATE POLICY "packages_org_write" ON evidence_packages FOR ALL
   USING      (org_id = (auth.jwt() ->> 'org_id')::uuid)
   WITH CHECK (org_id = (auth.jwt() ->> 'org_id')::uuid);
 ```
+
+> **Phase 9 schema change (AGENTS.md §8).** `template_id`, `template_version`,
+> `report_html_url`, and `byte_size` were added in migration
+> `20260930010000_report_generation.sql`. A donor report must be regenerable
+> byte-for-byte from its stored inputs, which requires pinning the template
+> version that produced it and recording both delivery artifacts (PDF + HTML).
 
 #### Report Media Manifest
 

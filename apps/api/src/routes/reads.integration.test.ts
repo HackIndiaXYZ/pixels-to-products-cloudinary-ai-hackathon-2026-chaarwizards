@@ -9,6 +9,7 @@ import {
   makeFakeCloudinary,
   makeFakeQueue,
   makeFakeMl,
+  makeFakeRenderer,
   testConfig,
   type FakeDb,
 } from '../testing/fakes.js';
@@ -21,6 +22,7 @@ async function harness(): Promise<{ app: FastifyInstance; db: FakeDb }> {
     cloudinary: makeFakeCloudinary(),
     queue: makeFakeQueue(),
     ml: makeFakeMl(),
+    renderer: makeFakeRenderer(),
     rateLimitEnabled: false,
   });
   return { app, db };

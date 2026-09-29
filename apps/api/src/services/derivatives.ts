@@ -56,7 +56,11 @@ export interface CreateDerivativeResult {
 }
 
 /** Slug used to give a derivative its own stable, unique public_id. */
-function derivedPublicId(basePublicId: string, kind: string | null, transformation: string): string {
+export function derivedPublicId(
+  basePublicId: string,
+  kind: string | null,
+  transformation: string,
+): string {
   const slug = (kind ?? transformation).replace(/[^a-zA-Z0-9_-]+/g, '_').slice(0, 48);
   return `${basePublicId}/${slug}`;
 }

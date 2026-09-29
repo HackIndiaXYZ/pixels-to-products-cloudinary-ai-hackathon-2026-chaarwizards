@@ -28,7 +28,9 @@ import { registerIntegrityRoutes } from './routes/integrity.js';
 import { registerPairRoutes } from './routes/pairs.js';
 import { registerSearchRoutes } from './routes/search.js';
 import { registerReadRoutes } from './routes/reads.js';
+import { registerReportRoutes } from './routes/reports.js';
 import { registerCloudinaryWebhook } from './routes/webhooks/cloudinary.js';
+import type { ReportRenderer } from './reports/renderer.js';
 
 export interface AppDeps {
   config: Config;
@@ -43,6 +45,13 @@ export interface AppDeps {
    * rather than a false `pass` (AGENTS.md §3.7).
    */
   fetchBytes?: (url: string) => Promise<Buffer>;
+  /**
+   * HTML → PDF renderer for report generation (Phase 9). Injected so a fake
+   * renderer drives the gate without Chromium; production wires Puppeteer.
+   */
+  renderer: ReportRenderer;
+  /** `@font-face` CSS with inlined Inter bytes for reports; '' if none embedded. */
+  reportFontCss?: string;
   /** Disable the rate limiter (tests). Defaults to enabled. */
   rateLimitEnabled?: boolean;
 }
@@ -205,6 +214,7 @@ export async function buildApp(deps: AppDeps): Promise<FastifyInstance> {
   await registerPairRoutes(app);
   await registerSearchRoutes(app);
   await registerReadRoutes(app);
+  await registerReportRoutes(app);
   await registerCloudinaryWebhook(app);
 
   return app;
