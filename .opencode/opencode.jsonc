@@ -7,13 +7,16 @@
   // Verified against: opencode models
   //
   // Paid tier — two independent Opus sources, same model:
-  //   justwoker/claude-opus-4-8      $70 budget   → ACTIVE, used first
-  //   agentrouter/claude-opus-4-8    $180 budget  → held in reserve
+  //   agentrouter/claude-opus-4-8    $180 budget  → ACTIVE (justwoker misbehaving)
+  //   justwoker/claude-opus-4-8      $70 budget   → held in reserve
   //
-  // justwoker is the default so the cheaper pool is spent first and
-  // agentrouter stays intact for the phases that genuinely need the
-  // longer budget (Phase 6 ML training, Phase 8 report generation).
-  // Same model either way, so switching costs nothing but balance.
+  // agentrouter is the default as of 2026-09-27 because justwoker stopped
+  // behaving reliably. Both are the same model, so the swap is about pool
+  // health, not capability.
+  //
+  // HISTORY: agentrouter was previously reverted because it returned
+  // "Failed to fetch model list for provider 'agentrouter'". If that error
+  // comes back, justwoker is the fallback — it worked, it was just flaky.
   //
   // To move spend between them, change the "model" value below and
   // restart opencode (config is not hot-reloaded). A mid-session switch
@@ -30,10 +33,10 @@
 
   "small_model": "opencode/nemotron-3-ultra-free",
 
-  // Default session model. Currently justwoker (the $70 pool). To move
-  // spend to the larger agentrouter pool ($180), change this one value
-  // and restart — config is not hot-reloaded.
-  "model": "justwoker/claude-opus-4-8",
+  // Default session model. Currently agentrouter (the $180 pool). To fall back
+  // to justwoker, change this one value to "justwoker/claude-opus-4-8" and
+  // restart — config is not hot-reloaded.
+  "model": "agentrouter/claude-opus-4-8",
 
   // NOTE: `instructions` is deliberately NOT set.
   // Listing the spec docs would load ~6,200 lines into every session

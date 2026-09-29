@@ -1,8 +1,9 @@
 /**
- * Integrity endpoint (api-contracts.md §4). Returns the three-state result of
- * `verify_asset_integrity` for one asset, org-scoped by RLS. `unknown` is
- * reported as `unknown` and never rounded up to `pass` (AGENTS.md §3.7); only a
- * `fail` is a blocking failure.
+ * Integrity endpoint (api-contracts.md §4 "Get Asset with Integrity"). Returns
+ * the documented flat contract: per-check tri-state booleans plus timing, where
+ * a `null` is honestly `unknown` and never rounded up to `pass` (AGENTS.md §3.7).
+ * The asset is resolved under RLS first, so a cross-org id is a 404 rather than a
+ * disclosure of another org's checks.
  */
 import type { FastifyInstance } from 'fastify';
 import { z } from 'zod';
@@ -19,18 +20,10 @@ export async function registerIntegrityRoutes(app: FastifyInstance): Promise<voi
       const ctx = app.authenticate(request);
       const { id } = IdParamsSchema.parse(request.params);
 
-      // Confirm the asset is visible to this org before disclosing any check.
-      const asset = await app.deps.db.assets.getById(ctx, id);
-      if (asset === null) throw errors.notFound('asset not found');
+      const contract = await app.deps.db.integrity.contract(ctx, id);
+      if (contract === null) throw errors.notFound('asset not found');
 
-      const checks = await app.deps.db.integrity.verify(ctx, id);
-      const blocked = checks.some((c) => c.state === 'fail');
-      return ok({
-        asset_id: id,
-        verification: asset.upload_status,
-        blocked,
-        checks,
-      });
+      return ok(contract);
     },
   );
 }

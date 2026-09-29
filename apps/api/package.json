@@ -16,6 +16,7 @@
     "workers": "node dist/jobs/workers.js"
   },
   "dependencies": {
+    "@fastify/cors": "^10.1.0",
     "@fastify/rate-limit": "^10.2.1",
     "@impact/shared": "workspace:*",
     "@supabase/supabase-js": "^2.47.10",

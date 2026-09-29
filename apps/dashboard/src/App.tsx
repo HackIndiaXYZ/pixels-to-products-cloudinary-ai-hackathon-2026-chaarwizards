@@ -1,21 +1,48 @@
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { CldImage } from './components/CldImage';
-
-const queryClient = new QueryClient();
+import { BrowserRouter, Route, Routes } from 'react-router-dom';
+import { AppProviders } from './shared/providers/AppProviders';
+import { useAuth } from './shared/auth/AuthContext';
+import { AuthLayout } from './layouts/AuthLayout';
+import { MainLayout } from './layouts/MainLayout';
+import { HomePage } from './routes/HomePage';
+import { SearchPage } from './routes/SearchPage';
+import { MapPage } from './routes/MapPage';
+import { AdminPage } from './routes/AdminPage';
 
 /**
- * Phase 0 app shell. Renders a single `CldImage` (via the official
- * `@cloudinary/react` `AdvancedImage`) to satisfy the Phase 0 gate.
- * Real routing, auth gate, and feature screens land in Phase 8.
+ * Auth gate. Until the session resolves we show nothing decisive (avoids a
+ * flash of the login screen for an already-signed-in user); with no session we
+ * render the login card; otherwise the routed app. There is no signup route
+ * (AGENTS.md §3.10).
  */
+function Gate() {
+  const { session, loading } = useAuth();
+
+  if (loading) {
+    return <div role="status">Loading…</div>;
+  }
+  if (session === null) {
+    return <AuthLayout />;
+  }
+
+  return (
+    <BrowserRouter>
+      <Routes>
+        <Route element={<MainLayout />}>
+          <Route index element={<HomePage />} />
+          <Route path="search" element={<SearchPage />} />
+          <Route path="map" element={<MapPage />} />
+          <Route path="admin" element={<AdminPage />} />
+        </Route>
+      </Routes>
+    </BrowserRouter>
+  );
+}
+
 export function App() {
   return (
-    <QueryClientProvider client={queryClient}>
-      <main>
-        <h1>Impact Media Intelligence</h1>
-        <CldImage publicId="sample" alt="Cloudinary sample asset" width={400} />
-      </main>
-    </QueryClientProvider>
+    <AppProviders>
+      <Gate />
+    </AppProviders>
   );
 }
 
