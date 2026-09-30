@@ -40,6 +40,13 @@ const ConfigSchema = z.object({
   REDIS_URL: z.string().min(1),
   ML_SERVICE_URL: z.string().min(1),
   DASHBOARD_URL: z.string().default('http://localhost:5173'),
+
+  // Per-org upload ceiling on the webhook ingest path (Phase 11 "Rate limiting";
+  // unsigned-preset abuse mitigation). Keyed on the org derived from the SIGNED
+  // project_id, so throttling one tenant never denies service to another. A
+  // whole-org flood is capped here without touching the per-user REST limiter.
+  ORG_UPLOAD_RATE_MAX: z.coerce.number().int().positive().default(600),
+  ORG_UPLOAD_RATE_WINDOW_MS: z.coerce.number().int().positive().default(60_000),
 });
 
 export type Config = z.infer<typeof ConfigSchema>;

@@ -8,7 +8,7 @@ requires-python = ">=3.11"
 dependencies = []
 
 [project.optional-dependencies]
-dev = ["ruff==0.16.9", "mypy==1.13.0", "pytest==8.3.4", "black==24.10.0"]
+dev = ["ruff==0.16.9", "mypy==1.13.0", "pytest==8.3.4", "black==24.10.0", "pytest-cov==7.1.0"]
 
 [tool.ruff]
 line-length = 100
@@ -64,3 +64,12 @@ ignore_missing_imports = true
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 pythonpath = ["."]
+# BUILD_ORDER Phase 11 — "ML 70%". The threshold is ENFORCED: pytest exits
+# non-zero when coverage drops below 70%, so CI fails the build. `main.py` is the
+# uvicorn entrypoint and `models/forestry.py` needs torch/ultralytics (lazy,
+# not installed in the gate env), so both are omitted rather than counted as a
+# false 0% — the pure application logic that remains clears 70% honestly.
+addopts = "--cov=src --cov-report=term-missing --cov-fail-under=70"
+
+[tool.coverage.run]
+omit = ["src/main.py", "src/models/forestry.py"]

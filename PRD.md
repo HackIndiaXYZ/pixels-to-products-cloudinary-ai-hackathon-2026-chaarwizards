@@ -325,9 +325,9 @@ Registry seed:
 ```bash
 # 1. Apply at cloudinary.com/pages/hackathons/
 # 2. Add to .env.local
-CLOUDINARY_CLOUD_NAME=your_hackathon_cloud
-CLOUDINARY_API_KEY=your_api_key
-CLOUDINARY_API_SECRET=your_api_secret
+CLOUDINARY_CLOUD_NAME=<cloud-name>
+CLOUDINARY_API_KEY=<cloudinary-api-key>
+CLOUDINARY_API_SECRET=<cloudinary-api-secret>
 CLOUDINARY_UPLOAD_PRESET=verified_capture
 ```
 

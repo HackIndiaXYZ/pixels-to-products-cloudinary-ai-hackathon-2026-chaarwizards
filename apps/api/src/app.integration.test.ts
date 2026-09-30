@@ -1,9 +1,11 @@
 import { describe, expect, it, beforeEach } from 'vitest';
 import { createHash } from 'node:crypto';
+import { Writable } from 'node:stream';
 import type { FastifyInstance } from 'fastify';
 import { sha256Canonical, type SigningPayloadInput } from '@impact/shared';
 import { buildApp, type AppDeps } from './app.js';
 import { toE7 } from './services/verification.js';
+import { createInMemoryOrgRateLimiter } from './lib/org-rate-limit.js';
 import {
   ORG_A,
   ORG_B,
@@ -386,6 +388,92 @@ describe('Phase 3 — rate limiting', () => {
     expect(last.statusCode).toBe(429);
     expect(last.headers['retry-after']).toBeDefined();
     expect(last.json().error.code).toBe('RATE_LIMITED');
+  });
+});
+
+describe('Phase 11 — per-org upload rate limiting (unsigned-preset abuse)', () => {
+  it('trips 429 with a Retry-After for the flooding org, and a second org is unaffected', async () => {
+    // A tiny per-org ceiling: the 3rd upload for one org must be rejected.
+    const h = await harness({
+      fetchBytes: async () => Buffer.from('the-original-image-bytes'),
+      orgUploadLimiter: createInMemoryOrgRateLimiter({ max: 2, windowMs: 60_000 }),
+    });
+    const projectA = h.db.seedProject({ org_id: ORG_A });
+    const projectB = h.db.seedProject({ org_id: ORG_B });
+
+    const send = (projectId: string, orgId: string) =>
+      h.app.inject({
+        method: 'POST',
+        url: '/webhooks/cloudinary',
+        headers: webhookHeaders(),
+        payload: buildWebhook(projectId, orgId).body,
+      });
+
+    // Org A: two allowed, the third tripped.
+    expect((await send(projectA.id, ORG_A)).statusCode).toBe(200);
+    expect((await send(projectA.id, ORG_A)).statusCode).toBe(200);
+    const tripped = await send(projectA.id, ORG_A);
+    expect(tripped.statusCode).toBe(429);
+    expect(tripped.headers['retry-after']).toBeDefined();
+    expect(Number(tripped.headers['retry-after'])).toBeGreaterThanOrEqual(1);
+    expect(tripped.json().error.code).toBe('RATE_LIMITED');
+
+    // Org B has its own budget — a flood on A must not deny service to B.
+    expect((await send(projectB.id, ORG_B)).statusCode).toBe(200);
+  });
+});
+
+describe('Phase 11 — logs carry no secret or PII (AGENTS.md §3.5)', () => {
+  it('an upload request emits no CLOUDINARY_API_SECRET, service-role key, or GPS coordinate', async () => {
+    const lines: string[] = [];
+    const logStream = new Writable({
+      write(chunk: Buffer, _enc: BufferEncoding, cb: (error?: Error | null) => void) {
+        lines.push(chunk.toString());
+        cb();
+      },
+    }) as unknown as NodeJS.WritableStream;
+
+    // Recognizable sentinel secret values so a leak is unambiguous in the output.
+    const config = testConfig({
+      LOG_LEVEL: 'info',
+      CLOUDINARY_API_SECRET: 'CLD_SECRET_SENTINEL_zzz',
+      SUPABASE_SERVICE_KEY: 'SERVICE_ROLE_SENTINEL_zzz',
+    });
+    const db = makeFakeDb();
+    const app = await buildApp({
+      config,
+      db,
+      cloudinary: makeFakeCloudinary(),
+      queue: makeFakeQueue(),
+      ml: makeFakeMl(),
+      renderer: makeFakeRenderer(),
+      rateLimitEnabled: false,
+      logStream,
+      fetchBytes: async () => Buffer.from('the-original-image-bytes'),
+    });
+
+    const project = db.seedProject({ org_id: ORG_A });
+    // GPS 19.1234 / 72.8765 are carried in the webhook body (see buildWebhook).
+    const res = await app.inject({
+      method: 'POST',
+      url: '/webhooks/cloudinary',
+      headers: {
+        ...webhookHeaders(),
+        authorization: `Bearer ${makeToken({ orgId: ORG_A, role: 'member' })}`,
+      },
+      payload: buildWebhook(project.id, ORG_A).body,
+    });
+    expect(res.statusCode).toBe(200);
+
+    const output = lines.join('');
+    expect(output.length).toBeGreaterThan(0); // something was actually logged
+    expect(output).not.toContain('CLD_SECRET_SENTINEL_zzz');
+    expect(output).not.toContain('SERVICE_ROLE_SENTINEL_zzz');
+    // The GPS coordinate must never appear (PII, §3.5).
+    expect(output).not.toContain('19.1234');
+    expect(output).not.toContain('72.8765');
+    // The bearer token/authorization header is redacted, not emitted verbatim.
+    expect(output).not.toContain('Bearer ey');
   });
 });
 

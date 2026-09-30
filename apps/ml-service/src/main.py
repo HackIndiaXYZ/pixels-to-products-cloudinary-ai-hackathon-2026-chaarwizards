@@ -13,6 +13,7 @@ from pathlib import Path
 from src.app import Services, create_app
 from src.cloudinary_io import CloudinaryDiffUploader, HttpAssetDownloader
 from src.config import get_settings
+from src.logging_config import configure_logging
 from src.registry import ModelRegistry, default_factory
 from src.supabase_registry import SupabaseRowSource
 from src.video import FfmpegKeyframeExtractor
@@ -20,6 +21,7 @@ from src.video import FfmpegKeyframeExtractor
 
 def build_services() -> Services:
     settings = get_settings()
+    configure_logging()
     registry = ModelRegistry(
         SupabaseRowSource(settings),
         default_factory(Path(settings.weights_dir)),

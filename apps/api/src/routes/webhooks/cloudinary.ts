@@ -141,6 +141,26 @@ export async function registerCloudinaryWebhook(app: FastifyInstance): Promise<v
           return fail('NOT_FOUND', 'project not found');
         }
 
+        // Per-org upload ceiling (Phase 11 — unsigned-preset abuse mitigation).
+        // Keyed on the org derived above, so a flood from one org is throttled
+        // without denying service to any other tenant. The failure is persisted
+        // as a logged reason (there is no asset row yet), never swallowed (§3.6).
+        const limiter = app.deps.orgUploadLimiter;
+        if (limiter !== undefined) {
+          const decision = limiter.hit(orgId);
+          if (!decision.allowed) {
+            request.log.warn(
+              { reason: 'upload_rate_limited', org_id: orgId, limit: decision.limit },
+              'webhook rejected',
+            );
+            void reply.header('retry-after', String(decision.retryAfterSeconds));
+            void reply.status(429);
+            return fail('RATE_LIMITED', 'per-org upload rate exceeded', {
+              retry_after_seconds: decision.retryAfterSeconds,
+            });
+          }
+        }
+
         // Re-derive the exact bytes the device signed.
         const capturedAtMs = Date.parse(ctx.capture_timestamp);
         const payload: SigningPayloadInput = {

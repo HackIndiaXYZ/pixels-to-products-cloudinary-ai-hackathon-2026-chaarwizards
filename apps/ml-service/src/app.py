@@ -32,6 +32,7 @@ from src.cloudinary_io import (
     diff_public_id,
 )
 from src.diff import render_red_overlay
+from src.logging_config import request_logging_middleware
 from src.models.base import SectorModel
 from src.quantify import estimate_gsd_m_per_px, quantify_change
 from src.registry import ModelRegistry, UnsupportedModel
@@ -69,6 +70,10 @@ def _require_model(services: Services, sector: str) -> SectorModel | Unsupported
 
 def create_app(services: Services) -> FastAPI:
     app = FastAPI(title="impact-ml-service", version=ML_SERVICE_VERSION)
+
+    # Structured JSON request logging (Phase 11 monitoring). Never logs the
+    # internal JWT or any GPS coordinate (§3.5).
+    app.middleware("http")(request_logging_middleware)
 
     def get_services() -> Services:
         return services

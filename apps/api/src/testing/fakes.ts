@@ -89,6 +89,8 @@ export function testConfig(overrides: Partial<Config> = {}): Config {
     REDIS_URL: 'redis://localhost:6379',
     ML_SERVICE_URL: 'http://localhost:9000',
     DASHBOARD_URL: 'http://localhost:5173',
+    ORG_UPLOAD_RATE_MAX: 600,
+    ORG_UPLOAD_RATE_WINDOW_MS: 60_000,
     ...overrides,
   };
 }

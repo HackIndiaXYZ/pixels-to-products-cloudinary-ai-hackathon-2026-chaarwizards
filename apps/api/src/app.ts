@@ -20,6 +20,7 @@ import type { CloudinaryPort, DbPort, QueuePort } from './ports.js';
 import type { MlClient } from './services/ml-client.js';
 import { HttpError, errors, type AuthContext } from './types.js';
 import { extractBearer, verifySupabaseJwtAsync, JwksCache } from './plugins/auth.js';
+import { createInMemoryOrgRateLimiter, type OrgRateLimiter } from './lib/org-rate-limit.js';
 import { registerHealthRoutes } from './routes/health.js';
 import { registerProjectRoutes } from './routes/projects.js';
 import { registerAssetRoutes } from './routes/assets.js';
@@ -55,6 +56,18 @@ export interface AppDeps {
   reportFontCss?: string;
   /** Disable the rate limiter (tests). Defaults to enabled. */
   rateLimitEnabled?: boolean;
+  /**
+   * Per-org upload limiter for the webhook ingest path (Phase 11). Injected so a
+   * test can drive a tiny limit; production builds one from config in
+   * {@link buildApp}. Keyed on the org derived from the signed project_id.
+   */
+  orgUploadLimiter?: OrgRateLimiter;
+  /**
+   * Destination for the Pino logger, injected so the Phase 11 gate can capture
+   * emitted output and assert it carries no secret or PII (AGENTS.md §3.5). In
+   * production the logger writes to stdout (Pino's default) when this is unset.
+   */
+  logStream?: NodeJS.WritableStream;
 }
 
 declare module 'fastify' {
@@ -89,9 +102,14 @@ export async function buildApp(deps: AppDeps): Promise<FastifyInstance> {
           'req.auth.jwt',
           '*.SUPABASE_JWT_SECRET',
           '*.jwt_secret',
+          // GPS is PII: never log a device's coordinates (AGENTS.md §3.5 / §3.7).
+          '*.gps_lat',
+          '*.gps_lon',
+          '*.gps',
         ],
         remove: true,
       },
+      ...(deps.logStream !== undefined ? { stream: deps.logStream } : {}),
     },
     genReqId: () => crypto.randomUUID(),
   });
@@ -99,6 +117,13 @@ export async function buildApp(deps: AppDeps): Promise<FastifyInstance> {
   app.decorate('deps', deps);
   app.decorateRequest('auth', null);
   app.decorateRequest('authError', null);
+
+  // Per-org upload limiter (Phase 11). Built from config unless a test injected
+  // one. Lives for the app's lifetime so its windows persist across requests.
+  deps.orgUploadLimiter ??= createInMemoryOrgRateLimiter({
+    max: deps.config.ORG_UPLOAD_RATE_MAX,
+    windowMs: deps.config.ORG_UPLOAD_RATE_WINDOW_MS,
+  });
 
   // JWKS cache for asymmetric (ES256/RS256) Supabase tokens. HS256 tokens do not
   // touch it (they verify with the shared secret).

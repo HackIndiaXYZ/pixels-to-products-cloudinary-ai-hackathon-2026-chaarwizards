@@ -8,17 +8,25 @@ gate noticing.
 `BUILD_ORDER.md` Phase 11 gates on "all 9 criteria below pass". Each is
 individually falsifiable and states how it is checked.
 
-| # | Criterion | How it is checked | Phase that delivers it |
-|---|---|---|---|
-| 1 | Photo + GPS + accuracy + signature → Dashboard in under 10s | Timed capture-to-visible, measured on staging | 3, 4, 8 |
-| 2 | Video (30s) + thumbnail + keyframes → Dashboard in under 15s | Timed capture-to-visible, measured on staging | 3, 4, 5, 8 |
-| 3 | Search 1 000 assets by tag, location, date, GPS accuracy, or asset type in under 500ms | `EXPLAIN ANALYZE` on a 1 000-row seeded set; every filter path timed | 8 |
-| 4 | 5 photo pairs + 3 video pairs → real metrics + diff images and video | Seeded end-to-end run; metrics carry a `model_version` and match the model registry | 6, 7, 9 |
-| 5 | Sub-project hierarchy works in the capture app picker | Device test: nested project is selectable and its observations_type routes correctly | 4, 8 |
-| 6 | A single project with 3 observation types routes to the correct ML models | Each `observation_type` hits its registry key; an unregistered type returns `unsupported`, never another sector's model (§3.3) | 2, 6 |
-| 7 | Forestry donor report PDF with integrity appendix and video clips | Generated report opened; manifest re-verified against Postgres by `sha256` | 9 |
-| 8 | Manual audit verification passes in under 5 minutes | Timed walkthrough by someone who did not build the report | 10 |
-| 9 | All 4 services deploy independently from `main` | Clean-room deploy of each service from the merged branch; no shared build step | 11 |
+| # | Criterion | How it is checked | Phase that delivers it | Status (phase/11) |
+|---|---|---|---|---|
+| 1 | Photo + GPS + accuracy + signature → Dashboard in under 10s | Timed capture-to-visible, measured on staging | 3, 4, 8 | BLOCKED (needs user review) — manual checklist |
+| 2 | Video (30s) + thumbnail + keyframes → Dashboard in under 15s | Timed capture-to-visible, measured on staging | 3, 4, 5, 8 | BLOCKED (needs user review) — manual checklist |
+| 3 | Search 1 000 assets by tag, location, date, GPS accuracy, or asset type in under 500ms | `EXPLAIN ANALYZE` on a 1 000-row seeded set; every filter path timed | 8 | AUTOMATED (index-scan assertion) + staging for the wall-clock — `apps/api/src/routes/search-perf.integration.test.ts` |
+| 4 | 5 photo pairs + 3 video pairs → real metrics + diff images and video | Seeded end-to-end run; metrics carry a `model_version` and match the model registry | 6, 7, 9 | AUTOMATED — `apps/ml-service/tests/test_exit_criterion_4.py` |
+| 5 | Sub-project hierarchy works in the capture app picker | Device test: nested project is selectable and its observations_type routes correctly | 4, 8 | BLOCKED (needs user review) — manual checklist |
+| 6 | A single project with 3 observation types routes to the correct ML models | Each `observation_type` hits its registry key; an unregistered type returns `unsupported`, never another sector's model (§3.3) | 2, 6 | AUTOMATED (incl. negative case) — `apps/ml-service/tests/test_exit_criterion_6.py` |
+| 7 | Forestry donor report PDF with integrity appendix and video clips | Generated report opened; manifest re-verified against Postgres by `sha256` | 9 | Automated render/manifest tests (Phase 9); report-opened verification is manual |
+| 8 | Manual audit verification passes in under 5 minutes | Timed walkthrough by someone who did not build the report | 10 | BLOCKED (needs user review) — manual checklist |
+| 9 | All 4 services deploy independently from `main` | Clean-room deploy of each service from the merged branch; no shared build step | 11 | Per-service CI builds green; independent DEPLOY is BLOCKED (needs user review) — manual checklist |
+
+**Automated coverage lives on `phase/11`** for criteria **3, 4, 6** (and the
+render/manifest half of 7). The five human/staging-gated criteria — **1, 2, 5,
+8, 9** — are documented in
+[`../operations/MVP_EXIT_MANUAL_CHECKLIST.md`](../operations/MVP_EXIT_MANUAL_CHECKLIST.md)
+with exactly how each must be verified, what evidence to capture, and why an
+agent cannot self-certify them (§7.1). They remain `BLOCKED (needs user review)`
+and block `/commit` until the user runs them.
 
 ## Rules for using this file
 

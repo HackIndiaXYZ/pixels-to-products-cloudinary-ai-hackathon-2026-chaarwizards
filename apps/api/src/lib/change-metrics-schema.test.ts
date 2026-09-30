@@ -60,3 +60,40 @@ describe('validateChangeMetrics — gate: an off-schema metric is rejected, nami
     expect(validateChangeMetrics({}, schema).ok).toBe(true);
   });
 });
+
+describe('metric type normalisation + matching (all types)', () => {
+  it('normalises every declared config type', () => {
+    const res = resolveMetricsSchema('forestry', {
+      an_int: 'integer',
+      a_str: 'string',
+      a_bool: 'boolean',
+      a_num: 'number',
+      unknown_becomes_number: 'float',
+    });
+    expect(res.schema).toEqual({
+      an_int: 'integer',
+      a_str: 'string',
+      a_bool: 'boolean',
+      a_num: 'number',
+      unknown_becomes_number: 'number',
+    });
+  });
+
+  it('accepts correctly-typed integer / string / boolean values', () => {
+    const s: MetricsSchema = { n: 'integer', s: 'string', b: 'boolean' };
+    expect(validateChangeMetrics({ n: 3, s: 'ok', b: true }, s).ok).toBe(true);
+  });
+
+  it('rejects a non-integer number, a non-string, and a non-boolean, naming each', () => {
+    const s: MetricsSchema = { n: 'integer', s: 'string', b: 'boolean' };
+    const badInt = validateChangeMetrics({ n: 3.5 }, s);
+    expect(badInt.ok).toBe(false);
+    if (!badInt.ok) expect(badInt.reason).toContain('must be integer');
+    const badStr = validateChangeMetrics({ s: 5 }, s);
+    expect(badStr.ok).toBe(false);
+    if (!badStr.ok) expect(badStr.reason).toContain('must be string');
+    const badBool = validateChangeMetrics({ b: 'yes' }, s);
+    expect(badBool.ok).toBe(false);
+    if (!badBool.ok) expect(badBool.reason).toContain('must be boolean');
+  });
+});

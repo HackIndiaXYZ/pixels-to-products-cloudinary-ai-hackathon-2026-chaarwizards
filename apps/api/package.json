@@ -9,6 +9,10 @@
     "lint": "eslint src",
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "test": "vitest run",
+    "test:coverage": "vitest run --coverage",
+    "test:perf": "vitest run src/routes/search-perf.integration.test.ts",
+    "check:docs": "tsx scripts/check-docs.ts",
+    "check:docs:endpoints": "tsx scripts/check-docs.ts --endpoints-only",
     "dev": "tsx watch src/start.ts",
     "start": "node dist/start.js",
     "reconcile": "node dist/jobs/reconcile.js",
@@ -33,6 +37,9 @@
   "devDependencies": {
     "@types/jsonwebtoken": "^9.0.7",
     "@types/node": "^20.19.0",
+    "@types/pg": "^8.23.1",
+    "@vitest/coverage-v8": "2.1.9",
+    "pg": "^8.23.0",
     "tsx": "^4.19.2",
     "typescript": "^5.7.2",
     "vitest": "^2.1.8"

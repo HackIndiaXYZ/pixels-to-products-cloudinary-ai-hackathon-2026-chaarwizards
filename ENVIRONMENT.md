@@ -42,6 +42,8 @@ Cloudinary stores media and performs transformations. **Every product read goes 
 | `REDIS_URL` | ✓ | — | — | — | 🔴 secret |
 | `DASHBOARD_URL` | ✓ | — | — | — | config |
 | `ML_SERVICE_URL` | ✓ | — | — | — | config |
+| `ORG_UPLOAD_RATE_MAX` | ✓ | — | — | — | config |
+| `ORG_UPLOAD_RATE_WINDOW_MS` | ✓ | — | — | — | config |
 | `WEIGHTS_DIR` | — | ✓ | — | — | config |
 
 **Prefix rules**
@@ -55,6 +57,12 @@ Cloudinary stores media and performs transformations. **Every product read goes 
 **`INTERNAL_JWT_SECRET` must be byte-identical** in api and ml-service. They sign and verify the same token; a mismatch makes every API→ML call 401.
 
 **`DASHBOARD_URL`** drives both the CORS origin and generated `invite_url`. Unset in production, every invite link points at `localhost:5173`.
+
+**`ORG_UPLOAD_RATE_MAX` / `ORG_UPLOAD_RATE_WINDOW_MS`** (Phase 11) bound the per-org
+upload rate on the webhook ingest path (default 600 uploads / 60 000 ms). Keyed on
+the org derived from the signed `project_id`, so throttling one tenant never denies
+service to another — the unsigned-preset abuse mitigation. Both are optional config
+with safe defaults, never secrets.
 
 ---
 
