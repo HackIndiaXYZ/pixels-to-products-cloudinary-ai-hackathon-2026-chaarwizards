@@ -58,3 +58,6 @@ apps/api/e2e-scripts/.e2e-seed.json
 # Playwright artifacts
 apps/dashboard/test-results/
 apps/dashboard/playwright-report/
+
+brag/
+docs/diagrams
