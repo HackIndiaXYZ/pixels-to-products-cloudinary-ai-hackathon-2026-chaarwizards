@@ -356,6 +356,41 @@ Response (200):
 }
 ```
 
+#### Verify Asset Audit Chain (Phase 10)
+
+Structured verification of an asset's append-only audit hash chain (§3.8). The
+server recomputes every row's content hash in Postgres (byte-identical to
+`append_audit_log`, so the microsecond `hashed_at` reproduces) and checks link
+continuity, then re-canonicalizes each row's raw `details` (RFC 8785) to catch a
+`details` tamper the hash-over-`details_canonical` would miss. The verdict NAMES
+the first tampered row (`hash_mismatch` / `details_tampered`) or gap
+(`broken_link`) — it never returns a bare "invalid". Resolved by `asset_id` under
+RLS; a cross-org id is a `404`. `from`/`to` are optional inclusive
+`audit_logs.id` bounds.
+
+```
+GET /v1/assets/{asset_id}/verify-chain?from=&to=
+Response (200):
+{
+  "asset_id": "asset-uuid",
+  "ok": false,
+  "checked": 2,
+  "first_id": 101,
+  "last_id": 104,
+  "tip_hash": "9f2c...",
+  "failure": {
+    "audit_id": 103,
+    "kind": "hash_mismatch",         // or "broken_link" | "details_tampered"
+    "reason": "row 103 content does not reproduce its stored current_hash (a stored value was tampered)"
+  }
+}
+```
+
+> **Status:** implemented in Phase 10 (`routes/verification.ts` →
+> `services/chain-verifier.ts` + SQL `verify_audit_chain_range`). Backs the
+> dashboard integrity viewer's chain visualization and its exportable
+> verification record.
+
 #### Get Asset Derivative Lineage
 
 The append-only `asset_derivatives` lineage for an asset (§3.1), read by the
@@ -539,6 +574,40 @@ GET /v1/report-templates?sector=forestry
 Response (200): Template list
 ```
 
+#### Verify Report (public-safe receipt, Phase 10)
+
+A public-safe verification receipt for a report id. Given a report id it returns
+ONLY hashes, counts, timestamps, and per-asset chain verdicts (each from
+`verify_audit_chain_range`). It carries no `org_id`, user identity, GPS
+coordinate, caption, or Cloudinary `public_id` (public_ids embed the org_id), so
+it is safe to export and share as standalone evidence. Access is still gated by
+RLS (`SECURITY INVOKER`): a cross-org report id is a `404`. Running it again over
+the same rows yields the same verdicts and tip hashes, so the receipt is a
+re-verification against Postgres, not a decorative snapshot.
+
+```
+GET /v1/reports/{report_id}/verification
+Response (200):
+{
+  "report_id": "report-uuid",
+  "status": "finalized",
+  "template_version": "forestry_donor@1",
+  "generated_at": "2024-01-15T15:30:00Z",
+  "byte_size": 41200000,
+  "chains_verified": true,
+  "asset_chains": [
+    { "index": 0, "chain_verified": true, "chain_length": 4, "tip_hash": "9f2c...", "failure": null }
+  ],
+  "manifest": [
+    { "ordinal": 1, "role": "photo", "sha256_hash": "9f2c...", "byte_size": 1048576, "verified": true }
+  ]
+}
+```
+
+> **Status:** implemented in Phase 10 (`routes/verification.ts` → SQL
+> `report_verification_receipt`). Backs the dashboard's exportable report
+> verification record.
+
 ### Audit Trail
 
 #### Get Audit Log
@@ -664,6 +733,8 @@ HTTP Status Codes:
 | `GET /v1/search` | 50 req/min |
 | `POST /v1/reports/generate` | 10 req/min |
 | `GET /v1/assets/{id}/integrity` | 100 req/min |
+| `GET /v1/assets/{id}/verify-chain` | 100 req/min |
+| `GET /v1/reports/{id}/verification` | 100 req/min |
 | `POST /v1/assets/{id}/original-url` | 300 req/min |
 | `POST /v1/assets/{id}/derivative-url` | 600 req/min |
 | `POST /v1/orgs` | 5 req/hour, `platform_admin` only |

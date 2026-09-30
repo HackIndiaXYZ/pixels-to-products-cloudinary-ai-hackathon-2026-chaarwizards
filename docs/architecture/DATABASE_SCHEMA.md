@@ -921,6 +921,32 @@ END;
 $$ LANGUAGE plpgsql;
 ```
 
+> **Note:** the applied `verify_audit_chain` (migration `20260927090000`) hashes
+> `details_canonical` and the stored `hashed_at` (RFC 8785 / §3.8), not the stale
+> `details::text` + `created_at` draft shown above. See that migration for the
+> authoritative body.
+
+### Verify Audit Chain — Range (Phase 10)
+
+`verify_audit_chain_range(p_asset_id, p_from_id, p_to_id)` — the structured
+`verifyChain(from, to)` behind `GET /v1/assets/:id/verify-chain`. It walks one
+asset's chain (optionally within an inclusive `audit_logs.id` range),
+recomputing every row's content hash byte-identically to `append_audit_log` and
+checking link continuity. Returns JSONB
+`{ ok, checked, first_id, last_id, tip_hash, failure }` where `failure` NAMES the
+first bad row: `hash_mismatch` (a stored value was tampered) or `broken_link` (an
+intermediate row was deleted → gap). `SECURITY INVOKER`, so RLS scopes
+`audit_logs` to the caller's org. Migration `20260930020000_chain_verification.sql`.
+
+### Report Verification Receipt (Phase 10)
+
+`report_verification_receipt(p_report_id)` — the public-safe receipt behind
+`GET /v1/reports/:id/verification`. Returns JSONB with only hashes, counts,
+timestamps, and per-asset chain verdicts (via `verify_audit_chain_range`); never
+`org_id`, user/actor identity, GPS, caption, or Cloudinary `public_id`.
+`SECURITY INVOKER`, so a cross-org report id resolves to no row and the API
+`404`s. Migration `20260930020000_chain_verification.sql`.
+
 ---
 
 ## Supabase Edge Functions

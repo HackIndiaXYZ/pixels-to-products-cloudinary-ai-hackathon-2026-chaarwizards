@@ -86,16 +86,21 @@ git add -A
 git commit
 ```
 
-Write the message yourself. It must state **what the gate proved**, not merely
-what changed. Good:
+Write the message yourself. Keep it **short and human** — one conventional-commit
+subject line, and at most a couple of plain lines of body only if they add real
+context. Do not paste gate tallies, audit summaries, or test output into the
+message; the gate result belongs in the chat report, not the commit. Good:
 
 ```
-feat(api): add Cloudinary delivery URLs resolved by asset_id under RLS
+feat(api): resolve Cloudinary delivery URLs by asset_id under RLS
+```
 
-Gate: 14/14 items PASS. pnpm lint, typecheck, test; supabase db reset;
-  cross-org SELECT denied; UPDATE assets.sha256_hash raises.
-Audit: no findings above medium. Clients cannot supply public_id;
-  transformation allowlist rejects unknown params with 422.
+or, when a note genuinely helps:
+
+```
+feat(api): add report generation with PDF export
+
+Renders self-contained HTML to PDF, stores template + inputs for regen.
 ```
 
 Bad:
@@ -104,11 +109,17 @@ Bad:
 update stuff
 ```
 
-The existing Phase 0 commit reads `chore(monorepo): Phase 0 scaffold — pnpm
-workspace, 6 packages, TS strict, CI`. That is a change list, not a proof. For
-comparison, a correct one would have read `Gate: 8/8 turbo tasks across lint,
-typecheck, test; ruff, mypy, pytest green in the ml-service venv. Audit: no
-findings.`
+Also bad — too long, dumps the gate into the message:
+
+```
+feat(api): add delivery URLs
+
+Gate: 14/14 PASS. pnpm lint, typecheck, test; supabase db reset;
+cross-org SELECT denied; UPDATE assets.sha256_hash raises. Audit: ...
+```
+
+Write the subject the way a human would in a hurry: what changed, in a few
+words. Report the gate proof in the chat, not the commit.
 
 ## 5. Never merge, never push
 

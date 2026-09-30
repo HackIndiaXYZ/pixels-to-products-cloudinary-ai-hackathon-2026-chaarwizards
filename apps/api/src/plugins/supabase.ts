@@ -107,6 +107,50 @@ const ReportTemplateRowSchema = z.object({
   created_at: z.string(),
 });
 
+/** Runtime validation of `verify_audit_chain_range` output (Phase 10). */
+const ChainRangeResultSchema = z.object({
+  ok: z.boolean(),
+  checked: z.number().int().nonnegative(),
+  first_id: z.number().int().nullable(),
+  last_id: z.number().int().nullable(),
+  tip_hash: z.string().nullable(),
+  failure: z
+    .object({
+      audit_id: z.number().int(),
+      kind: z.enum(['broken_link', 'hash_mismatch']),
+      reason: z.string(),
+    })
+    .nullable(),
+});
+
+/** Runtime validation of `report_verification_receipt` output (Phase 10). */
+const ReportReceiptSchema = z.object({
+  report_id: z.string(),
+  status: z.string(),
+  template_version: z.string().nullable(),
+  generated_at: z.string(),
+  byte_size: z.number().int().nullable(),
+  chains_verified: z.boolean(),
+  asset_chains: z.array(
+    z.object({
+      index: z.number().int().nonnegative(),
+      chain_verified: z.boolean(),
+      chain_length: z.number().int().nonnegative(),
+      tip_hash: z.string().nullable(),
+      failure: ChainRangeResultSchema.shape.failure,
+    }),
+  ),
+  manifest: z.array(
+    z.object({
+      ordinal: z.number().int().nonnegative(),
+      role: z.string(),
+      sha256_hash: z.string().nullable(),
+      byte_size: z.number().int().nullable(),
+      verified: z.boolean(),
+    }),
+  ),
+});
+
 function stateToBool(state: VerificationState): boolean | null {
   return state === 'pass' ? true : state === 'fail' ? false : null;
 }
@@ -255,6 +299,43 @@ export function createSupabaseDb(config: Config): DbPort {
           previous_hash: row.previous_hash,
           current_hash: row.current_hash,
           hashed_at: row.hashed_at,
+        };
+      });
+    },
+    async verifyChainRange(ctx, assetId, from, to) {
+      // Authoritative hash + link recomputation in Postgres (§3.8): the
+      // microsecond UTC hashed_at cannot be reproduced byte-for-byte in JS.
+      const { data, error } = await scoped(ctx).rpc('verify_audit_chain_range', {
+        p_asset_id: assetId,
+        p_from_id: from,
+        p_to_id: to,
+      });
+      if (error) throw errors.internal('chain verify failed', { cause: error.message });
+      return ChainRangeResultSchema.parse(data);
+    },
+    async fullChainForAsset(ctx, assetId, from, to) {
+      // Raw details + stored canonical for the RFC 8785 content-consistency
+      // check the API runs in Node (jsonb::text is not JCS, §3.8). RLS-scoped.
+      let q = scoped(ctx)
+        .from('audit_logs')
+        .select('id, action, details, details_canonical')
+        .eq('asset_id', assetId);
+      if (from !== null) q = q.gte('id', from);
+      if (to !== null) q = q.lte('id', to);
+      const { data, error } = await q.order('id', { ascending: true });
+      if (error) throw errors.internal('audit chain read failed', { cause: error.message });
+      return ((data ?? []) as unknown[]).map((r) => {
+        const row = r as {
+          id: number;
+          action: string;
+          details: Record<string, unknown> | null;
+          details_canonical: string | null;
+        };
+        return {
+          id: row.id,
+          action: row.action,
+          details: row.details,
+          details_canonical: row.details_canonical,
         };
       });
     },
@@ -731,6 +812,14 @@ export function createSupabaseDb(config: Config): DbPort {
           .order('ordinal', { ascending: true });
         if (error) throw errors.internal('list manifest failed', { cause: error.message });
         return ((data ?? []) as unknown[]).map((r) => ReportManifestEntrySchema.parse(r));
+      },
+      async verificationReceipt(ctx, packageId) {
+        const { data, error } = await scoped(ctx).rpc('report_verification_receipt', {
+          p_report_id: packageId,
+        });
+        if (error) throw errors.internal('report verification failed', { cause: error.message });
+        if (data === null || data === undefined) return null;
+        return ReportReceiptSchema.parse(data);
       },
     },
 
