@@ -610,25 +610,15 @@ Response (200):
 
 ### Audit Trail
 
-#### Get Audit Log
-```
-GET /v1/assets/{asset_id}/audit-trail
-Response (200):
-{
-  "data": [
-    {
-      "id": 1,
-      "action": "upload",
-      "actor_type": "system",
-      "actor_id": "cloudinary",
-      "details": {...},
-      "previous_hash": "genesis",
-      "current_hash": "sha256...",
-      "created_at": "2024-01-15T09:30:05Z"
-    }
-  ]
-}
-```
+The per-asset audit hash chain is surfaced through the **Phase 10** structured
+verifier, not a raw log-listing endpoint. `GET /v1/assets/{asset_id}/verify-chain`
+(above) recomputes and verifies the chain, naming the first tampered row or gap,
+and `GET /v1/reports/{report_id}/verification` returns a public-safe receipt of
+the chain verdicts for every asset in a report. There is no
+`GET /v1/assets/{asset_id}/audit-trail` route in the MVP: exposing raw
+`audit_logs` rows (which carry `details` that may reference internal identifiers)
+was intentionally dropped in favour of the verify-chain contract, which returns a
+verdict rather than the underlying rows. Reconciled to match reality in Phase 11.
 
 ---
 
@@ -741,6 +731,16 @@ HTTP Status Codes:
 | `POST /v1/pairs`, `POST /v1/pairs/{id}/split` | 60 req/min per user |
 | ML `/v1/detect-change` | 20 req/min per org |
 | Cloudinary webhook | 2000 req/min, burst 4000 |
+
+**Per-org upload limit (Phase 11).** The capture app uploads directly to
+Cloudinary through the **unsigned** `verified_capture` preset, so the webhook
+ingest (`POST /webhooks/cloudinary`) is the first server-side surface that sees
+an org's upload volume. It carries a per-org ceiling — `ORG_UPLOAD_RATE_MAX`
+uploads per `ORG_UPLOAD_RATE_WINDOW_MS` (default 600/min) — keyed on the `org_id`
+derived from the **signed** `project_id`, never the request body. Exceeding it
+returns `429` with a `Retry-After` header and persists the reason to the log;
+because each org has its own window, a flood from one tenant never denies service
+to another. This is the unsigned-preset abuse mitigation.
 
 **Pagination** — every list endpoint is paginated. Unbounded result sets are a denial-of-service
 vector and the reason a "search is slow" bug usually turns out to be an unpaginated query.

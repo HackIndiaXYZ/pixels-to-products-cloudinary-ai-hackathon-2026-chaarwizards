@@ -6,53 +6,166 @@ on:
   pull_request:
     branches: [main]
 
+# Phase 11 CI. Each of the four services is a SEPARATE job so one service's
+# failure can never mask another's (BUILD_ORDER Phase 11 gate: "each of the 4
+# services builds ... so one service cannot mask another's failure"). Shared
+# workspace packages are a dependency, not one of the four services; `turbo
+# --filter` builds them first (`^build`) without coupling the services to a
+# single shared build invocation. Coverage thresholds (API 80% / ML 70%), the
+# doc↔reality gate, the migration gate, and the secrets gate each fail the build
+# in their own job.
+
 jobs:
-  workspace:
-    name: Lint · Typecheck · Test · Build (all 6 packages)
+  # ---- Service 1: Node API (Fastify) ----
+  api:
+    name: api · lint · typecheck · test+coverage(80%) · docs · build
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-
-      - name: Read Node version
-        id: nvm
+      - id: nvm
         run: echo "version=$(cat .nvmrc)" >> "$GITHUB_OUTPUT"
-
       - uses: pnpm/action-setup@v4
         with:
           version: 10.11.0
-
       - uses: actions/setup-node@v4
         with:
           node-version: ${{ steps.nvm.outputs.version }}
           cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - name: Lint · typecheck · build (shared deps built via ^build)
+        run: pnpm turbo run lint typecheck build --filter=@impact/api
+      - name: Test with enforced 80% coverage
+        run: pnpm --filter @impact/api test:coverage
+      - name: Docs↔reality (endpoints)
+        run: pnpm --filter @impact/api check:docs:endpoints
 
+  # ---- Service 2: Python ML service (FastAPI) ----
+  ml-service:
+    name: ml-service · ruff · mypy · pytest+coverage(70%)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: apps/ml-service
+    steps:
+      - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
         with:
           python-version: '3.11'
-
-      - name: Install JS workspace
-        run: pnpm install --frozen-lockfile
-
-      - name: Provision ml-service venv
-        working-directory: apps/ml-service
+      - name: Provision venv
         run: |
           python -m venv .venv
           ./.venv/bin/python -m pip install --upgrade pip
           ./.venv/bin/python -m pip install -r requirements.txt -r requirements-dev.txt
+      - name: Ruff
+        run: ./.venv/bin/ruff check src tests
+      - name: Mypy (strict)
+        run: ./.venv/bin/mypy src
+      - name: Pytest with enforced 70% coverage
+        run: ./.venv/bin/python -m pytest
 
-      - name: Lint (turbo — eslint + ruff)
-        run: pnpm lint
-
-      - name: Typecheck (turbo — tsc + mypy)
-        run: pnpm typecheck
-
-      - name: Test (turbo — vitest + pytest)
-        run: pnpm test
-
-      - name: Build (turbo — tsc/vite + compileall)
-        run: pnpm build
-
-      - name: No secret literal in dashboard bundle
+  # ---- Service 3: Dashboard (React 19 + Vite) ----
+  dashboard:
+    name: dashboard · lint · typecheck · test · build · no-secret-in-bundle
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - id: nvm
+        run: echo "version=$(cat .nvmrc)" >> "$GITHUB_OUTPUT"
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10.11.0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ steps.nvm.outputs.version }}
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm turbo run lint typecheck test build --filter=@impact/dashboard
+      - name: No secret literal in the built bundle
         run: |
           test ! -d apps/dashboard/dist || \
             ! grep -rIl "CLOUDINARY_API_SECRET" apps/dashboard/dist
+
+  # ---- Service 4: Capture app (Expo / React Native) ----
+  capture-app:
+    name: capture-app · lint · typecheck · test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - id: nvm
+        run: echo "version=$(cat .nvmrc)" >> "$GITHUB_OUTPUT"
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10.11.0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ steps.nvm.outputs.version }}
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm turbo run lint typecheck test --filter=@impact/capture-app
+
+  # ---- Shared workspace packages (types, JCS, ui-components) ----
+  packages:
+    name: packages · lint · typecheck · test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - id: nvm
+        run: echo "version=$(cat .nvmrc)" >> "$GITHUB_OUTPUT"
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10.11.0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ steps.nvm.outputs.version }}
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm turbo run lint typecheck test --filter=./packages/*
+
+  # ---- Secrets gate: no secret value in any tracked file or client bundle ----
+  secrets:
+    name: secrets gate (§3.5)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: No secret in any tracked file
+        run: bash scripts/check-secrets.sh
+
+  # ---- Migration gate: DATABASE_SCHEMA.md ⊆ information_schema after a reset ----
+  # This job MUST be able to fail: the doc↔reality check parses every documented
+  # table/column and asserts it exists in the freshly-reset catalog. The negative
+  # "catches a missing table" case is proven by the unit tests in the `api` job
+  # (src/lib/doc-consistency.test.ts) so the gate is never a no-op.
+  migration-gate:
+    name: migration gate (schema doc ⊆ information_schema)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - id: nvm
+        run: echo "version=$(cat .nvmrc)" >> "$GITHUB_OUTPUT"
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10.11.0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ steps.nvm.outputs.version }}
+          cache: pnpm
+      - uses: supabase/setup-cli@v1
+        with:
+          version: latest
+      - run: pnpm install --frozen-lockfile
+      - name: Start local Supabase and apply every migration from scratch
+        run: supabase start
+      - name: Reset to apply migrations cleanly
+        run: supabase db reset --local
+      - name: Assert docs name only tables/columns/endpoints that exist
+        env:
+          DATABASE_URL: postgresql://postgres:postgres@127.0.0.1:54322/postgres
+        run: pnpm --filter @impact/api check:docs
+      - name: MVP criterion 3 — search filter paths are indexed (1 000-row bench)
+        env:
+          DATABASE_URL: postgresql://postgres:postgres@127.0.0.1:54322/postgres
+        run: pnpm --filter @impact/api test:perf
+      - name: pgTAP suite (RLS, immutability, audit chain, schema completeness)
+        run: supabase test db

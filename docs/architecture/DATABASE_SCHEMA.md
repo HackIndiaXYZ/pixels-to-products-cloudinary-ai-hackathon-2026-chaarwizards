@@ -253,6 +253,11 @@ CREATE INDEX idx_assets_gps_accuracy ON assets(gps_accuracy_meters) WHERE gps_ac
 CREATE INDEX idx_assets_commit_hash ON assets(device_commit_hash);
 CREATE INDEX idx_assets_status ON assets(upload_status);
 CREATE INDEX idx_assets_observation ON assets(project_id, observation_type, phase);
+-- Search filter-path coverage (Phase 11, migration 20260930030000; MVP exit
+-- criterion 3). Every documented GET /v1/search filter path is index-assisted:
+CREATE INDEX idx_assets_ai_tags     ON assets USING GIN (ai_tags jsonb_path_ops);  -- tag
+CREATE INDEX idx_assets_asset_type  ON assets(asset_type) WHERE asset_type IS NOT NULL;  -- type
+CREATE INDEX idx_assets_capture_time ON assets(device_capture_timestamp DESC);  -- global date range
 
 -- RLS. The API connects as a dedicated NON-superuser role (api_app), not
 -- service_role, so that RLS and column grants actually apply to application code.

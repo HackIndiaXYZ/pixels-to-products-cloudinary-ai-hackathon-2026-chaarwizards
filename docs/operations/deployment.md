@@ -88,9 +88,9 @@ supabase db push
 ```bash
 # Deploy signed-delivery-url function
 supabase functions deploy signed-delivery-url \
-  --env CLOUDINARY_CLOUD_NAME=xxx \
-  --env CLOUDINARY_API_KEY=xxx \
-  --env CLOUDINARY_API_SECRET=xxx
+  --env CLOUDINARY_CLOUD_NAME=<cloud-name> \
+  --env CLOUDINARY_API_KEY=<cloudinary-api-key> \
+  --env CLOUDINARY_API_SECRET=<cloudinary-api-secret>
 ```
 
 ### Realtime
@@ -163,21 +163,23 @@ railway add postgresql   # Optional: if not using Supabase directly
 
 ### Environment Variables (Railway Dashboard)
 ```bash
-# Required
-SUPABASE_URL=https://xxx.supabase.co
-SUPABASE_SERVICE_KEY=eyJhbGciOiJIUzI1NiIs...
-CLOUDINARY_CLOUD_NAME=your-cloud
-CLOUDINARY_API_KEY=123456789
-CLOUDINARY_API_SECRET=abcdefghijklmnop
-REDIS_URL=redis://default:xxx@xxx.railway.internal:6379
+# Required — set the real values in the Railway dashboard, never in a tracked file.
+# Placeholders below use <angle-brackets> so the Phase 11 secrets gate stays clean.
+SUPABASE_URL=https://<project>.supabase.co
+SUPABASE_SERVICE_KEY=<service-role-key-from-supabase>
+CLOUDINARY_CLOUD_NAME=<cloud-name>
+CLOUDINARY_API_KEY=<cloudinary-api-key>
+CLOUDINARY_API_SECRET=<cloudinary-api-secret>
+REDIS_URL=<redis-connection-url>
 ML_SERVICE_URL=https://ml.impact-platform.fly.dev
 NODE_ENV=production
 PORT=3000
 
 # Optional
 LOG_LEVEL=info
-RATE_LIMIT_MAX=100
-RATE_LIMIT_WINDOW_MS=60000
+# Per-org upload ceiling on the webhook ingest path (Phase 11).
+ORG_UPLOAD_RATE_MAX=600
+ORG_UPLOAD_RATE_WINDOW_MS=60000
 ```
 
 ### Deploy
@@ -224,9 +226,9 @@ flyctl apps create impact-ml-service --org personal
 
 # Set secrets
 flyctl secrets set \
-  CLOUDINARY_CLOUD_NAME=xxx \
-  CLOUDINARY_API_KEY=xxx \
-  CLOUDINARY_API_SECRET=xxx \
+  CLOUDINARY_CLOUD_NAME=<cloud-name> \
+  CLOUDINARY_API_KEY=<cloudinary-api-key> \
+  CLOUDINARY_API_SECRET=<cloudinary-api-secret> \
   PYTHONPATH=/app
 ```
 

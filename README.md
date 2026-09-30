@@ -132,6 +132,13 @@ Field Worker → Capture App → Cloudinary → Webhook → API → Supabase
 | **Week 5-6** | Polish | Ghost overlay, GPS threshold, map clustering, load testing, demo script |
 
 ### MVP Exit Criteria
+
+> Gate-facing, individually-falsifiable versions of these nine live in
+> `docs/architecture/MVP_EXIT_CRITERIA.md`; if the two disagree, that file wins.
+> Criteria 1, 2, 3, 5, 8, and 9 are timing / device / deployment judgements that
+> require a human on staging and are reported by the agent as
+> `BLOCKED (needs user review)` — they stay unchecked until verified on staging.
+
 - [ ] Photo + GPS + accuracy + signature → Dashboard (< 10s)
 - [ ] Video (30s) + thumbnail + keyframes → Dashboard (< 15s)
 - [ ] Search 1K assets by tag/location/date/GPS accuracy/asset type (< 500ms)
@@ -473,9 +480,9 @@ async function applyGenerativeAI(asset: DerivativeAsset, options: GenerativeOpti
 # 1. Sign up at cloudinary.com/pages/hackathons/
 # 2. Get your credentials (cloud_name, api_key, api_secret)
 # 3. Add to your .env.local — SERVER ONLY, never in a client bundle
-CLOUDINARY_CLOUD_NAME=your_hackathon_cloud
-CLOUDINARY_API_KEY=your_api_key
-CLOUDINARY_API_SECRET=your_api_secret
+CLOUDINARY_CLOUD_NAME=<cloud-name>
+CLOUDINARY_API_KEY=<cloudinary-api-key>
+CLOUDINARY_API_SECRET=<cloudinary-api-secret>
 CLOUDINARY_UPLOAD_PRESET=verified_capture
 ```
 
