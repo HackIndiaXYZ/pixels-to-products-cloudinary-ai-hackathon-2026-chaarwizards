@@ -277,6 +277,31 @@ export interface AuditRepo {
    * value the appendix prints and a verifier re-derives (AGENTS.md §3.8).
    */
   chainForAsset(assetId: string): Promise<AuditChainRow[]>;
+  /**
+   * Org-scoped structured chain verification (Phase 10 — `verifyChain(from,to)`).
+   * Recomputes every row's content hash in Postgres (byte-identical to
+   * `append_audit_log`, §3.8) and checks link continuity, naming the first
+   * tampered row or gap. `from`/`to` are inclusive `audit_logs.id` bounds; null
+   * means the chain end. Runs `verify_audit_chain_range` (SECURITY INVOKER, RLS).
+   */
+  verifyChainRange(
+    ctx: AuthContext,
+    assetId: string,
+    from: number | null,
+    to: number | null,
+  ): Promise<ChainRangeResult>;
+  /**
+   * Org-scoped read of an asset's full chain rows (Phase 10). Carries the raw
+   * `details` and the stored `details_canonical` so the API can run the RFC 8785
+   * canonical-consistency check Postgres cannot (jsonb::text is not JCS, §3.8),
+   * catching a tamper of the raw `details` column. Ordered by id ascending.
+   */
+  fullChainForAsset(
+    ctx: AuthContext,
+    assetId: string,
+    from: number | null,
+    to: number | null,
+  ): Promise<AuditFullRow[]>;
 }
 
 /** One row of an asset's audit hash chain (append-only, §3.8). */
@@ -285,6 +310,28 @@ export interface AuditChainRow {
   readonly previous_hash: string | null;
   readonly current_hash: string;
   readonly hashed_at: string;
+}
+
+/** A full audit row for the RFC 8785 content-consistency check (Phase 10). */
+export interface AuditFullRow {
+  readonly id: number;
+  readonly action: string;
+  readonly details: Record<string, unknown> | null;
+  readonly details_canonical: string | null;
+}
+
+/** Structured result of `verify_audit_chain_range` (Phase 10). */
+export interface ChainRangeResult {
+  readonly ok: boolean;
+  readonly checked: number;
+  readonly first_id: number | null;
+  readonly last_id: number | null;
+  readonly tip_hash: string | null;
+  readonly failure: {
+    readonly audit_id: number;
+    readonly kind: 'broken_link' | 'hash_mismatch';
+    readonly reason: string;
+  } | null;
 }
 
 export interface IntegrityRepo {
@@ -387,6 +434,47 @@ export interface ReportsRepo {
   insertManifestEntry(input: ManifestEntryInsert): Promise<void>;
   /** Org-scoped read of a report's manifest (RLS), by ordinal. */
   listManifest(ctx: AuthContext, packageId: string): Promise<ReportManifestEntry[]>;
+  /**
+   * Org-scoped public-safe verification receipt for a report id (Phase 10).
+   * Runs `report_verification_receipt` (SECURITY INVOKER, RLS): only hashes,
+   * counts, timestamps, and per-asset chain verdicts — never org_id, user
+   * identity, GPS, caption, or public_id. Null if absent or in another org.
+   */
+  verificationReceipt(ctx: AuthContext, packageId: string): Promise<ReportReceipt | null>;
+}
+
+/** One per-asset chain verdict inside a report verification receipt (Phase 10). */
+export interface ReceiptAssetChain {
+  readonly index: number;
+  readonly chain_verified: boolean;
+  readonly chain_length: number;
+  readonly tip_hash: string | null;
+  readonly failure: ChainRangeResult['failure'];
+}
+
+/** One manifest hash entry inside a report verification receipt (Phase 10). */
+export interface ReceiptManifestEntry {
+  readonly ordinal: number;
+  readonly role: string;
+  readonly sha256_hash: string | null;
+  readonly byte_size: number | null;
+  readonly verified: boolean;
+}
+
+/**
+ * Public-safe report verification receipt (Phase 10 — "Report verification").
+ * Deliberately carries NO org_id, user identity, GPS, caption, or public_id, so
+ * it is safe to export and share as standalone evidence (AGENTS.md §3.4).
+ */
+export interface ReportReceipt {
+  readonly report_id: string;
+  readonly status: string;
+  readonly template_version: string | null;
+  readonly generated_at: string;
+  readonly byte_size: number | null;
+  readonly chains_verified: boolean;
+  readonly asset_chains: readonly ReceiptAssetChain[];
+  readonly manifest: readonly ReceiptManifestEntry[];
 }
 
 /** Row inserted at ingest when Cloudinary returns AI tags (§3.9: tags are copied in). */

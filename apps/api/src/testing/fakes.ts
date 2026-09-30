@@ -11,7 +11,7 @@
  */
 import jwt from 'jsonwebtoken';
 import { createHash, generateKeyPairSync, sign as edSign } from 'node:crypto';
-import { buildSigningPayload, type SigningPayloadInput } from '@impact/shared';
+import { buildSigningPayload, canonicalize, type JsonValue, type SigningPayloadInput } from '@impact/shared';
 import type { Asset, AssetDerivative, ChangeEvent, Observation, Org, Project, Report, ReportManifestEntry } from '@impact/shared';
 import type { Config } from '../config.js';
 import type {
@@ -30,6 +30,7 @@ import type {
   PairingAssetRow,
   QueuePort,
   ReportPackageInsert,
+  ReportReceipt,
   ReportTemplateRow,
   VerificationUpdate,
 } from '../ports.js';
@@ -39,6 +40,36 @@ import type { ReportRenderer } from '../reports/renderer.js';
 export const TEST_JWT_SECRET = 'test-supabase-jwt-secret';
 export const ORG_A = '11111111-1111-1111-1111-111111111111';
 export const ORG_B = '22222222-2222-2222-2222-222222222222';
+
+/**
+ * Fake audit-chain hash, formula-parallel to append_audit_log / the SQL range
+ * verifier: sha256 over prev|action|actor_type|actor_id|details_canonical|
+ * hashed_at with the same COALESCE sentinels. Append and verifyChainRange share
+ * it, so a tampered field in the fake store fails verification just as it does
+ * in Postgres.
+ */
+function fakeChainHash(
+  previousHash: string | null,
+  action: string,
+  actorType: string,
+  actorId: string | null,
+  detailsCanonical: string | null,
+  hashedAt: string,
+): string {
+  return createHash('sha256')
+    .update(
+      [
+        previousHash ?? 'genesis',
+        action,
+        actorType,
+        actorId ?? '',
+        detailsCanonical ?? 'null',
+        hashedAt,
+      ].join('|'),
+      'utf8',
+    )
+    .digest('hex');
+}
 
 export function testConfig(overrides: Partial<Config> = {}): Config {
   return {
@@ -114,8 +145,12 @@ export interface FakeDb extends DbPort {
   _pairingCoords: Map<string, { lat: number; lon: number }>;
   _invites: { org_id: string; email: string; role: string; token_hash: string; expires_at: string }[];
   _audit: {
+    id: number;
     assetId: string;
     action: string;
+    actorType: string;
+    actorId: string | null;
+    details: Record<string, unknown> | null;
     details_canonical: string;
     previous_hash: string | null;
     current_hash: string;
@@ -582,21 +617,32 @@ export function makeFakeDb(): FakeDb {
 
     audit: {
       async append(input) {
-        // Mirror append_audit_log: a per-asset hash chain over the canonical
-        // details and the STORED hashed_at (§3.8). Deterministic so a report
-        // appendix can assert the tip matches this store.
-        const details_canonical = JSON.stringify(input.details);
+        // Mirror append_audit_log: a per-asset hash chain over the RFC 8785
+        // canonical details and the STORED hashed_at (§3.8). The formula matches
+        // fakeChainHash so verifyChainRange (below) recomputes byte-identically,
+        // making a tampered fake row fail exactly as a tampered DB row would.
+        const details_canonical = canonicalize((input.details ?? null) as JsonValue);
         const prior = audit.filter((r) => r.assetId === input.assetId);
-        const previous_hash = prior.length > 0 ? (prior[prior.length - 1] as { current_hash: string }).current_hash : null;
+        const previous_hash =
+          prior.length > 0 ? (prior[prior.length - 1] as { current_hash: string }).current_hash : null;
         // A stable hashed_at derived from position, never wall-clock, so the
         // chain is reproducible across runs.
         const hashed_at = new Date(1700000000000 + prior.length * 1000).toISOString();
-        const current_hash = createHash('sha256')
-          .update(`${previous_hash ?? ''}|${input.action}|${details_canonical}|${hashed_at}`)
-          .digest('hex');
+        const current_hash = fakeChainHash(
+          previous_hash,
+          input.action,
+          input.actorType,
+          input.actorId,
+          details_canonical,
+          hashed_at,
+        );
         audit.push({
+          id: audit.length + 1,
           assetId: input.assetId,
           action: input.action,
+          actorType: input.actorType,
+          actorId: input.actorId,
+          details: input.details ?? null,
           details_canonical,
           previous_hash,
           current_hash,
@@ -611,6 +657,87 @@ export function makeFakeDb(): FakeDb {
             previous_hash: r.previous_hash,
             current_hash: r.current_hash,
             hashed_at: r.hashed_at,
+          }));
+      },
+      async verifyChainRange(ctx, assetId, from, to) {
+        // Mirror verify_audit_chain_range: recompute each row's content hash and
+        // check link continuity, naming the first tampered row (hash_mismatch) or
+        // gap (broken_link). Org-scoped like RLS: another org's asset → 0 rows.
+        const a = assets.get(assetId);
+        const visible = a !== undefined && a.org_id === ctx.orgId;
+        const rows = visible
+          ? audit
+              .filter((r) => r.assetId === assetId)
+              .filter((r) => (from === null || r.id >= from) && (to === null || r.id <= to))
+              .sort((x, y) => x.id - y.id)
+          : [];
+        let previous: string | null = null;
+        let anchored = from === null;
+        let checked = 0;
+        let firstId: number | null = null;
+        let lastId: number | null = null;
+        let tip: string | null = null;
+        for (const r of rows) {
+          if (!anchored) {
+            previous = r.previous_hash;
+            anchored = true;
+          }
+          if (firstId === null) firstId = r.id;
+          if (r.previous_hash !== previous) {
+            return {
+              ok: false,
+              checked,
+              first_id: firstId,
+              last_id: lastId,
+              tip_hash: tip,
+              failure: {
+                audit_id: r.id,
+                kind: 'broken_link' as const,
+                reason: `row ${r.id} previous_hash does not chain to the preceding row (a prior row was deleted or reordered)`,
+              },
+            };
+          }
+          const expected = fakeChainHash(
+            previous,
+            r.action,
+            r.actorType,
+            r.actorId,
+            r.details_canonical,
+            r.hashed_at,
+          );
+          if (r.current_hash !== expected) {
+            return {
+              ok: false,
+              checked,
+              first_id: firstId,
+              last_id: lastId,
+              tip_hash: tip,
+              failure: {
+                audit_id: r.id,
+                kind: 'hash_mismatch' as const,
+                reason: `row ${r.id} content does not reproduce its stored current_hash (a stored value was tampered)`,
+              },
+            };
+          }
+          previous = r.current_hash;
+          tip = r.current_hash;
+          lastId = r.id;
+          checked += 1;
+        }
+        return { ok: true, checked, first_id: firstId, last_id: lastId, tip_hash: tip, failure: null };
+      },
+      async fullChainForAsset(ctx, assetId, from, to) {
+        const a = assets.get(assetId);
+        if (a === undefined || a.org_id !== ctx.orgId) return [];
+        return audit
+          .filter((r) => r.assetId === assetId)
+          .filter((r) => (from === null || r.id >= from) && (to === null || r.id <= to))
+          .sort((x, y) => x.id - y.id)
+          .map((r) => ({
+            id: r.id,
+            action: r.action,
+            details: r.details,
+            details_canonical: r.details_canonical,
           }));
       },
     },
@@ -764,6 +891,49 @@ export function makeFakeDb(): FakeDb {
         return manifest
           .filter((m) => m.evidence_package_id === packageId && m.org_id === ctx.orgId)
           .sort((a, b) => a.ordinal - b.ordinal);
+      },
+      async verificationReceipt(ctx, packageId): Promise<ReportReceipt | null> {
+        const pkg = packages.get(packageId);
+        if (pkg === undefined || pkg.org_id !== ctx.orgId) return null;
+        const assetChains = [];
+        let allOk = true;
+        let index = 0;
+        for (const assetId of pkg.asset_ids) {
+          const chain = await db.audit.verifyChainRange(ctx, assetId, null, null);
+          if (!chain.ok) allOk = false;
+          assetChains.push({
+            index,
+            chain_verified: chain.ok,
+            chain_length: chain.checked,
+            tip_hash: chain.tip_hash,
+            failure: chain.failure,
+          });
+          index += 1;
+        }
+        const manifestEntries = manifest
+          .filter((m) => m.evidence_package_id === packageId)
+          .sort((a, b) => a.ordinal - b.ordinal)
+          .map((m) => ({
+            ordinal: m.ordinal,
+            role: m.role,
+            sha256_hash: m.sha256_hash ?? null,
+            byte_size: m.byte_size ?? null,
+            verified: m.verified_at !== null && m.verified_at !== undefined,
+          }));
+        // Public-safe: no org_id, user, GPS, caption, or public_id.
+        return {
+          report_id: pkg.id,
+          status: pkg.status,
+          template_version:
+            typeof pkg.audit_trail?.['template_version'] === 'string'
+              ? (pkg.audit_trail['template_version'] as string)
+              : null,
+          generated_at: pkg.generated_at,
+          byte_size: null,
+          chains_verified: allOk,
+          asset_chains: assetChains,
+          manifest: manifestEntries,
+        };
       },
     },
 

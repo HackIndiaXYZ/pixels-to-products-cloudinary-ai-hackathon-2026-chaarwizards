@@ -29,6 +29,7 @@ import { registerPairRoutes } from './routes/pairs.js';
 import { registerSearchRoutes } from './routes/search.js';
 import { registerReadRoutes } from './routes/reads.js';
 import { registerReportRoutes } from './routes/reports.js';
+import { registerVerificationRoutes } from './routes/verification.js';
 import { registerCloudinaryWebhook } from './routes/webhooks/cloudinary.js';
 import type { ReportRenderer } from './reports/renderer.js';
 
@@ -215,6 +216,7 @@ export async function buildApp(deps: AppDeps): Promise<FastifyInstance> {
   await registerSearchRoutes(app);
   await registerReadRoutes(app);
   await registerReportRoutes(app);
+  await registerVerificationRoutes(app);
   await registerCloudinaryWebhook(app);
 
   return app;

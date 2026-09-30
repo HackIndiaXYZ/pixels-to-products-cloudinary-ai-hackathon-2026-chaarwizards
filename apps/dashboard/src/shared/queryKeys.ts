@@ -23,6 +23,10 @@ export const queryKeys = {
     integrity: (assetId: string) => ['assets', assetId, 'integrity'] as const,
     derivatives: (assetId: string) => ['assets', assetId, 'derivatives'] as const,
     auditTrail: (assetId: string) => ['assets', assetId, 'audit-trail'] as const,
+    verifyChain: (assetId: string) => ['assets', assetId, 'verify-chain'] as const,
+  },
+  reports: {
+    verification: (reportId: string) => ['reports', reportId, 'verification'] as const,
   },
   search: (filters: AssetSearchFilters = {}) => ['search', filters] as const,
   admin: {
