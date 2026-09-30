@@ -73,6 +73,171 @@ Reference:
 
 ---
 
+## Getting Started (Developer)
+
+### Prerequisites
+
+| Tool | Version | Install |
+|------|---------|---------|
+| Node.js | 20.x | `nvm install 20` |
+| pnpm | 10.x | `corepack enable && corepack prepare pnpm@10 --activate` |
+| Python | 3.11 | `pyenv install 3.11` or system package |
+| Docker | latest | [Docker Desktop](https://www.docker.com/products/docker-desktop/) |
+| Supabase CLI | 2.x | `brew install supabase/tap/supabase` or `npm i -g supabase` |
+| Expo CLI | latest | `npm i -g expo-cli` |
+| ffmpeg | 8.x | `brew install ffmpeg` or `apt install ffmpeg` |
+
+### 1. Clone & Install
+
+```bash
+git clone <repo-url>
+cd cloudinary
+pnpm install
+```
+
+### 2. Environment Setup
+
+Create local environment files from templates:
+
+```bash
+# API (Node/Backend)
+cp apps/api/.env.example apps/api/.env.local
+# Edit apps/api/.env.local with your keys
+
+# ML Service (Python)
+cp apps/ml-service/.env.example apps/ml-service/.env.local
+# Edit apps/ml-service/.env.local with your keys
+
+# Capture App (Expo/React Native)
+cp apps/capture-app/.env.example apps/capture-app/.env.local
+# Edit apps/capture-app/.env.local with your keys
+
+# Dashboard (React/Vite)
+cp apps/dashboard/.env.example apps/dashboard/.env.local
+# Edit apps/dashboard/.env.local with your keys
+```
+
+> **Required keys**: `SUPABASE_URL`, `SUPABASE_ANON_KEY`, `CLOUDINARY_CLOUD_NAME`, `CLOUDINARY_API_KEY`, `CLOUDINARY_API_SECRET`, `SUPABASE_SERVICE_KEY`, `INTERNAL_JWT_SECRET`. See `ENVIRONMENT.md` for full list.
+
+### 3. Start Local Infrastructure
+
+```bash
+# Start Supabase (Postgres, Auth, Realtime, Storage, Kong)
+supabase start
+
+# Apply all migrations (20 total)
+supabase db reset
+
+# Optional: run pgTAP tests (86 assertions)
+supabase test db
+```
+
+### 4. Run All Services (Development)
+
+```bash
+# Terminal 1: All services via Turborepo
+pnpm dev
+
+# Or individually:
+# Terminal 1: API (Fastify on :3001)
+cd apps/api && pnpm dev
+
+# Terminal 2: ML Service (FastAPI on :8000)
+cd apps/ml-service && .venv/bin/uvicorn src.main:app --reload --port 8000
+
+# Terminal 3: Dashboard (Vite on :5173)
+cd apps/dashboard && pnpm dev
+
+# Terminal 4: Capture App (Expo)
+cd apps/capture-app && pnpm start
+```
+
+### 5. Run Tests & Gates
+
+```bash
+# Lint all packages
+pnpm lint
+
+# Typecheck all packages
+pnpm typecheck
+
+# Unit + integration tests (with coverage)
+pnpm test
+
+# API coverage floor: 80% branch
+# ML coverage floor: 70%
+
+# Docs ↔ Reality check (endpoints only, no DB needed)
+cd apps/api && pnpm run check:docs -- --endpoints-only
+
+# Secrets scan (run before every commit)
+bash scripts/check-secrets.sh
+```
+
+### 6. Mobile App (Capture App)
+
+```bash
+cd apps/capture-app
+
+# Install Expo Go on your phone, then:
+pnpm start
+
+# Or build for device/emulator:
+pnpm run android   # Android emulator
+pnpm run ios       # iOS simulator (macOS only)
+
+# EAS Build for stores:
+eas build --platform all
+```
+
+---
+
+## Quick Reference: Common Commands
+
+| Task | Command |
+|------|---------|
+| Install all deps | `pnpm install` |
+| Run all services | `pnpm dev` |
+| Lint | `pnpm lint` |
+| Typecheck | `pnpm typecheck` |
+| Test | `pnpm test` |
+| Test with coverage | `pnpm test` (coverage auto) |
+| Build all | `pnpm build` |
+| Supabase reset | `supabase db reset` |
+| Supabase pgTAP | `supabase test db` |
+| Docs check | `cd apps/api && pnpm run check:docs` |
+| Secrets scan | `bash scripts/check-secrets.sh` |
+| Format code | `pnpm format` |
+
+---
+
+## Project Structure
+
+```
+cloudinary/
+├── apps/
+│   ├── api/              # Node 20 · Fastify · TypeScript · BullMQ
+│   ├── ml-service/       # Python 3.11 · FastAPI · PyTorch · YOLOv8
+│   ├── capture-app/      # Expo · React Native · expo-camera
+│   └── dashboard/        # React 19 · Vite · TanStack Query · MapLibre
+├── packages/
+│   ├── shared/           # Types, Zod schemas, RFC 8785, signing
+│   └── ui-components/    # Shared React components
+├── docs/
+│   ├── architecture/     # Schema, API contracts, Cloudinary params
+│   ├── planning/         # Build order, fine-tuning strategy
+│   └── operations/       # Deployment, future checks
+├── supabase/
+│   └── migrations/       # 20 numbered migrations
+├── turbo.json            # Turborepo pipeline
+├── pnpm-workspace.yaml   # pnpm workspaces
+└── AGENTS.md             # Agent rules & conventions
+```
+
+---
+
+## Architecture at a Glance
+
 ## Basic Flow of Solution
 
 ```
