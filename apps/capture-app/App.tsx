@@ -20,7 +20,7 @@ import { createCaptureRuntime, registerSyncTriggers, type CaptureRuntime } from 
 import { getSessionToken } from './src/native/session.js';
 import { fetchProjects } from './src/api.js';
 import type { CaptureSelection } from './src/projects.js';
-import type { Project } from '@impact/shared/rn';
+import type { Project } from '@panchnama/shared/rn';
 
 type Screen = 'picker' | 'camera' | 'queue';
 
@@ -106,7 +106,7 @@ export default function App(): JSX.Element {
       <View style={styles.center}>
         <StatusBar style="auto" />
         <ActivityIndicator />
-        <Text>Starting Impact Capture {CAPTURE_APP_VERSION}…</Text>
+        <Text>Starting Panchnama Capture {CAPTURE_APP_VERSION}…</Text>
       </View>
     );
   }

@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from 'vitest';
 import { screen } from '@testing-library/react';
-import type { Project } from '@impact/shared/rn';
+import type { Project } from '@panchnama/shared/rn';
 import { renderView } from '../../../test/render';
 import { buildProjectTree } from '../api';
 import { ProjectTree } from './ProjectTree';

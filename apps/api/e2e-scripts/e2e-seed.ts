@@ -20,7 +20,7 @@ import { generateKeyPairSync, sign as edSign } from 'node:crypto';
 import { writeFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { dirname, join } from 'node:path';
-import { buildSigningPayload, sha256Canonical } from '@impact/shared';
+import { buildSigningPayload, sha256Canonical } from '@panchnama/shared';
 
 const SUPABASE_URL = 'http://127.0.0.1:54321';
 const SERVICE_KEY = process.env['E2E_SERVICE_KEY'] as string;

@@ -1,4 +1,4 @@
-"""@impact/ml-service — computer-vision ML service.
+"""@panchnama/ml-service — computer-vision ML service.
 
 FastAPI service that turns verified before/after evidence into quantified,
 versioned change metrics. Every number it returns originates from a model

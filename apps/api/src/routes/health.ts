@@ -5,7 +5,7 @@
  * unreachable is worse than one that admits it is not ready.
  */
 import type { FastifyInstance } from 'fastify';
-import { ok } from '@impact/shared';
+import { ok } from '@panchnama/shared';
 
 export async function registerHealthRoutes(app: FastifyInstance): Promise<void> {
   app.get('/health', async () => ok({ status: 'ok' }));

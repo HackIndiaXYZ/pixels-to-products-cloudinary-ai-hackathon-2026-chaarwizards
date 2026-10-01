@@ -1,5 +1,7 @@
 # Product Requirements Document (PRD)
-# Impact Media Intelligence Platform
+# Panchnama
+
+> _पंचनामा_ — a written record of inspection, signed by a witness.
 
 **Version:** 1.0  
 **Status:** Approved for Development  

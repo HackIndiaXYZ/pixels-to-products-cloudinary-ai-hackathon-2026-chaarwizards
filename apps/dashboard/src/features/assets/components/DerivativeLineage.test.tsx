@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { screen } from '@testing-library/react';
-import type { AssetDerivative } from '@impact/shared/rn';
+import type { AssetDerivative } from '@panchnama/shared/rn';
 import { renderView } from '../../../test/render';
 import { DerivativeLineage } from './DerivativeLineage';
 

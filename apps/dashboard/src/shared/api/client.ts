@@ -1,9 +1,9 @@
-import { isApiFailure, type ApiEnvelope } from '@impact/shared/rn';
+import { isApiFailure, type ApiEnvelope } from '@panchnama/shared/rn';
 import { supabase } from '../supabase/client';
 import { env } from '../env';
 
 /**
- * Typed fetch wrapper for `@impact/api`.
+ * Typed fetch wrapper for `@panchnama/api`.
  *
  * Every request carries the caller's Supabase JWT as a Bearer token; the API
  * resolves `org_id`/`user_id` and every authorization decision from that

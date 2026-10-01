@@ -15,7 +15,7 @@ import {
   type CaptureSelection,
   type ProjectNode,
 } from '../projects.js';
-import type { AssetPhase, Project } from '@impact/shared/rn';
+import type { AssetPhase, Project } from '@panchnama/shared/rn';
 
 interface Props {
   readonly projects: readonly Project[];

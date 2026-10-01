@@ -18,8 +18,8 @@ import { computeExifHash, freezeExif } from './exif.js';
 import { streamSha256 } from './hashing.js';
 import { evaluateGpsAccuracy, fixToSigningGps, type GpsThresholds } from './gps.js';
 import { signCapture } from './signing.js';
-import { buildSigningPayload } from '@impact/shared/rn';
-import type { AssetType } from '@impact/shared/rn';
+import { buildSigningPayload } from '@panchnama/shared/rn';
+import type { AssetType } from '@panchnama/shared/rn';
 import type { CaptureSelection } from './projects.js';
 import type { CaptureQueue, QueueItem } from './queue.js';
 import type {

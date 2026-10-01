@@ -18,7 +18,7 @@
  * Idempotency: a pair that already has a (non-split) change_event is skipped, so
  * a re-run over an unchanged window creates no duplicate rows.
  */
-import { canonicalize, ProjectConfigSchema, type ChangeEvent, type JsonValue } from '@impact/shared';
+import { canonicalize, ProjectConfigSchema, type ChangeEvent, type JsonValue } from '@panchnama/shared';
 import type { CloudinaryPort, DbPort } from '../ports.js';
 import type { MlClient } from './ml-client.js';
 import { resolveMetricsSchema, validateChangeMetrics } from '../lib/change-metrics-schema.js';

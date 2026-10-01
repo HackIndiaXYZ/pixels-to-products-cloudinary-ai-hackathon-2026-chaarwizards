@@ -6,7 +6,7 @@
  */
 import type { FastifyInstance } from 'fastify';
 import { z } from 'zod';
-import { ok, ProjectConfigSchema } from '@impact/shared';
+import { ok, ProjectConfigSchema } from '@panchnama/shared';
 import { errors } from '../types.js';
 import { clampLimit } from '../lib/pagination.js';
 

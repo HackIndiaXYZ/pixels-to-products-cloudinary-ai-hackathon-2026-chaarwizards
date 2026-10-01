@@ -1,4 +1,4 @@
-# Impact Media Intelligence Platform — Demo Recording Runbook
+# Panchnama — Demo Recording Runbook
 
 **Project**: Cloudinary Hackathon — AI Media Intelligence Platform
 **Record by**: Tomorrow

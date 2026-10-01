@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { sha256Canonical } from '@impact/shared/rn';
+import { sha256Canonical } from '@panchnama/shared/rn';
 import { EXIF_ALLOWLIST, computeExifHash, freezeExif } from './exif.js';
 
 const RAW_EXIF = {

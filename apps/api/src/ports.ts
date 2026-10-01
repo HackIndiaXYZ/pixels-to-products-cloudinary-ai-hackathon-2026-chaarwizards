@@ -16,7 +16,7 @@ import type {
   ReportManifestEntry,
   Role,
   VerificationState,
-} from '@impact/shared';
+} from '@panchnama/shared';
 import type { AuthContext } from './types.js';
 import type { UploadPresetDefinition } from './lib/cloudinary-preset.js';
 import type { PairingAsset } from './services/pairing.js';

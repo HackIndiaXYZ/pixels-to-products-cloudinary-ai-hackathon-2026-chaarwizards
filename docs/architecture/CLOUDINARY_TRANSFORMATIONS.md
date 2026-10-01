@@ -1,5 +1,7 @@
 # Cloudinary Transformations — Verified Reference
 
+> **Panchnama** — a written record of inspection, signed by a witness.
+
 **Verified:** 2026-09-26 against `cloudinary.com/documentation/transformation_reference*`
 **Method:** HTTP status check on each official reference page + cross-check against Cloudinary's own alphabetical enumeration of `e_` effects.
 

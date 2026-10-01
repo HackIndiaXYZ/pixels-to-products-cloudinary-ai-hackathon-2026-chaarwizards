@@ -6,8 +6,8 @@
  * request (AGENTS.md §3.4). It is derived from the verified Supabase JWT by the
  * auth plugin and is never populated from a request body.
  */
-import type { Role } from '@impact/shared';
-import type { ApiErrorCode } from '@impact/shared';
+import type { Role } from '@panchnama/shared';
+import type { ApiErrorCode } from '@panchnama/shared';
 
 /** Verified caller identity, resolved from the Supabase JWT claims only. */
 export interface AuthContext {

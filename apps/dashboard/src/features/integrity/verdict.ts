@@ -1,4 +1,4 @@
-import type { VerificationState } from '@impact/shared/rn';
+import type { VerificationState } from '@panchnama/shared/rn';
 
 /**
  * Map an integrity check's tri-state boolean to the canonical verdict.

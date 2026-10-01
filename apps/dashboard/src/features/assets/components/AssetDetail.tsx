@@ -1,4 +1,4 @@
-import type { AssetDerivative } from '@impact/shared/rn';
+import type { AssetDerivative } from '@panchnama/shared/rn';
 import { AsyncView } from '../../../shared/components/QueryBoundary';
 import { IntegrityPanel } from '../../integrity/components/IntegrityPanel';
 import { DerivativeLineage } from './DerivativeLineage';

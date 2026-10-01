@@ -20,8 +20,8 @@
  * `details_canonical`, would pass a `details` tamper wrongly — so this check is
  * not optional decoration.
  */
-import { canonicalize } from '@impact/shared';
-import type { JsonValue } from '@impact/shared';
+import { canonicalize } from '@panchnama/shared';
+import type { JsonValue } from '@panchnama/shared';
 import type { AuditFullRow, ChainRangeResult, DbPort } from '../ports.js';
 import type { AuthContext } from '../types.js';
 

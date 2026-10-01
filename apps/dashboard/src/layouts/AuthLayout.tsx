@@ -6,7 +6,8 @@ export function AuthLayout({ children }: { readonly children?: ReactNode }) {
   return (
     <main className="auth-layout" data-testid="auth-layout">
       <div className="auth-card">
-        <h1>Impact Media Intelligence</h1>
+        <h1>Panchnama</h1>
+        <p className="auth-tagline">A written record of inspection, signed by a witness.</p>
         {children ?? <LoginForm />}
       </div>
     </main>

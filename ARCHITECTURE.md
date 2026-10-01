@@ -1,5 +1,7 @@
 # System Architecture
 
+> **Panchnama** — a written record of inspection, signed by a witness.
+
 **Version:** 1.0
 **Status:** Approved for Development
 **Audience:** Implementation engineers and AI coding agents

@@ -15,8 +15,8 @@
  */
 import * as ed from '@noble/ed25519';
 import { sha512 } from '@noble/hashes/sha512';
-import { buildSigningPayload } from '@impact/shared/rn';
-import type { SignatureTier, SigningPayloadInput } from '@impact/shared/rn';
+import { buildSigningPayload } from '@panchnama/shared/rn';
+import type { SignatureTier, SigningPayloadInput } from '@panchnama/shared/rn';
 import type { CaptureSigner } from './ports.js';
 
 // @noble/ed25519 v2 needs a SHA-512 wired in explicitly for sync verify.

@@ -1,5 +1,7 @@
 # MVP Exit — Manual / Staging Checklist
 
+> **Panchnama** — a written record of inspection, signed by a witness.
+
 Five of the nine criteria in [`../architecture/MVP_EXIT_CRITERIA.md`](../architecture/MVP_EXIT_CRITERIA.md)
 — **1, 2, 5, 8, 9** — cannot be certified by an automated test or by an AI agent.
 They are timing, device, or deployment judgements that require a human on real

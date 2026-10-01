@@ -14,7 +14,7 @@ import Fastify, { type FastifyInstance, type FastifyRequest } from 'fastify';
 import rateLimit from '@fastify/rate-limit';
 import cors from '@fastify/cors';
 import { ZodError } from 'zod';
-import { fail, type Role } from '@impact/shared';
+import { fail, type Role } from '@panchnama/shared';
 import type { Config } from './config.js';
 import type { CloudinaryPort, DbPort, QueuePort } from './ports.js';
 import type { MlClient } from './services/ml-client.js';

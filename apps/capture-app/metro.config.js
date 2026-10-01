@@ -1,5 +1,5 @@
 // Metro configuration for the pnpm monorepo. Watches the workspace root so
-// `@impact/shared` resolves, and resolves modules from both the app and the
+// `@panchnama/shared` resolves, and resolves modules from both the app and the
 // hoisted workspace `node_modules`.
 const { getDefaultConfig } = require('expo/metro-config');
 const path = require('node:path');
@@ -15,7 +15,7 @@ config.resolver.nodeModulesPaths = [
   path.resolve(workspaceRoot, 'node_modules'),
 ];
 config.resolver.disableHierarchicalLookup = true;
-// Honour the `exports` map in package.json so `@impact/shared/rn` (the pure,
+// Honour the `exports` map in package.json so `@panchnama/shared/rn` (the pure,
 // node:crypto-free entry) resolves to its dist build.
 config.resolver.unstable_enablePackageExports = true;
 

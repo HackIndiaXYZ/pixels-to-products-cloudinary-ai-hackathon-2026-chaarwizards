@@ -8,7 +8,7 @@
  * (which clusters by `gps_radius`). The GPS fix feeds the signed payload as
  * integer E7 coordinates via {@link GPS_COORD_SCALE}.
  */
-import { GPS_COORD_SCALE } from '@impact/shared/rn';
+import { GPS_COORD_SCALE } from '@panchnama/shared/rn';
 import type { GpsFix } from './ports.js';
 
 /** Accuracy thresholds in metres. `block >= warn` by construction. */

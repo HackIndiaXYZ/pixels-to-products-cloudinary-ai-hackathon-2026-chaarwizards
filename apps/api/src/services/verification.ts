@@ -10,9 +10,9 @@
  * no Ed25519 primitive), so those two checks live here and their outcome is
  * written back to `assets` for the SQL `verify_asset_integrity` to surface.
  */
-import { sha256Canonical, verifyPayload, GPS_COORD_SCALE } from '@impact/shared';
-import type { JsonValue, SigningPayloadInput } from '@impact/shared';
-import type { VerificationState } from '@impact/shared';
+import { sha256Canonical, verifyPayload, GPS_COORD_SCALE } from '@panchnama/shared';
+import type { JsonValue, SigningPayloadInput } from '@panchnama/shared';
+import type { VerificationState } from '@panchnama/shared';
 
 /**
  * Re-canonicalize the frozen EXIF with RFC 8785 (JCS) and compare its SHA-256 to

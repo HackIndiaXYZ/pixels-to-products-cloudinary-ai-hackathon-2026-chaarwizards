@@ -1,5 +1,7 @@
 # Frontend Architecture Decision
 
+> **Panchnama** — a written record of inspection, signed by a witness.
+
 ---
 
 ## Decision: Feature-Based Structure (Not Component-Based)
@@ -22,7 +24,7 @@ src/
 │   ├── projects/              # Project CRUD, list, detail
 │   │   ├── components/        # ProjectCard, ProjectForm, ProjectMap
 │   │   ├── hooks/             # useProjects, useProjectMutations
-│   │   ├── api.ts             # API calls (typed with @impact/shared)
+│   │   ├── api.ts             # API calls (typed with @panchnama/shared)
 │   │   └── types.ts           # Feature-specific types (extends shared)
 │   │
 │   ├── assets/                # Asset gallery, upload, detail
@@ -66,7 +68,7 @@ src/
 │       └── api.ts
 │
 ├── shared/                    # Truly cross-cutting
-│   ├── components/            # Re-exports from @impact/ui-components
+│   ├── components/            # Re-exports from @panchnama/ui-components
 │   ├── hooks/                 # useAuth, useToast, useMediaQuery
 │   ├── utils/                 # formatDate, cn, debounce
 │   ├── providers/             # QueryClient, Auth, Theme
@@ -167,7 +169,7 @@ apps/capture-app/src/features/
 
 ## Shared Package Contracts
 
-### `@impact/shared` (TypeScript)
+### `@panchnama/shared` (TypeScript)
 ```typescript
 // packages/shared/src/types/asset.ts
 export interface Asset {
@@ -270,7 +272,7 @@ export interface FrozenCaption {
 }
 ```
 
-### `@impact/ui-components` (React)
+### `@panchnama/ui-components` (React)
 ```typescript
 // packages/ui-components/src/integrity/IntegrityCard.tsx
 export interface IntegrityCardProps {
@@ -312,7 +314,7 @@ export interface EXIFHashBadgeProps {
 |-------|------|-------|
 | **Server State** | TanStack Query (React Query) | All API data, caching, mutations |
 | **Client State** | React Context + `useReducer` | Auth, UI prefs, offline queue |
-| **Forms** | React Hook Form + Zod | Validation shared with `@impact/shared` |
+| **Forms** | React Hook Form + Zod | Validation shared with `@panchnama/shared` |
 | **Maps** | MapLibre GL | Project boundaries, asset clusters. MapLibre, not Mapbox — no proprietary token in a client bundle. |
 | **Capture App Local** | MMKV (encrypted) + SecureStore/Keychain | Immutable commits, device keypair |
 

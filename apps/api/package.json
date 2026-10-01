@@ -1,5 +1,5 @@
 {
-  "name": "@impact/api",
+  "name": "@panchnama/api",
   "version": "0.0.0",
   "private": true,
   "type": "module",
@@ -22,7 +22,7 @@
   "dependencies": {
     "@fastify/cors": "^10.1.0",
     "@fastify/rate-limit": "^10.2.1",
-    "@impact/shared": "workspace:*",
+    "@panchnama/shared": "workspace:*",
     "@supabase/supabase-js": "^2.47.10",
     "bullmq": "^5.34.5",
     "cloudinary": "^2.5.1",

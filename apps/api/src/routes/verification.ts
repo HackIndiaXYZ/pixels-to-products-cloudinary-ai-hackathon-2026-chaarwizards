@@ -16,7 +16,7 @@
  */
 import type { FastifyInstance } from 'fastify';
 import { z } from 'zod';
-import { ok } from '@impact/shared';
+import { ok } from '@panchnama/shared';
 import { errors } from '../types.js';
 import { verifyChain } from '../services/chain-verifier.js';
 

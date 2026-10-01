@@ -9,8 +9,8 @@
  * canonical form of the frozen object, which is byte-identical to the server's
  * independent re-hash (`apps/api` verification `verifyExifHash`, AGENTS.md §3.8).
  */
-import { sha256Canonical } from '@impact/shared/rn';
-import type { JsonValue } from '@impact/shared/rn';
+import { sha256Canonical } from '@panchnama/shared/rn';
+import type { JsonValue } from '@panchnama/shared/rn';
 import type { RawExif } from './ports.js';
 
 /**

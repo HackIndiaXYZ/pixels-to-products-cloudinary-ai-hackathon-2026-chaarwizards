@@ -5,7 +5,7 @@
  * public values may live behind a `VITE_` prefix (AGENTS.md §3.5,
  * ENVIRONMENT.md §2). The Cloudinary API secret and the Supabase service-role
  * key must NEVER be referenced from this app. The dashboard signs nothing and
- * lists nothing directly — it asks `@impact/api` for every URL and every row,
+ * lists nothing directly — it asks `@panchnama/api` for every URL and every row,
  * which resolves under RLS with the caller's JWT.
  */
 
@@ -23,7 +23,7 @@ function required(name: string, value: string | undefined): string {
 }
 
 export const env = {
-  /** Base URL of `@impact/api`. Every product read goes here, never Cloudinary. */
+  /** Base URL of `@panchnama/api`. Every product read goes here, never Cloudinary. */
   apiUrl: required('VITE_API_URL', import.meta.env.VITE_API_URL as string | undefined),
   /** Public Supabase project URL. */
   supabaseUrl: required('VITE_SUPABASE_URL', import.meta.env.VITE_SUPABASE_URL as string | undefined),

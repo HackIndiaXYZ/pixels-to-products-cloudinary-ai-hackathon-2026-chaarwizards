@@ -8,7 +8,7 @@ export function MainLayout({ children }: { readonly children?: ReactNode }) {
   return (
     <div className="main-layout" data-testid="main-layout">
       <header>
-        <h1>Impact Media Intelligence</h1>
+        <h1>Panchnama</h1>
         <div>
           <span data-testid="org-context">{orgId ?? 'no org'}</span>
           <span data-testid="role-context">{role ?? '—'}</span>

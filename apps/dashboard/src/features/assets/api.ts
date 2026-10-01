@@ -1,4 +1,4 @@
-import type { AssetDerivative } from '@impact/shared/rn';
+import type { AssetDerivative } from '@panchnama/shared/rn';
 import { apiRequest } from '../../shared/api/client';
 import type { AssetSearchResultRow } from '../search/types';
 

@@ -1,4 +1,4 @@
-import type { AssetDerivative } from '@impact/shared/rn';
+import type { AssetDerivative } from '@panchnama/shared/rn';
 
 /**
  * Derivative lineage tree (BUILD_ORDER Phase 8 gate — Asset detail).

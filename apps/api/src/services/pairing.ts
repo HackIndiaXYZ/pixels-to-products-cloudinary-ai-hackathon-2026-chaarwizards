@@ -20,7 +20,7 @@
  *   4. Sort each cluster by device_capture_timestamp.
  *   5. Split by phase and pair each `before` with the next later `after`.
  */
-import type { AssetPhase } from '@impact/shared';
+import type { AssetPhase } from '@panchnama/shared';
 
 /** The minimal asset shape pairing needs. Coordinates are extracted from `gps_point`. */
 export interface PairingAsset {

@@ -3,9 +3,9 @@
  *
  * These need `node:crypto`, so they live apart from the pure payload builder in
  * `signing-payload.ts`. This module re-exports the entire payload surface, so
- * the `@impact/shared` barrel (`.`) is unchanged for Node consumers such as the
+ * the `@panchnama/shared` barrel (`.`) is unchanged for Node consumers such as the
  * API. React Native, which has no `node:crypto`, imports the pure surface from
- * `@impact/shared/rn` and never loads this module.
+ * `@panchnama/shared/rn` and never loads this module.
  */
 import { sign as edSign, verify as edVerify, type KeyObject } from 'node:crypto';
 import { buildSigningPayload, type SigningPayloadInput } from './signing-payload.js';
