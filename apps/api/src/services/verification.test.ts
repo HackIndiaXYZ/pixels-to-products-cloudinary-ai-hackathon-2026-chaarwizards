@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import jwt from 'jsonwebtoken';
-import { sha256Canonical, buildSigningPayload, type SigningPayloadInput } from '@impact/shared';
+import { sha256Canonical, buildSigningPayload, type SigningPayloadInput } from '@panchnama/shared';
 import { generateKeyPairSync, sign as edSign } from 'node:crypto';
 import { verifyExifHash, verifyCaptureSignature, overallVerification } from './verification.js';
 

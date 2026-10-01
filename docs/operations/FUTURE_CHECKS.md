@@ -1,5 +1,7 @@
 # Future Checks Required Before "Ready"
 
+> **Panchnama** — a written record of inspection, signed by a witness.
+
 This file consolidates every check that remains before the project meets its own MVP exit bar ("all nine or none — eight is a failure, not a near-miss").
 
 ---

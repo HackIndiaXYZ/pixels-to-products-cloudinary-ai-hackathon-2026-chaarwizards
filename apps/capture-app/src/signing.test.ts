@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import type { SigningPayloadInput } from '@impact/shared/rn';
+import type { SigningPayloadInput } from '@panchnama/shared/rn';
 import { resolveSigner, signCapture, verifyLocalCapture } from './signing.js';
 import { NodeEd25519Signer } from './testing/fakes.js';
 

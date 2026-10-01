@@ -19,7 +19,7 @@
  * generating, records the row as `pending` (sha256/bytes NULL) rather than
  * blocking — the bytes are picked up later, never fetched synchronously (§3.11).
  */
-import type { AssetDerivative } from '@impact/shared';
+import type { AssetDerivative } from '@panchnama/shared';
 import type { AuditRepo, CloudinaryPort, DerivativesRepo, AssetsRepo } from '../ports.js';
 import { isGenerativeTransformation, REPORT_KINDS } from '../lib/transformations.js';
 import { errors } from '../types.js';

@@ -1,5 +1,5 @@
 /**
- * @impact/ui-components — shared design-system components.
+ * @panchnama/ui-components — shared design-system components.
  *
  * Phase 0 ships only the package skeleton. Primitives, map, media,
  * forms, and integrity components land in later phases.

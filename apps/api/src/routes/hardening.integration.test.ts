@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { createHash } from 'node:crypto';
 import type { FastifyInstance } from 'fastify';
-import { sha256Canonical, type SigningPayloadInput } from '@impact/shared';
+import { sha256Canonical, type SigningPayloadInput } from '@panchnama/shared';
 import { buildApp } from '../app.js';
 import { toE7 } from '../services/verification.js';
 import {

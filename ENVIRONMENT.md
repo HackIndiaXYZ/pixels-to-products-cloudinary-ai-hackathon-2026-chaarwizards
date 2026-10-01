@@ -1,5 +1,7 @@
 # Environment Reference
 
+> **Panchnama** — a written record of inspection, signed by a witness.
+
 **No secret values appear in this file.** It documents variable *names*, exposure rules, and structure so an AI agent can work with the codebase without ever seeing a credential.
 
 Real values: `~/.config/impact-platform/env-secrets.local.txt` (outside all git repos, mode 600).

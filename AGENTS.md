@@ -6,7 +6,7 @@ Instructions for any AI coding agent or engineer working in this repository.
 
 ## 1. What This Project Is
 
-An AI media intelligence platform. Field workers capture geo-tagged photos and short videos; the platform verifies their authenticity, analyses them with custom computer-vision models, pairs before/after evidence, and generates audit-ready reports.
+**Panchnama** (_पंचनामा_ — a written record of inspection, signed by a witness) is an AI media intelligence platform. Field workers capture geo-tagged photos and short videos; the platform verifies their authenticity, analyses them with custom computer-vision models, pairs before/after evidence, and generates audit-ready reports.
 
 Read these before writing code, in this order:
 
@@ -113,7 +113,7 @@ These are correctness requirements, not preferences. Do not weaken them to make 
 - `pnpm` only. Never `npm install` or `yarn`.
 - Runtime validation with Zod at every trust boundary: HTTP input, webhook payloads, Cloudinary responses, queue messages.
 - Prefer named exports. One component or function per file unless tightly coupled.
-- Imports: `@impact/shared` for cross-service types. Never import across `apps/*`.
+- Imports: `@panchnama/shared` for cross-service types. Never import across `apps/*`.
 
 ### Python
 - `ruff` + `mypy --strict`. Fully type-annotated public functions.

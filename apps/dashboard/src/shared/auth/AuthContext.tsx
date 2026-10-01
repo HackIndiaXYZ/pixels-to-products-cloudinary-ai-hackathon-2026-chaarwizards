@@ -7,7 +7,7 @@ import {
   type ReactNode,
 } from 'react';
 import type { Session } from '@supabase/supabase-js';
-import type { Role } from '@impact/shared/rn';
+import type { Role } from '@panchnama/shared/rn';
 import { supabase } from '../supabase/client';
 
 /**

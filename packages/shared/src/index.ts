@@ -1,5 +1,5 @@
 /**
- * @impact/shared — single source of truth for cross-service types,
+ * @panchnama/shared — single source of truth for cross-service types,
  * Zod schemas, RFC 8785 canonicalization, and the signing payload.
  *
  * Import domain types and schemas from here; never re-declare them in a service

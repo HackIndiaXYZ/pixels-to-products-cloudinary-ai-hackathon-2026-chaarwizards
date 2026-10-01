@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import type { ChangeEvent } from '@impact/shared/rn';
+import type { ChangeEvent } from '@panchnama/shared/rn';
 import { MetricsTable } from './MetricsTable';
 
 /**

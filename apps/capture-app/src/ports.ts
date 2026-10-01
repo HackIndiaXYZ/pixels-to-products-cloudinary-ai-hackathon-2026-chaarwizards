@@ -11,7 +11,7 @@
  * deferred to user review (BUILD_ORDER Phase 4 "Deferred to user review"); the
  * logic behind each port is what this phase implements and tests.
  */
-import type { GpsProvider, SignatureTier } from '@impact/shared/rn';
+import type { GpsProvider, SignatureTier } from '@panchnama/shared/rn';
 
 /**
  * Streamed, chunked reader over a file's bytes. `readChunks` MUST yield the file

@@ -2,7 +2,7 @@ import { defineConfig, devices } from '@playwright/test';
 
 /**
  * Playwright E2E for the two Phase 8 gate flows. `webServer` brings up both the
- * `@impact/api` (in-process launcher) and the Vite dev server, waits for them,
+ * `@panchnama/api` (in-process launcher) and the Vite dev server, waits for them,
  * runs the specs, and tears them down — so the run is a single foreground
  * process with no lingering servers.
  *
@@ -26,14 +26,14 @@ export default defineConfig({
     ? {
         webServer: [
           {
-            command: 'pnpm --filter @impact/api exec tsx e2e-scripts/e2e-api.ts',
+            command: 'pnpm --filter @panchnama/api exec tsx e2e-scripts/e2e-api.ts',
             url: 'http://127.0.0.1:8080/health',
             reuseExistingServer: !process.env['CI'],
             timeout: 60_000,
             cwd: '../..',
           },
           {
-            command: 'pnpm --filter @impact/dashboard exec vite --port 5173 --host 127.0.0.1',
+            command: 'pnpm --filter @panchnama/dashboard exec vite --port 5173 --host 127.0.0.1',
             url: 'http://127.0.0.1:5173',
             reuseExistingServer: !process.env['CI'],
             timeout: 60_000,

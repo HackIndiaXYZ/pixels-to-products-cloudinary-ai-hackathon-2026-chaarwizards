@@ -1,5 +1,7 @@
 # Fine-Tuning Strategy: One Model at a Time
 
+> **Panchnama** — a written record of inspection, signed by a witness.
+
 ---
 
 ## The Concern

@@ -1,5 +1,7 @@
 # API Contracts (OpenAPI 3.0)
 
+> **Panchnama** — a written record of inspection, signed by a witness.
+
 ---
 
 ## Overview

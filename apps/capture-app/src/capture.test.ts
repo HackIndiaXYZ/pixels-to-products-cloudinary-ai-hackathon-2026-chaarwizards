@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import { sha256Canonical } from '@impact/shared/rn';
-import type { SigningPayloadInput } from '@impact/shared/rn';
+import { sha256Canonical } from '@panchnama/shared/rn';
+import type { SigningPayloadInput } from '@panchnama/shared/rn';
 import { performCapture, type CaptureContext } from './capture.js';
 import { CaptureQueue } from './queue.js';
 import { verifyLocalCapture } from './signing.js';

@@ -1,0 +1,565 @@
+
+pytorch2.10.0+cu128:£Û
+Ÿ	
+before
+encoder.0.weight
+encoder.0.biasconv2dnode_conv2d"Conv*
+group *
+pads@@@@ *
+auto_pad"NOTSET *
+strides@@ *
+	dilations@@ *
+kernel_shape@@ JŸ
+	namespace‘: __main__.WaterChangeDetector/encoder: torch.nn.modules.container.Sequential/encoder.0: torch.nn.modules.conv.Conv2d/conv2d: aten.conv2d.defaultJ£
+pkg.torch.onnx.class_hierarchy€['__main__.WaterChangeDetector', 'torch.nn.modules.container.Sequential', 'torch.nn.modules.conv.Conv2d', 'aten.conv2d.default']J¾
+pkg.torch.onnx.fx_node£%conv2d : [num_users=1] = call_function[target=torch.ops.aten.conv2d.default](args = (%img_a, %p_encoder_0_weight, %p_encoder_0_bias, [1, 1], [1, 1]), kwargs = {})JD
+pkg.torch.onnx.name_scopes&['', 'encoder', 'encoder.0', 'conv2d']J“
+pkg.torch.onnx.stack_traceôFile "/tmp/ipykernel_23/3542883356.py", line 46, in forward
+    fa = self.encoder(img_a)
+  File "/usr/local/lib/python3.12/dist-packages/torch/nn/modules/container.py", line 253, in forward
+    input = module(input)
+  File "/usr/local/lib/python3.12/dist-packages/torch/nn/modules/conv.py", line 553, in forward
+    return self._conv_forward(input, self.weight, self.bias)
+‹
+conv2d
+encoder.1.weight
+encoder.1.bias
+encoder.1.running_mean
+encoder.1.running_vargetitem,node__native_batch_norm_legit_no_training__0"BatchNormalization*
+momentumfff? *
+epsilon¬Å'7 Jå
+	namespace×: __main__.WaterChangeDetector/encoder: torch.nn.modules.container.Sequential/encoder.1: torch.nn.modules.batchnorm.BatchNorm2d/_native_batch_norm_legit_no_training: aten._native_batch_norm_legit_no_training.defaultJË
+pkg.torch.onnx.class_hierarchy¨['__main__.WaterChangeDetector', 'torch.nn.modules.container.Sequential', 'torch.nn.modules.batchnorm.BatchNorm2d', 'aten._native_batch_norm_legit_no_training.default']J¬
+pkg.torch.onnx.fx_node‘%_native_batch_norm_legit_no_training : [num_users=1] = call_function[target=torch.ops.aten._native_batch_norm_legit_no_training.default](args = (%conv2d, %p_encoder_1_weight, %p_encoder_1_bias, %b_encoder_1_running_mean, %b_encoder_1_running_var, 0.1, 1e-05), kwargs = {})Jb
+pkg.torch.onnx.name_scopesD['', 'encoder', 'encoder.1', '_native_batch_norm_legit_no_training']Jô
+pkg.torch.onnx.stack_traceÕFile "/tmp/ipykernel_23/3542883356.py", line 46, in forward
+    fa = self.encoder(img_a)
+  File "/usr/local/lib/python3.12/dist-packages/torch/nn/modules/container.py", line 253, in forward
+    input = module(input)
+  File "/usr/local/lib/python3.12/dist-packages/torch/nn/modules/batchnorm.py", line 194, in forward
+    return F.batch_norm(
+Ã
+getitemrelu	node_relu"ReluJŸ
+	namespace‘: __main__.WaterChangeDetector/encoder: torch.nn.modules.container.Sequential/encoder.2: torch.nn.modules.activation.ReLU/relu: aten.relu.defaultJ¥
+pkg.torch.onnx.class_hierarchy‚['__main__.WaterChangeDetector', 'torch.nn.modules.container.Sequential', 'torch.nn.modules.activation.ReLU', 'aten.relu.default']J„
+pkg.torch.onnx.fx_nodej%relu : [num_users=1] = call_function[target=torch.ops.aten.relu.default](args = (%getitem,), kwargs = {})JB
+pkg.torch.onnx.name_scopes$['', 'encoder', 'encoder.2', 'relu']J‹
+pkg.torch.onnx.stack_traceìFile "/tmp/ipykernel_23/3542883356.py", line 46, in forward
+    fa = self.encoder(img_a)
+  File "/usr/local/lib/python3.12/dist-packages/torch/nn/modules/container.py", line 253, in forward
+    input = module(input)
+  File "/usr/local/lib/python3.12/dist-packages/torch/nn/modules/activation.py", line 143, in forward
+    return F.relu(input, inplace=self.inplace)
+¦	
+relu
+encoder.3.weight
+encoder.3.biasconv2d_1node_conv2d_1"Conv*
+group *
+pads@@@@ *
+auto_pad"NOTSET *
+strides@@ *
+	dilations@@ *
+kernel_shape@@ J¡
+	namespace“: __main__.WaterChangeDetector/encoder: torch.nn.modules.container.Sequential/encoder.3: torch.nn.modules.conv.Conv2d/conv2d_1: aten.conv2d.defaultJ£
+pkg.torch.onnx.class_hierarchy€['__main__.WaterChangeDetector', 'torch.nn.modules.container.Sequential', 'torch.nn.modules.conv.Conv2d', 'aten.conv2d.default']J¿
+pkg.torch.onnx.fx_node¤%conv2d_1 : [num_users=1] = call_function[target=torch.ops.aten.conv2d.default](args = (%relu, %p_encoder_3_weight, %p_encoder_3_bias, [1, 1], [1, 1]), kwargs = {})JF
+pkg.torch.onnx.name_scopes(['', 'encoder', 'encoder.3', 'conv2d_1']J“
+pkg.torch.onnx.stack_traceôFile "/tmp/ipykernel_23/3542883356.py", line 46, in forward
+    fa = self.encoder(img_a)
+  File "/usr/local/lib/python3.12/dist-packages/torch/nn/modules/container.py", line 253, in forward
+    input = module(input)
+  File "/usr/local/lib/python3.12/dist-packages/torch/nn/modules/conv.py", line 553, in forward
+    return self._conv_forward(input, self.weight, self.bias)
+™
+conv2d_1
+encoder.4.weight
+encoder.4.bias
+encoder.4.running_mean
+encoder.4.running_var	getitem_3.node__native_batch_norm_legit_no_training_1__0"BatchNormalization*
+momentumfff? *
+epsilon¬Å'7 Jç
+	namespaceÙ: __main__.WaterChangeDetector/encoder: torch.nn.modules.container.Sequential/encoder.4: torch.nn.modules.batchnorm.BatchNorm2d/_native_batch_norm_legit_no_training_1: aten._native_batch_norm_legit_no_training.defaultJË
+pkg.torch.onnx.class_hierarchy¨['__main__.WaterChangeDetector', 'torch.nn.modules.container.Sequential', 'torch.nn.modules.batchnorm.BatchNorm2d', 'aten._native_batch_norm_legit_no_training.default']J°
+pkg.torch.onnx.fx_node•%_native_batch_norm_legit_no_training_1 : [num_users=1] = call_function[target=torch.ops.aten._native_batch_norm_legit_no_training.default](args = (%conv2d_1, %p_encoder_4_weight, %p_encoder_4_bias, %b_encoder_4_running_mean, %b_encoder_4_running_var, 0.1, 1e-05), kwargs = {})Jd
+pkg.torch.onnx.name_scopesF['', 'encoder', 'encoder.4', '_native_batch_norm_legit_no_training_1']Jô
+pkg.torch.onnx.stack_traceÕFile "/tmp/ipykernel_23/3542883356.py", line 46, in forward
+    fa = self.encoder(img_a)
+  File "/usr/local/lib/python3.12/dist-packages/torch/nn/modules/container.py", line 253, in forward
+    input = module(input)
+  File "/usr/local/lib/python3.12/dist-packages/torch/nn/modules/batchnorm.py", line 194, in forward
+    return F.batch_norm(
+Ñ
+	getitem_3relu_1node_relu_1"ReluJ¡
+	namespace“: __main__.WaterChangeDetector/encoder: torch.nn.modules.container.Sequential/encoder.5: torch.nn.modules.activation.ReLU/relu_1: aten.relu.defaultJ¥
+pkg.torch.onnx.class_hierarchy‚['__main__.WaterChangeDetector', 'torch.nn.modules.container.Sequential', 'torch.nn.modules.activation.ReLU', 'aten.relu.default']Jˆ
+pkg.torch.onnx.fx_noden%relu_1 : [num_users=1] = call_function[target=torch.ops.aten.relu.default](args = (%getitem_3,), kwargs = {})JD
+pkg.torch.onnx.name_scopes&['', 'encoder', 'encoder.5', 'relu_1']J‹
+pkg.torch.onnx.stack_traceìFile "/tmp/ipykernel_23/3542883356.py", line 46, in forward
+    fa = self.encoder(img_a)
+  File "/usr/local/lib/python3.12/dist-packages/torch/nn/modules/container.py", line 253, in forward
+    input = module(input)
+  File "/usr/local/lib/python3.12/dist-packages/torch/nn/modules/activation.py", line 143, in forward
+    return F.relu(input, inplace=self.inplace)
+¨	
+after
+encoder.0.weight
+encoder.0.biasconv2d_2node_conv2d_2"Conv*
+group *
+pads@@@@ *
+auto_pad"NOTSET *
+strides@@ *
+	dilations@@ *
+kernel_shape@@ J¡
+	namespace“: __main__.WaterChangeDetector/encoder: torch.nn.modules.container.Sequential/encoder.0: torch.nn.modules.conv.Conv2d/conv2d_2: aten.conv2d.defaultJ£
+pkg.torch.onnx.class_hierarchy€['__main__.WaterChangeDetector', 'torch.nn.modules.container.Sequential', 'torch.nn.modules.conv.Conv2d', 'aten.conv2d.default']JÀ
+pkg.torch.onnx.fx_node¥%conv2d_2 : [num_users=1] = call_function[target=torch.ops.aten.conv2d.default](args = (%img_b, %p_encoder_0_weight, %p_encoder_0_bias, [1, 1], [1, 1]), kwargs = {})JF
+pkg.torch.onnx.name_scopes(['', 'encoder', 'encoder.0', 'conv2d_2']J“
+pkg.torch.onnx.stack_traceôFile "/tmp/ipykernel_23/3542883356.py", line 47, in forward
+    fb = self.encoder(img_b)
+  File "/usr/local/lib/python3.12/dist-packages/torch/nn/modules/container.py", line 253, in forward
+    input = module(input)
+  File "/usr/local/lib/python3.12/dist-packages/torch/nn/modules/conv.py", line 553, in forward
+    return self._conv_forward(input, self.weight, self.bias)
+™
+conv2d_2
+encoder.1.weight
+encoder.1.bias
+encoder.1.running_mean
+encoder.1.running_var	getitem_6.node__native_batch_norm_legit_no_training_2__0"BatchNormalization*
+momentumfff? *
+epsilon¬Å'7 Jç
+	namespaceÙ: __main__.WaterChangeDetector/encoder: torch.nn.modules.container.Sequential/encoder.1: torch.nn.modules.batchnorm.BatchNorm2d/_native_batch_norm_legit_no_training_2: aten._native_batch_norm_legit_no_training.defaultJË
+pkg.torch.onnx.class_hierarchy¨['__main__.WaterChangeDetector', 'torch.nn.modules.container.Sequential', 'torch.nn.modules.batchnorm.BatchNorm2d', 'aten._native_batch_norm_legit_no_training.default']J°
+pkg.torch.onnx.fx_node•%_native_batch_norm_legit_no_training_2 : [num_users=1] = call_function[target=torch.ops.aten._native_batch_norm_legit_no_training.default](args = (%conv2d_2, %p_encoder_1_weight, %p_encoder_1_bias, %b_encoder_1_running_mean, %b_encoder_1_running_var, 0.1, 1e-05), kwargs = {})Jd
+pkg.torch.onnx.name_scopesF['', 'encoder', 'encoder.1', '_native_batch_norm_legit_no_training_2']Jô
+pkg.torch.onnx.stack_traceÕFile "/tmp/ipykernel_23/3542883356.py", line 47, in forward
+    fb = self.encoder(img_b)
+  File "/usr/local/lib/python3.12/dist-packages/torch/nn/modules/container.py", line 253, in forward
+    input = module(input)
+  File "/usr/local/lib/python3.12/dist-packages/torch/nn/modules/batchnorm.py", line 194, in forward
+    return F.batch_norm(
+Ñ
+	getitem_6relu_2node_relu_2"ReluJ¡
+	namespace“: __main__.WaterChangeDetector/encoder: torch.nn.modules.container.Sequential/encoder.2: torch.nn.modules.activation.ReLU/relu_2: aten.relu.defaultJ¥
+pkg.torch.onnx.class_hierarchy‚['__main__.WaterChangeDetector', 'torch.nn.modules.container.Sequential', 'torch.nn.modules.activation.ReLU', 'aten.relu.default']Jˆ
+pkg.torch.onnx.fx_noden%relu_2 : [num_users=1] = call_function[target=torch.ops.aten.relu.default](args = (%getitem_6,), kwargs = {})JD
+pkg.torch.onnx.name_scopes&['', 'encoder', 'encoder.2', 'relu_2']J‹
+pkg.torch.onnx.stack_traceìFile "/tmp/ipykernel_23/3542883356.py", line 47, in forward
+    fb = self.encoder(img_b)
+  File "/usr/local/lib/python3.12/dist-packages/torch/nn/modules/container.py", line 253, in forward
+    input = module(input)
+  File "/usr/local/lib/python3.12/dist-packages/torch/nn/modules/activation.py", line 143, in forward
+    return F.relu(input, inplace=self.inplace)
+ª	
+relu_2
+encoder.3.weight
+encoder.3.biasconv2d_3node_conv2d_3"Conv*
+group *
+pads@@@@ *
+auto_pad"NOTSET *
+strides@@ *
+	dilations@@ *
+kernel_shape@@ J¡
+	namespace“: __main__.WaterChangeDetector/encoder: torch.nn.modules.container.Sequential/encoder.3: torch.nn.modules.conv.Conv2d/conv2d_3: aten.conv2d.defaultJ£
+pkg.torch.onnx.class_hierarchy€['__main__.WaterChangeDetector', 'torch.nn.modules.container.Sequential', 'torch.nn.modules.conv.Conv2d', 'aten.conv2d.default']JÁ
+pkg.torch.onnx.fx_node¦%conv2d_3 : [num_users=1] = call_function[target=torch.ops.aten.conv2d.default](args = (%relu_2, %p_encoder_3_weight, %p_encoder_3_bias, [1, 1], [1, 1]), kwargs = {})JF
+pkg.torch.onnx.name_scopes(['', 'encoder', 'encoder.3', 'conv2d_3']J“
+pkg.torch.onnx.stack_traceôFile "/tmp/ipykernel_23/3542883356.py", line 47, in forward
+    fb = self.encoder(img_b)
+  File "/usr/local/lib/python3.12/dist-packages/torch/nn/modules/container.py", line 253, in forward
+    input = module(input)
+  File "/usr/local/lib/python3.12/dist-packages/torch/nn/modules/conv.py", line 553, in forward
+    return self._conv_forward(input, self.weight, self.bias)
+™
+conv2d_3
+encoder.4.weight
+encoder.4.bias
+encoder.4.running_mean
+encoder.4.running_var	getitem_9.node__native_batch_norm_legit_no_training_3__0"BatchNormalization*
+momentumfff? *
+epsilon¬Å'7 Jç
+	namespaceÙ: __main__.WaterChangeDetector/encoder: torch.nn.modules.container.Sequential/encoder.4: torch.nn.modules.batchnorm.BatchNorm2d/_native_batch_norm_legit_no_training_3: aten._native_batch_norm_legit_no_training.defaultJË
+pkg.torch.onnx.class_hierarchy¨['__main__.WaterChangeDetector', 'torch.nn.modules.container.Sequential', 'torch.nn.modules.batchnorm.BatchNorm2d', 'aten._native_batch_norm_legit_no_training.default']J°
+pkg.torch.onnx.fx_node•%_native_batch_norm_legit_no_training_3 : [num_users=1] = call_function[target=torch.ops.aten._native_batch_norm_legit_no_training.default](args = (%conv2d_3, %p_encoder_4_weight, %p_encoder_4_bias, %b_encoder_4_running_mean, %b_encoder_4_running_var, 0.1, 1e-05), kwargs = {})Jd
+pkg.torch.onnx.name_scopesF['', 'encoder', 'encoder.4', '_native_batch_norm_legit_no_training_3']Jô
+pkg.torch.onnx.stack_traceÕFile "/tmp/ipykernel_23/3542883356.py", line 47, in forward
+    fb = self.encoder(img_b)
+  File "/usr/local/lib/python3.12/dist-packages/torch/nn/modules/container.py", line 253, in forward
+    input = module(input)
+  File "/usr/local/lib/python3.12/dist-packages/torch/nn/modules/batchnorm.py", line 194, in forward
+    return F.batch_norm(
+Ñ
+	getitem_9relu_3node_relu_3"ReluJ¡
+	namespace“: __main__.WaterChangeDetector/encoder: torch.nn.modules.container.Sequential/encoder.5: torch.nn.modules.activation.ReLU/relu_3: aten.relu.defaultJ¥
+pkg.torch.onnx.class_hierarchy‚['__main__.WaterChangeDetector', 'torch.nn.modules.container.Sequential', 'torch.nn.modules.activation.ReLU', 'aten.relu.default']Jˆ
+pkg.torch.onnx.fx_noden%relu_3 : [num_users=1] = call_function[target=torch.ops.aten.relu.default](args = (%getitem_9,), kwargs = {})JD
+pkg.torch.onnx.name_scopes&['', 'encoder', 'encoder.5', 'relu_3']J‹
+pkg.torch.onnx.stack_traceìFile "/tmp/ipykernel_23/3542883356.py", line 47, in forward
+    fb = self.encoder(img_b)
+  File "/usr/local/lib/python3.12/dist-packages/torch/nn/modules/container.py", line 253, in forward
+    input = module(input)
+  File "/usr/local/lib/python3.12/dist-packages/torch/nn/modules/activation.py", line 143, in forward
+    return F.relu(input, inplace=self.inplace)
+û
+relu_1
+relu_3sub_16node_sub_16"SubJC
+	namespace6: __main__.WaterChangeDetector/sub_16: aten.sub.TensorJU
+pkg.torch.onnx.class_hierarchy3['__main__.WaterChangeDetector', 'aten.sub.Tensor']J‹
+pkg.torch.onnx.fx_nodeq%sub_16 : [num_users=1] = call_function[target=torch.ops.aten.sub.Tensor](args = (%relu_1, %relu_3), kwargs = {})J,
+pkg.torch.onnx.name_scopes['', 'sub_16']Jw
+pkg.torch.onnx.stack_traceYFile "/tmp/ipykernel_23/3542883356.py", line 48, in forward
+    diff = torch.abs(fa - fb)
+é
+sub_16abs_1
+node_abs_1"AbsJC
+	namespace6: __main__.WaterChangeDetector/abs_1: aten.abs.defaultJV
+pkg.torch.onnx.class_hierarchy4['__main__.WaterChangeDetector', 'aten.abs.default']Jƒ
+pkg.torch.onnx.fx_nodei%abs_1 : [num_users=1] = call_function[target=torch.ops.aten.abs.default](args = (%sub_16,), kwargs = {})J+
+pkg.torch.onnx.name_scopes['', 'abs_1']Jw
+pkg.torch.onnx.stack_traceYFile "/tmp/ipykernel_23/3542883356.py", line 48, in forward
+    diff = torch.abs(fa - fb)
+Ã
+abs_1
+decoder.0.weight
+decoder.0.bias
+getitem_12node_Conv_34"Conv*
+group *
+pads@@@@ *
+auto_pad"NOTSET *
+strides@@ *
+	dilations@@ *
+kernel_shape@@ Jç
+	namespaceÙ: __main__.WaterChangeDetector/decoder: torch.nn.modules.container.Sequential/decoder.1: torch.nn.modules.batchnorm.BatchNorm2d/_native_batch_norm_legit_no_training_4: aten._native_batch_norm_legit_no_training.defaultJ:
+!pkg.onnxscript.rewriter.rule_nameFuseBatchNormIntoConvJË
+pkg.torch.onnx.class_hierarchy¨['__main__.WaterChangeDetector', 'torch.nn.modules.container.Sequential', 'torch.nn.modules.batchnorm.BatchNorm2d', 'aten._native_batch_norm_legit_no_training.default']J°
+pkg.torch.onnx.fx_node•%_native_batch_norm_legit_no_training_4 : [num_users=1] = call_function[target=torch.ops.aten._native_batch_norm_legit_no_training.default](args = (%conv2d_4, %p_decoder_1_weight, %p_decoder_1_bias, %b_decoder_1_running_mean, %b_decoder_1_running_var, 0.1, 1e-05), kwargs = {})Jd
+pkg.torch.onnx.name_scopesF['', 'decoder', 'decoder.1', '_native_batch_norm_legit_no_training_4']Jõ
+pkg.torch.onnx.stack_traceÖFile "/tmp/ipykernel_23/3542883356.py", line 49, in forward
+    return self.decoder(diff)
+  File "/usr/local/lib/python3.12/dist-packages/torch/nn/modules/container.py", line 253, in forward
+    input = module(input)
+  File "/usr/local/lib/python3.12/dist-packages/torch/nn/modules/batchnorm.py", line 194, in forward
+    return F.batch_norm(
+Ô
+
+getitem_12relu_4node_relu_4"ReluJ¡
+	namespace“: __main__.WaterChangeDetector/decoder: torch.nn.modules.container.Sequential/decoder.2: torch.nn.modules.activation.ReLU/relu_4: aten.relu.defaultJ¥
+pkg.torch.onnx.class_hierarchy‚['__main__.WaterChangeDetector', 'torch.nn.modules.container.Sequential', 'torch.nn.modules.activation.ReLU', 'aten.relu.default']J‰
+pkg.torch.onnx.fx_nodeo%relu_4 : [num_users=1] = call_function[target=torch.ops.aten.relu.default](args = (%getitem_12,), kwargs = {})JD
+pkg.torch.onnx.name_scopes&['', 'decoder', 'decoder.2', 'relu_4']JŒ
+pkg.torch.onnx.stack_traceíFile "/tmp/ipykernel_23/3542883356.py", line 49, in forward
+    return self.decoder(diff)
+  File "/usr/local/lib/python3.12/dist-packages/torch/nn/modules/container.py", line 253, in forward
+    input = module(input)
+  File "/usr/local/lib/python3.12/dist-packages/torch/nn/modules/activation.py", line 143, in forward
+    return F.relu(input, inplace=self.inplace)
+ 	
+relu_4
+decoder.3.weight
+decoder.3.biaschange_logitsnode_conv2d_5"Conv*
+group *
+pads@ @ @ @  *
+auto_pad"NOTSET *
+strides@@ *
+	dilations@@ *
+kernel_shape@@ J¡
+	namespace“: __main__.WaterChangeDetector/decoder: torch.nn.modules.container.Sequential/decoder.3: torch.nn.modules.conv.Conv2d/conv2d_5: aten.conv2d.defaultJ£
+pkg.torch.onnx.class_hierarchy€['__main__.WaterChangeDetector', 'torch.nn.modules.container.Sequential', 'torch.nn.modules.conv.Conv2d', 'aten.conv2d.default']J±
+pkg.torch.onnx.fx_node–%conv2d_5 : [num_users=1] = call_function[target=torch.ops.aten.conv2d.default](args = (%relu_4, %p_decoder_3_weight, %p_decoder_3_bias), kwargs = {})JF
+pkg.torch.onnx.name_scopes(['', 'decoder', 'decoder.3', 'conv2d_5']J”
+pkg.torch.onnx.stack_traceõFile "/tmp/ipykernel_23/3542883356.py", line 49, in forward
+    return self.decoder(diff)
+  File "/usr/local/lib/python3.12/dist-packages/torch/nn/modules/container.py", line 253, in forward
+    input = module(input)
+  File "/usr/local/lib/python3.12/dist-packages/torch/nn/modules/conv.py", line 553, in forward
+    return self._conv_forward(input, self.weight, self.bias)
+main_graph*e Bencoder.0.weightj(
+locationchangeformer_water.onnx.dataj
+offset0j
+length3456p*— Bencoder.0.biasJ€X=‘·¼f~Í=9ƒ=ò>Fi.½9d1¾)—>è	½8lÂ½Å™=qšC>æ¤=7øi½w';«G¾ÃŞ¼ŒÂ½˜ƒ.>ôWÊ=«xó¼RûØ=ºK¬<‹0>¥5¾<5>Åà½1)
+¾Y>Ï›½*å¾Û½*™ Bencoder.1.weightJ€eÒk?aÉr?/,y?Œ¬‚?$‚?ªÈr?M?ZŠo?MCy?¥3w?óÔl?S¢w?D„?Û›p?rw?Ğ€?¨q„?Xm”?7Fz?C€?ù1u?Äí‰?HA‚?•?…³l?~v?Ew?õp?0€|?p…p?İŞ€?³q?*— Bencoder.1.biasJ€Ç€G¼11»ß¯T<\=†&½H¼TS<4ĞS½;b$ºêk»¼Ğ¹¼˜!+<ˆ,;ƒ¬´»A)»L	'¼ Ëb=L­™=w=y¢Kºéï;!¿4=·‘=Yqo<kÙ'¼™š;û%9Xã»ïó,½˜ğ= ;q=Ë¼*—@Bencoder.3.biasJ€;17¼–>­¼;ÿG;ÇÕ'½¸x½T‹^½İaï»D:K;Æ…?½¿›Ã»ãO¯;ŠË¼Rù¤:tüJ¼û¢i=29=˜ló¹Ã	½±qİ»?gZ½Ö“ë¼õ´»2½>9B=>…<^'=(Ùå<Yø<¨	´<şd½ò…¼¶‡@½´‘=®Í<—c½ÛU_=­¦Ÿ¼D¯­¼«Ä°<R~Ç;î‹¼K´c¼ã¤<Ş†#=ÖyÖ¼’±»<ÿíŸ¼«Šò»íu$¹3½É{Ò¼×f½×:A½ë‡d=TI<ùG¼‰[dº½‰¼´†Z½¸J<ÿ<­Z=ni3=eğ¿<*™@Bencoder.4.weightJ€et€?®Ì{?%â‚?.?X?¯g€?¬€?ÜÂs?îÈw?H¬u?ˆ0|?ÏÏ}?™ €?"œ…?5Ì€?pöw?Å„y?Ã°|?&Ç?Êî†?@¯…?55w?G}?y{€?¶ƒ?óë?Q©~?\?x]{?Ex?ÿ|z?ş;v?ù ~?Âò‚?„?&¯p?İ'?³Vp?ã€?Y9?ÃHx?“×t?iÖz?yÛ?=¤u?KP|?ƒùz?³ûo?Ã<€?·‡|?Ü`t?Ï»…??£|? ¿z?ì(?æó|?6Ix?%v?~t?."€?Õs?öÁ?‘Ï‡?Q?*—@Bencoder.4.biasJ€lI;Í­¼8Ì&<¾<l+=
+Ñ÷<#¤«½Î«ÿ¼ë¼,—¼„v:ô"O<Tˆ½;à¾*jÍ;ÑÔœ¼µÕ;B„E¼“Í'»bÜG¾5ª¹½•å¼‡ù¼
+wr½¿›õ½{œ<ôO;²¼Å<Ï—»d·á¼ßEË½ÇÀö¼Å ®½t•â½‰‡Ô<¹Ò.½ÄŞN:-E)½@>½„è=·+z¼Ùç ¼Ş8½İ;³zÔ¼¢¢¼ˆ’Ú»‡›½tŠò;ƒ7,:¦fï¼Êh!¾T­»ó>½¾@.=¡€å»\¼ß‡£¼Ó’½	ó½f ½x=<H!¾Õ•Á½*— Bdecoder.0.biasJ€“	?q6c¿:„U>rÄš=’ÛZ¿8~_? S¿ÎXA¾të”?×n”?³s¿.ê?¥Ç–¾zc¯½dmš=æ(Ÿ?ğ¨Œ<ì;¸½¶±Ã?YK¿åã”?sKq¿™ª?N^¿`!’?*Îe¿¥_?ÇQ?^œh¿íJl¿“ C?¨º?*Ÿ Bdecoder.3.weightJ€F?¾a¿à=Ë»)¾\F¥¾<.>¼¾£éÉ=Ü\4¾0,n¾Óº‘¾åŸ>_@,=•Ëš¾±q¾-¥¾!S;¾>@0¾DO¾Œšz¾üe>4¾8• =)bŒ=6T>Kgx¾—è>^N=:{œ¾úÇ=ÈX >O[½¼ê¾g¾*Bdecoder.3.biasJ¢Ì?¼*Ÿ Bencoder.1.running_meanJ€éíÈ>N•ƒ¾”~Â>ğèÛ½hÖ“>>iÒ=‹â¾ksà=ì–¢½J°÷½Bœ7½¨ù>Â°½V–†> K¿4ë[½§=Å>×½@¾Ÿë>‘Òi¾°tŒ>·‡¬>í†>¦F¼:Q>~€€>c<N¿>ì½;ù¾vš¿>÷¾* Bencoder.1.running_varJ€úÜ‹;áéñ;;˜›;s•a<fõñ;y8<†İ;„É;mÚĞ;&<¶¥Í;Ò÷¼;¬E,<è5é;rfñ;äa><ø
+3<4”z<òüí;í€Å;Ó¸è;’ÏŒ<²‹©<“å<©
+ <4« ;)Äº;ÊÒ;*Pí;ï›ú;S£¸;@©;*Ÿ@Bencoder.4.running_meanJ€á˜¾ªo¿FŒ	¿ü¿Tª³¾Ş±î¾`3&¿cM¿8s¾|Y+¿Ú˜¿Ğ‚:¿éúˆ¿²æN¿¼/œ¾^¤
+?ù·?Ë¯–>H-¿#N¿N"v¿øç½a‹¿«…¿éì)¿#W=¾o¢½?¦Ÿ:28R¾Vœ¿5¿İ =¥¿™ ;¿F!,¾È¡F>úí½J`´<ô!¿c7Í¾«¿ºêy>ş¬¿3ßÙ½©q>U§¾›K¼ô›<.†ß>Òİã¾0Uà>z.¿”)¿Ó÷å¾Q“¸¾¶ÃŒ>|ù)¿V
+¿E9¿N@Z¿’™G>¬ı7¿N™¿-jY¿*@Bencoder.4.running_varJ€=À?
+„²>3à]?È#ª>wò+?ŞÀJ?æ?J±­>ğpG>©uo>®²d>OçÌ>:©~?:F@S-?Ä §>‹pU>î] >†Œ9>‹^"@£ º?±P>´÷‘?ÏfÄ?»¿Ã?eÉ ?OÍ¬>mß>Ù_³>[©>Ë˜?8§o>ğhİ?ïŸ?!ßá?D¬>z‹>QQ>k´“?”B†?”7f>:æ4>)~?½>ö>uÂ>Ğ«!>2]>wË >Ğe³>MÓg>&ı/>:ôæ?Ë†>°$?<!?î’7>\”>¾‰U>to->¾úú?Q™ø=¿×ù>? ä?à½?*i@ Bencoder.3.weightj(
+locationchangeformer_water.onnx.dataj
+offset3456j
+length73728p*j @Bdecoder.0.weightj(
+locationchangeformer_water.onnx.dataj
+offset77184j
+length73728pZÑ
+before
+
+batch
+
+€
+€"=
+/pkg.torch.export.graph_signature.InputSpec.kind
+USER_INPUT"=
+5pkg.torch.export.graph_signature.InputSpec.persistentNone"*
+!pkg.torch.onnx.original_node_nameimg_aZĞ
+after
+
+batch
+
+€
+€"=
+/pkg.torch.export.graph_signature.InputSpec.kind
+USER_INPUT"=
+5pkg.torch.export.graph_signature.InputSpec.persistentNone"*
+!pkg.torch.onnx.original_node_nameimg_bb
+change_logits
+
+batch
+
+€
+€"?
+0pkg.torch.export.graph_signature.OutputSpec.kindUSER_OUTPUT"-
+!pkg.torch.onnx.original_node_nameconv2d_5jà
+encoder.0.weight
+
+ 
+
+
+"<
+/pkg.torch.export.graph_signature.InputSpec.kind	PARAMETER"=
+5pkg.torch.export.graph_signature.InputSpec.persistentNone"7
+!pkg.torch.onnx.original_node_namep_encoder_0_weightjĞ
+encoder.0.bias
+
+
+ "<
+/pkg.torch.export.graph_signature.InputSpec.kind	PARAMETER"=
+5pkg.torch.export.graph_signature.InputSpec.persistentNone"5
+!pkg.torch.onnx.original_node_namep_encoder_0_biasjÔ
+encoder.1.weight
+
+
+ "<
+/pkg.torch.export.graph_signature.InputSpec.kind	PARAMETER"=
+5pkg.torch.export.graph_signature.InputSpec.persistentNone"7
+!pkg.torch.onnx.original_node_namep_encoder_1_weightjĞ
+encoder.1.bias
+
+
+ "<
+/pkg.torch.export.graph_signature.InputSpec.kind	PARAMETER"=
+5pkg.torch.export.graph_signature.InputSpec.persistentNone"5
+!pkg.torch.onnx.original_node_namep_encoder_1_biasjĞ
+encoder.3.bias
+
+
+@"<
+/pkg.torch.export.graph_signature.InputSpec.kind	PARAMETER"=
+5pkg.torch.export.graph_signature.InputSpec.persistentNone"5
+!pkg.torch.onnx.original_node_namep_encoder_3_biasjÔ
+encoder.4.weight
+
+
+@"<
+/pkg.torch.export.graph_signature.InputSpec.kind	PARAMETER"=
+5pkg.torch.export.graph_signature.InputSpec.persistentNone"7
+!pkg.torch.onnx.original_node_namep_encoder_4_weightjĞ
+encoder.4.bias
+
+
+@"<
+/pkg.torch.export.graph_signature.InputSpec.kind	PARAMETER"=
+5pkg.torch.export.graph_signature.InputSpec.persistentNone"5
+!pkg.torch.onnx.original_node_namep_encoder_4_biasj
+decoder.0.bias
+
+
+ jà
+decoder.3.weight
+
+
+ 
+
+"<
+/pkg.torch.export.graph_signature.InputSpec.kind	PARAMETER"=
+5pkg.torch.export.graph_signature.InputSpec.persistentNone"7
+!pkg.torch.onnx.original_node_namep_decoder_3_weightjĞ
+decoder.3.bias
+
+
+"<
+/pkg.torch.export.graph_signature.InputSpec.kind	PARAMETER"=
+5pkg.torch.export.graph_signature.InputSpec.persistentNone"5
+!pkg.torch.onnx.original_node_namep_decoder_3_biasjİ
+encoder.1.running_mean
+
+
+ "9
+/pkg.torch.export.graph_signature.InputSpec.kindBUFFER"=
+5pkg.torch.export.graph_signature.InputSpec.persistentTrue"=
+!pkg.torch.onnx.original_node_nameb_encoder_1_running_meanjÛ
+encoder.1.running_var
+
+
+ "9
+/pkg.torch.export.graph_signature.InputSpec.kindBUFFER"=
+5pkg.torch.export.graph_signature.InputSpec.persistentTrue"<
+!pkg.torch.onnx.original_node_nameb_encoder_1_running_varjİ
+encoder.4.running_mean
+
+
+@"9
+/pkg.torch.export.graph_signature.InputSpec.kindBUFFER"=
+5pkg.torch.export.graph_signature.InputSpec.persistentTrue"=
+!pkg.torch.onnx.original_node_nameb_encoder_4_running_meanjÛ
+encoder.4.running_var
+
+
+@"9
+/pkg.torch.export.graph_signature.InputSpec.kindBUFFER"=
+5pkg.torch.export.graph_signature.InputSpec.persistentTrue"<
+!pkg.torch.onnx.original_node_nameb_encoder_4_running_varjà
+encoder.3.weight
+
+@
+ 
+
+"<
+/pkg.torch.export.graph_signature.InputSpec.kind	PARAMETER"=
+5pkg.torch.export.graph_signature.InputSpec.persistentNone"7
+!pkg.torch.onnx.original_node_namep_encoder_3_weightj*
+decoder.0.weight
+
+ 
+@
+
+j'
+conv2d
+
+batch
+ 
+€
+€j(
+getitem
+
+batch
+ 
+€
+€j%
+relu
+
+batch
+ 
+€
+€j)
+conv2d_1
+
+batch
+@
+€
+€j*
+	getitem_3
+
+batch
+@
+€
+€j'
+relu_1
+
+batch
+@
+€
+€j)
+conv2d_2
+
+batch
+ 
+€
+€j*
+	getitem_6
+
+batch
+ 
+€
+€j'
+relu_2
+
+batch
+ 
+€
+€j)
+conv2d_3
+
+batch
+@
+€
+€j*
+	getitem_9
+
+batch
+@
+€
+€j'
+relu_3
+
+batch
+@
+€
+€j'
+sub_16
+
+batch
+@
+€
+€j&
+abs_1
+
+batch
+@
+€
+€j+
+
+getitem_12
+
+batch
+ 
+€
+€j'
+relu_4
+
+batch
+ 
+€
+€‚õ
+0pkg.torch.export.ExportedProgram.graph_signatureÀ
+# inputs
+p_encoder_0_weight: PARAMETER target='encoder.0.weight'
+p_encoder_0_bias: PARAMETER target='encoder.0.bias'
+p_encoder_1_weight: PARAMETER target='encoder.1.weight'
+p_encoder_1_bias: PARAMETER target='encoder.1.bias'
+p_encoder_3_weight: PARAMETER target='encoder.3.weight'
+p_encoder_3_bias: PARAMETER target='encoder.3.bias'
+p_encoder_4_weight: PARAMETER target='encoder.4.weight'
+p_encoder_4_bias: PARAMETER target='encoder.4.bias'
+p_decoder_0_weight: PARAMETER target='decoder.0.weight'
+p_decoder_0_bias: PARAMETER target='decoder.0.bias'
+p_decoder_1_weight: PARAMETER target='decoder.1.weight'
+p_decoder_1_bias: PARAMETER target='decoder.1.bias'
+p_decoder_3_weight: PARAMETER target='decoder.3.weight'
+p_decoder_3_bias: PARAMETER target='decoder.3.bias'
+b_encoder_1_running_mean: BUFFER target='encoder.1.running_mean' persistent=True
+b_encoder_1_running_var: BUFFER target='encoder.1.running_var' persistent=True
+b_encoder_1_num_batches_tracked: BUFFER target='encoder.1.num_batches_tracked' persistent=True
+b_encoder_4_running_mean: BUFFER target='encoder.4.running_mean' persistent=True
+b_encoder_4_running_var: BUFFER target='encoder.4.running_var' persistent=True
+b_encoder_4_num_batches_tracked: BUFFER target='encoder.4.num_batches_tracked' persistent=True
+b_decoder_1_running_mean: BUFFER target='decoder.1.running_mean' persistent=True
+b_decoder_1_running_var: BUFFER target='decoder.1.running_var' persistent=True
+b_decoder_1_num_batches_tracked: BUFFER target='decoder.1.num_batches_tracked' persistent=True
+img_a: USER_INPUT
+img_b: USER_INPUT
+
+# outputs
+conv2d_5: USER_OUTPUT
+‚I
+2pkg.torch.export.ExportedProgram.range_constraints{s2: VR[0, int_oo]}B
+ 

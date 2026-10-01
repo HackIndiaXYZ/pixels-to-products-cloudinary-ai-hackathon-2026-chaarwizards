@@ -1,4 +1,4 @@
-import type { ChangeEvent } from '@impact/shared/rn';
+import type { ChangeEvent } from '@panchnama/shared/rn';
 import { apiRequest } from '../../shared/api/client';
 
 export interface ChangeEventListResponse {

@@ -8,7 +8,7 @@
 import { randomBytes, createHash } from 'node:crypto';
 import type { FastifyInstance } from 'fastify';
 import { z } from 'zod';
-import { ok, ORG_TYPES } from '@impact/shared';
+import { ok, ORG_TYPES } from '@panchnama/shared';
 
 const CreateOrgSchema = z
   .object({

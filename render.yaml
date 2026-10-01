@@ -1,0 +1,112 @@
+# Render Blueprint — ML service (Docker) + Node API (web) + BullMQ worker.
+#
+# The dashboard is NOT here: it deploys to Vercel (vercel.json). This file covers
+# only the two services you asked for, plus the API's queue worker, which is a
+# SEPARATE process from the web server (apps/api/src/jobs/workers.ts). Without it
+# the HTTP API runs but nothing drains the BullMQ queues.
+#
+# No secret value is committed. Secrets are either `sync: false` (entered once in
+# the Render dashboard) or shared through the env group below so INTERNAL_JWT_SECRET
+# is byte-identical across api, worker, and ml-service (ENVIRONMENT.md §2 — a
+# mismatch makes every API→ML call 401).
+
+envVarGroups:
+  - name: impact-shared-secrets
+    envVars:
+      - key: INTERNAL_JWT_SECRET # MUST be identical in api, worker, and ml-service
+        sync: false
+      - key: SUPABASE_URL
+        sync: false
+      - key: SUPABASE_SERVICE_KEY
+        sync: false
+      - key: CLOUDINARY_CLOUD_NAME
+        sync: false
+      - key: CLOUDINARY_API_KEY
+        sync: false
+      - key: CLOUDINARY_API_SECRET
+        sync: false
+
+services:
+  # ---- Redis / Key Value, backing BullMQ ----
+  # If your Render account uses the newer schema, change `type: redis` to
+  # `type: keyvalue`. An empty ipAllowList keeps it reachable only from your own
+  # Render services (no public endpoint).
+  - type: redis
+    name: impact-redis
+    plan: starter
+    ipAllowList: []
+    maxmemoryPolicy: noeviction
+
+  # ---- ML inference service (FastAPI, Docker) ----
+  # torch + ultralytics (requirements-ml.txt) do not fit the free/512MB tier, so
+  # this is pinned to `standard` (2GB). The Dockerfile honours Render's $PORT.
+  # NOTE: this endpoint is internet-facing — the API authenticates to it with
+  # INTERNAL_JWT_SECRET; do not disable that check (AGENTS.md §3.5).
+  - type: web
+    name: impact-ml-service
+    runtime: docker
+    dockerfilePath: ./apps/ml-service/Dockerfile
+    dockerContext: ./apps/ml-service
+    plan: standard
+    healthCheckPath: /health
+    autoDeploy: false
+    envVars:
+      - fromGroup: impact-shared-secrets
+      - key: WEIGHTS_DIR
+        value: /app/weights
+
+  # ---- Node API (Fastify) ----
+  # The server already binds 0.0.0.0 and reads $PORT (apps/api/src/config.ts), so
+  # no port shim is needed. turbo builds @panchnama/shared first (^build) exactly as CI.
+  - type: web
+    name: impact-api
+    runtime: node
+    plan: starter
+    buildCommand: corepack enable && pnpm install --frozen-lockfile && pnpm turbo run build --filter=@panchnama/api
+    startCommand: node apps/api/dist/start.js
+    healthCheckPath: /health
+    autoDeploy: false
+    envVars:
+      - fromGroup: impact-shared-secrets
+      - key: NODE_ENV
+        value: production
+      - key: SUPABASE_ANON_KEY
+        sync: false
+      - key: SUPABASE_JWT_SECRET
+        sync: false
+      - key: DASHBOARD_URL
+        sync: false
+      - key: REDIS_URL
+        fromService:
+          type: redis
+          name: impact-redis
+          property: connectionString
+      # Full URL incl. scheme, e.g. https://impact-ml-service.onrender.com — set
+      # after the ML service's first deploy. (Render's fromService exposes only the
+      # bare host, which the ML client needs prefixed, so this stays explicit.)
+      - key: ML_SERVICE_URL
+        sync: false
+      - key: ORG_UPLOAD_RATE_MAX
+        value: "600"
+      - key: ORG_UPLOAD_RATE_WINDOW_MS
+        value: "60000"
+
+  # ---- BullMQ queue worker: same build, different entrypoint ----
+  - type: worker
+    name: impact-api-worker
+    runtime: node
+    plan: starter
+    buildCommand: corepack enable && pnpm install --frozen-lockfile && pnpm turbo run build --filter=@panchnama/api
+    startCommand: node apps/api/dist/jobs/workers.js
+    autoDeploy: false
+    envVars:
+      - fromGroup: impact-shared-secrets
+      - key: NODE_ENV
+        value: production
+      - key: REDIS_URL
+        fromService:
+          type: redis
+          name: impact-redis
+          property: connectionString
+      - key: ML_SERVICE_URL
+        sync: false

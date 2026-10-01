@@ -9,7 +9,7 @@ import {
   sign as edSign,
   type KeyObject,
 } from 'node:crypto';
-import type { SignatureTier } from '@impact/shared/rn';
+import type { SignatureTier } from '@panchnama/shared/rn';
 import type {
   CaptureSigner,
   Clock,

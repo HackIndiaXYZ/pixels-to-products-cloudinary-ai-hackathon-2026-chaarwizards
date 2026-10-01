@@ -1,5 +1,7 @@
 # Database Schema (Supabase/PostgreSQL)
 
+> **Panchnama** — a written record of inspection, signed by a witness.
+
 ---
 
 ## Extensions

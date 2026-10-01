@@ -95,16 +95,33 @@ class ModelRegistry:
 
 
 def default_factory(weights_dir: Path) -> ModelFactory:
-    """Production factory: learned weights when present, deterministic baseline
-    while ``weights_uri`` is NULL (the forestry placeholder state)."""
+    """Production factory. Routes STRICTLY by ``row.sector`` so a trained sector
+    never borrows another sector's pipeline (§3.3): forestry→forestry,
+    water→water. Learned weights are used when ``weights_uri`` is set; the
+    deterministic baseline covers the ``weights_uri IS NULL`` placeholder state.
+    A trained row for a sector with no implemented pipeline raises rather than
+    silently substituting (§3.6)."""
 
     def build(row: ModelRow) -> SectorModel:
-        if row.weights_uri:
-            from src.models.forestry import YoloForestryModel
+        if row.sector == "forestry":
+            if row.weights_uri:
+                from src.models.forestry import YoloForestryModel
 
-            return YoloForestryModel(row.version, weights_dir)
-        from src.models.synthetic import SyntheticForestryModel
+                return YoloForestryModel(row.version, weights_dir)
+            from src.models.synthetic import SyntheticForestryModel
 
-        return SyntheticForestryModel(row.version)
+            return SyntheticForestryModel(row.version)
+        if row.sector == "water":
+            if row.weights_uri:
+                from src.models.water import YoloWaterModel
+
+                return YoloWaterModel(row.version, weights_dir)
+            from src.models.synthetic_water import SyntheticWaterModel
+
+            return SyntheticWaterModel(row.version)
+        # Trained row for a sector we have no pipeline for: never guess with
+        # another sector's model (§3.3). The status gate should keep us out of
+        # here, so reaching it is a registry/data bug worth surfacing loudly.
+        raise ValueError(f"no model pipeline for trained sector {row.sector!r}")
 
     return build

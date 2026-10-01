@@ -9,7 +9,7 @@
  */
 import type { FastifyInstance } from 'fastify';
 import { z } from 'zod';
-import { ok } from '@impact/shared';
+import { ok } from '@panchnama/shared';
 import { generateReport } from '../services/report-generation.js';
 import { listBuiltInTemplates } from '../reports/templates.js';
 

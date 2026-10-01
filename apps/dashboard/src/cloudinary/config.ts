@@ -3,7 +3,7 @@ import { Cloudinary } from '@cloudinary/url-gen';
 /**
  * The shared `cld` instance. Cloud name comes from the client-safe
  * `VITE_CLOUDINARY_CLOUD_NAME` (ENVIRONMENT.md §2). No secret is ever
- * referenced here — URL signing is done server-side by @impact/api
+ * referenced here — URL signing is done server-side by @panchnama/api
  * (AGENTS.md §3.5, §3.11).
  *
  * In dev only, an unset cloud name falls back to Cloudinary's public

@@ -1,5 +1,5 @@
 /**
- * @impact/api — Fastify backend (Node 20 · TypeScript · BullMQ).
+ * @panchnama/api — Fastify backend (Node 20 · TypeScript · BullMQ).
  *
  * Phase 3 ships the secured core API: auth, request-scoped Supabase clients,
  * project CRUD, the Cloudinary webhook ingest + independent verification,
@@ -8,7 +8,7 @@
  * injectable ports (see `app.ts`) so it is testable without live infrastructure.
  */
 import { v2 as cloudinary } from 'cloudinary';
-import { SHARED_PACKAGE_VERSION } from '@impact/shared';
+import { SHARED_PACKAGE_VERSION } from '@panchnama/shared';
 
 // Prove the v2 handle resolves. No secrets, no hand-rolled signing (AGENTS.md §3.11).
 export const cloudinarySdk = cloudinary;
@@ -16,7 +16,7 @@ export const cloudinarySdk = cloudinary;
 export const API_PACKAGE_VERSION = '0.0.0' as const;
 
 export function apiBanner(): string {
-  return `@impact/api ${API_PACKAGE_VERSION} (shared ${SHARED_PACKAGE_VERSION})`;
+  return `@panchnama/api ${API_PACKAGE_VERSION} (shared ${SHARED_PACKAGE_VERSION})`;
 }
 
 export { buildApp, type AppDeps } from './app.js';

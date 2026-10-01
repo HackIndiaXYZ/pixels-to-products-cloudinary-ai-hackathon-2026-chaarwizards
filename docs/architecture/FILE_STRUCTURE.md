@@ -1,11 +1,13 @@
 # Monorepo File Structure
 
+> **Panchnama** — a written record of inspection, signed by a witness.
+
 ---
 
 ## Root Layout
 
 ```
-impact-media-platform/
+panchnama/
 ├── .github/
 │   └── workflows/
 │       ├── ci.yml              # Lint, typecheck, test all packages
@@ -142,7 +144,7 @@ impact-media-platform/
 │   │   │   │       ├── api.ts
 │   │   │   │       └── types.ts
 │   │   │   ├── shared/
-│   │   │   │   ├── components/  # Re-exports from @impact/ui-components
+│   │   │   │   ├── components/  # Re-exports from @panchnama/ui-components
 │   │   │   │   ├── hooks/
 │   │   │   │   ├── utils/
 │   │   │   │   └── providers/

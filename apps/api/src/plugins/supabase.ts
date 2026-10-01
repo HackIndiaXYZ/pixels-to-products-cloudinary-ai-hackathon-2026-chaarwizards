@@ -24,8 +24,8 @@ import {
   OrgSchema,
   ReportSchema,
   ReportManifestEntrySchema,
-} from '@impact/shared';
-import type { JsonValue, Project, VerificationState, GpsProvider } from '@impact/shared';
+} from '@panchnama/shared';
+import type { JsonValue, Project, VerificationState, GpsProvider } from '@panchnama/shared';
 import { verifyExifHash, verifyCaptureSignature } from '../services/verification.js';
 
 /**

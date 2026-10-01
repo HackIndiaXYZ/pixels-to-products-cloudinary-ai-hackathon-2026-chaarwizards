@@ -47,6 +47,18 @@ coverage-summary.json
 weights/
 *.weights
 
+# …but DO ship the ML runtime weights — the Render image bakes them in, so they
+# must be tracked despite the generic ignores above (order matters: these win).
+!apps/ml-service/weights/
+!apps/ml-service/weights/*.onnx
+!apps/ml-service/weights/*.onnx.data
+!apps/ml-service/weights/*.pt
+
+# training archives (uploaded for local wiring) + Windows/WSL download metadata
+*.zip
+*.tar.gz
+*:Zone.Identifier
+
 # local — never commit
 .DS_Store
 *.log

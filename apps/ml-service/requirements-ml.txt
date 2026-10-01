@@ -11,3 +11,6 @@
 # ffmpeg is a system package pinned in the container image, not a pip dependency.
 torch>=2.2,<3
 ultralytics>=8.2,<9
+# ChangeFormer change masks are shipped as ONNX; onnxruntime runs them without a
+# PyTorch architecture class, and ultralytics also uses it to run YOLO .onnx.
+onnxruntime>=1.17,<2

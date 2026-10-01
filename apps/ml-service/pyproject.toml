@@ -48,12 +48,27 @@ follow_imports = "skip"
 follow_imports_for_stubs = true
 ignore_missing_imports = true
 
+# torch / ultralytics ship incomplete type exports: when they are NOT installed
+# (the CI gate env) ignore_missing_imports treats them as Any, but once the
+# learned-weights extras ARE installed (training/eval) mypy follows the real
+# modules and their partial stubs fight our usage (YOLO not exported, Results |
+# Tensor unions). Skip following them at the boundary exactly like cv2, so the
+# strict check is identical in both environments.
 [[tool.mypy.overrides]]
 module = [
   "torch",
   "torch.*",
   "ultralytics",
   "ultralytics.*",
+  "onnxruntime",
+  "onnxruntime.*",
+]
+follow_imports = "skip"
+follow_imports_for_stubs = true
+ignore_missing_imports = true
+
+[[tool.mypy.overrides]]
+module = [
   "jose",
   "jose.*",
   "cloudinary",
@@ -72,4 +87,9 @@ pythonpath = ["."]
 addopts = "--cov=src --cov-report=term-missing --cov-fail-under=70"
 
 [tool.coverage.run]
-omit = ["src/main.py", "src/models/forestry.py"]
+omit = [
+  "src/main.py",
+  "src/models/forestry.py",
+  "src/models/water.py",
+  "src/models/onnx_change.py",
+]

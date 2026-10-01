@@ -1,5 +1,7 @@
 # MVP Exit Criteria
 
+> **Panchnama** — a written record of inspection, signed by a witness.
+
 Nine criteria, extracted from `README.md` §MVP Exit Criteria so that `BUILD_ORDER`
 Phase 11 can reference something structured instead of a prose list. A gate that
 cites an unstructured list cannot be verified — the list can change without the

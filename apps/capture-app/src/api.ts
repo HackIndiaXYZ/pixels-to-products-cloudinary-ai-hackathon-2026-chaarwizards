@@ -9,10 +9,10 @@
  * verified Supabase JWT (AGENTS.md §3.4); this client only forwards that JWT as
  * a bearer token.
  */
-import { ProjectSchema, type Project } from '@impact/shared/rn';
+import { ProjectSchema, type Project } from '@panchnama/shared/rn';
 
 export interface FetchProjectsInput {
-  /** Base URL of the running `@impact/api`, e.g. `https://api.example.com`. */
+  /** Base URL of the running `@panchnama/api`, e.g. `https://api.example.com`. */
   readonly baseUrl: string;
   /** The verified Supabase session JWT. Required — there is no anonymous read. */
   readonly token: string;

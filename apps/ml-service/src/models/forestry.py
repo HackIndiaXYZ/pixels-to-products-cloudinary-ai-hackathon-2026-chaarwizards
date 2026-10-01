@@ -1,11 +1,13 @@
 """Learned forestry pipeline: YOLOv8n sapling detector + ChangeFormer change
 mask + a COCO YOLOv8n base detector for person / machinery.
 
-This is the path used once fine-tuned weights exist at ``weights_uri`` (see
-``docs/planning/FINE_TUNING_STRATEGY.md``). ``torch`` / ``ultralytics`` are
-heavy and are imported lazily inside the constructor so the service, its tests,
-and ``mypy`` run without them installed; the deterministic baseline in
-``synthetic`` covers the ``weights_uri IS NULL`` placeholder state.
+The detectors are shipped as ONNX (``sapling_yolov8n.onnx``,
+``changeformer.onnx``); the COCO base is the stock ``yolov8n.pt``. ``ultralytics``
+loads a ``.onnx`` detector directly (running it through ``onnxruntime``), and the
+ChangeFormer runs via :class:`OnnxChangeFormer`. ``ultralytics`` is heavy and is
+imported lazily inside the constructor so the service, its tests, and ``mypy``
+run without it installed; the deterministic baseline in ``synthetic`` covers the
+``weights_uri IS NULL`` placeholder state.
 
 Weights are loaded **once** in ``__init__`` and cached on the model object; the
 detectors never re-load per request (AGENTS.md §4).
@@ -21,12 +23,12 @@ from numpy.typing import NDArray
 from src.models.base import (
     BoundingBox,
     ChangeDetector,
-    ChangeMask,
     ObjectDetection,
     ObjectDetector,
     SaplingDetection,
     SaplingDetector,
 )
+from src.models.onnx_change import OnnxChangeFormer
 
 # COCO class names we treat as machinery indicators for the forestry sector.
 _MACHINERY_LABELS = frozenset({"truck", "car", "bus", "train", "boat"})
@@ -51,27 +53,6 @@ class _YoloSaplings:
         boxes.sort(key=lambda b: (b.y1, b.x1))
         mean_conf = round(sum(b.confidence for b in boxes) / len(boxes), 4) if boxes else 0.0
         return SaplingDetection(count=len(boxes), boxes=tuple(boxes), mean_confidence=mean_conf)
-
-
-class _ChangeFormer:
-    def __init__(self, weights_path: Path) -> None:
-        import torch  # lazy: heavy dependency
-
-        self._device = "cuda" if torch.cuda.is_available() else "cpu"
-        self._net = torch.load(str(weights_path), map_location=self._device)
-        self._net.eval()
-
-    def change_mask(
-        self, before: NDArray[np.uint8], after: NDArray[np.uint8]
-    ) -> ChangeMask:
-        import torch
-
-        with torch.no_grad():
-            before_t = torch.from_numpy(before).permute(2, 0, 1).float().unsqueeze(0)
-            after_t = torch.from_numpy(after).permute(2, 0, 1).float().unsqueeze(0)
-            logits = self._net(before_t.to(self._device), after_t.to(self._device))
-            mask = (logits.argmax(dim=1).squeeze(0).cpu().numpy() > 0).astype(bool)
-        return ChangeMask(mask=mask)
 
 
 class _CocoObjects:
@@ -99,6 +80,6 @@ class YoloForestryModel:
     def __init__(self, version: str, weights_dir: Path) -> None:
         self.version = version
         # Each detector loads its weights once, here — never per request (§4).
-        self.saplings: SaplingDetector = _YoloSaplings(weights_dir / "sapling_yolov8n.pt")
-        self.changes: ChangeDetector = _ChangeFormer(weights_dir / "changeformer.pt")
+        self.saplings: SaplingDetector = _YoloSaplings(weights_dir / "sapling_yolov8n.onnx")
+        self.changes: ChangeDetector = OnnxChangeFormer(weights_dir / "changeformer.onnx")
         self.objects: ObjectDetector = _CocoObjects(weights_dir / "yolov8n.pt")

@@ -1,4 +1,4 @@
-import { ASSET_PHASES, ASSET_TYPES, type AssetPhase, type AssetType } from '@impact/shared/rn';
+import { ASSET_PHASES, ASSET_TYPES, type AssetPhase, type AssetType } from '@panchnama/shared/rn';
 import type { SearchFilters } from '../types';
 
 /**

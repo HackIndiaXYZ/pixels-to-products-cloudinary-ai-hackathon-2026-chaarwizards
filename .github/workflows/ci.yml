@@ -33,11 +33,11 @@ jobs:
           cache: pnpm
       - run: pnpm install --frozen-lockfile
       - name: Lint · typecheck · build (shared deps built via ^build)
-        run: pnpm turbo run lint typecheck build --filter=@impact/api
+        run: pnpm turbo run lint typecheck build --filter=@panchnama/api
       - name: Test with enforced 80% coverage
-        run: pnpm --filter @impact/api test:coverage
+        run: pnpm --filter @panchnama/api test:coverage
       - name: Docs↔reality (endpoints)
-        run: pnpm --filter @impact/api check:docs:endpoints
+        run: pnpm --filter @panchnama/api check:docs:endpoints
 
   # ---- Service 2: Python ML service (FastAPI) ----
   ml-service:
@@ -79,7 +79,7 @@ jobs:
           node-version: ${{ steps.nvm.outputs.version }}
           cache: pnpm
       - run: pnpm install --frozen-lockfile
-      - run: pnpm turbo run lint typecheck test build --filter=@impact/dashboard
+      - run: pnpm turbo run lint typecheck test build --filter=@panchnama/dashboard
       - name: No secret literal in the built bundle
         run: |
           test ! -d apps/dashboard/dist || \
@@ -101,7 +101,7 @@ jobs:
           node-version: ${{ steps.nvm.outputs.version }}
           cache: pnpm
       - run: pnpm install --frozen-lockfile
-      - run: pnpm turbo run lint typecheck test --filter=@impact/capture-app
+      - run: pnpm turbo run lint typecheck test --filter=@panchnama/capture-app
 
   # ---- Shared workspace packages (types, JCS, ui-components) ----
   packages:
@@ -162,10 +162,10 @@ jobs:
       - name: Assert docs name only tables/columns/endpoints that exist
         env:
           DATABASE_URL: postgresql://postgres:postgres@127.0.0.1:54322/postgres
-        run: pnpm --filter @impact/api check:docs
+        run: pnpm --filter @panchnama/api check:docs
       - name: MVP criterion 3 — search filter paths are indexed (1 000-row bench)
         env:
           DATABASE_URL: postgresql://postgres:postgres@127.0.0.1:54322/postgres
-        run: pnpm --filter @impact/api test:perf
+        run: pnpm --filter @panchnama/api test:perf
       - name: pgTAP suite (RLS, immutability, audit chain, schema completeness)
         run: supabase test db

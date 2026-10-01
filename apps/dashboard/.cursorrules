@@ -33,7 +33,7 @@ dashboard.
 - NEVER reference the Cloudinary API secret or API key in this app.
   They are server-only and would leak in the bundle.
 - NEVER hand-roll Cloudinary signing. Signed delivery URLs are minted by the
-  API (`@impact/api`); the client asks for a URL by `asset_id`, never by
+  API (`@panchnama/api`); the client asks for a URL by `asset_id`, never by
   `public_id`.
 - The client is untrusted. Never derive `org_id`/`user_id` from anything but the
   verified Supabase session.

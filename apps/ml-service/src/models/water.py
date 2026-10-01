@@ -1,8 +1,10 @@
 """Learned water pipeline: YOLOv8n water body detector + ChangeFormer change
 mask + a COCO YOLOv8n base detector for context (boats, infrastructure).
 
-Weights are loaded **once** in ``__init__`` and cached on the model object;
-the detectors never re-load per request (AGENTS.md §4).
+Detectors ship as ONNX (``water_yolov8n.onnx``, ``changeformer_water.onnx``);
+the COCO base is the stock ``yolov8n.pt``. Weights are loaded **once** in
+``__init__`` and cached on the model object; the detectors never re-load per
+request (AGENTS.md §4).
 """
 
 from __future__ import annotations
@@ -15,16 +17,15 @@ from numpy.typing import NDArray
 from src.models.base import (
     BoundingBox,
     ChangeDetector,
-    ChangeMask,
     ObjectDetection,
     ObjectDetector,
     SaplingDetection,
     SaplingDetector,
 )
+from src.models.onnx_change import OnnxChangeFormer
 
 # Water-specific detection thresholds
 _WATER_CONF = 0.30
-_CHANGE_DELTA_WATER = 35  # grayscale diff for water change (slightly lower than forestry)
 
 
 class _YoloWater:
@@ -47,29 +48,6 @@ class _YoloWater:
         boxes.sort(key=lambda b: (b.y1, b.x1))
         mean_conf = round(sum(b.confidence for b in boxes) / len(boxes), 4) if boxes else 0.0
         return SaplingDetection(count=len(boxes), boxes=tuple(boxes), mean_confidence=mean_conf)
-
-
-class _WaterChangeFormer:
-    """ChangeFormer for water body change detection (flood/drought/coastal)."""
-
-    def __init__(self, weights_path: Path) -> None:
-        import torch  # lazy: heavy dependency
-
-        self._device = "cuda" if torch.cuda.is_available() else "cpu"
-        self._net = torch.load(str(weights_path), map_location=self._device)
-        self._net.eval()
-
-    def change_mask(
-        self, before: NDArray[np.uint8], after: NDArray[np.uint8]
-    ) -> ChangeMask:
-        import torch
-
-        with torch.no_grad():
-            before_t = torch.from_numpy(before).permute(2, 0, 1).float().unsqueeze(0)
-            after_t = torch.from_numpy(after).permute(2, 0, 1).float().unsqueeze(0)
-            logits = self._net(before_t.to(self._device), after_t.to(self._device))
-            mask = (logits.argmax(dim=1).squeeze(0).cpu().numpy() > 0).astype(bool)
-        return ChangeMask(mask=mask)
 
 
 class _CocoContext:
@@ -100,6 +78,6 @@ class YoloWaterModel:
 
     def __init__(self, version: str, weights_dir: Path) -> None:
         self.version = version
-        self.saplings: SaplingDetector = _YoloWater(weights_dir / "water_yolov8n.pt")
-        self.changes: ChangeDetector = _WaterChangeFormer(weights_dir / "changeformer_water.pt")
+        self.saplings: SaplingDetector = _YoloWater(weights_dir / "water_yolov8n.onnx")
+        self.changes: ChangeDetector = OnnxChangeFormer(weights_dir / "changeformer_water.onnx")
         self.objects: ObjectDetector = _CocoContext(weights_dir / "yolov8n.pt")

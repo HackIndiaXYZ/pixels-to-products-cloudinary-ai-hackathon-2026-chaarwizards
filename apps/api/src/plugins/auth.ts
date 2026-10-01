@@ -19,7 +19,7 @@
  */
 import { createPublicKey, type KeyObject } from 'node:crypto';
 import jwt from 'jsonwebtoken';
-import { ROLES, type Role } from '@impact/shared';
+import { ROLES, type Role } from '@panchnama/shared';
 import { errors } from '../types.js';
 
 function isRole(value: unknown): value is Role {

@@ -50,7 +50,7 @@ importers:
       '@fastify/rate-limit':
         specifier: ^10.2.1
         version: 10.3.0
-      '@impact/shared':
+      '@panchnama/shared':
         specifier: workspace:*
         version: link:../../packages/shared
       '@supabase/supabase-js':
@@ -114,15 +114,15 @@ importers:
       '@babel/runtime':
         specifier: 7.26.0
         version: 7.26.0
-      '@impact/shared':
-        specifier: workspace:*
-        version: link:../../packages/shared
       '@noble/ed25519':
         specifier: 2.1.0
         version: 2.1.0
       '@noble/hashes':
         specifier: 1.5.0
         version: 1.5.0
+      '@panchnama/shared':
+        specifier: workspace:*
+        version: link:../../packages/shared
       '@react-native-community/netinfo':
         specifier: 11.4.1
         version: 11.4.1(react-native@0.76.3(@babel/core@7.29.7)(@babel/preset-env@7.29.7(@babel/core@7.29.7))(@types/react@18.3.12)(react@18.3.1))
@@ -181,10 +181,10 @@ importers:
       '@cloudinary/url-gen':
         specifier: ^1.21.0
         version: 1.22.0
-      '@impact/shared':
+      '@panchnama/shared':
         specifier: workspace:*
         version: link:../../packages/shared
-      '@impact/ui-components':
+      '@panchnama/ui-components':
         specifier: workspace:*
         version: link:../../packages/ui-components
       '@supabase/supabase-js':

@@ -20,8 +20,8 @@
 import { createHash } from 'node:crypto';
 import type { FastifyInstance } from 'fastify';
 import { z } from 'zod';
-import { ok, fail } from '@impact/shared';
-import type { SigningPayloadInput } from '@impact/shared';
+import { ok, fail } from '@panchnama/shared';
+import type { SigningPayloadInput } from '@panchnama/shared';
 import type { AssetInsert, VerificationUpdate } from '../../ports.js';
 import {
   overallVerification,

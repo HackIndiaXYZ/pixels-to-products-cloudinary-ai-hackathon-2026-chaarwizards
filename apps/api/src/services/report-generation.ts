@@ -26,7 +26,7 @@
  * `change_events.change_metrics`, each row already carrying the `model_version`
  * of the CV model that produced it (AGENTS.md §3.2).
  */
-import type { Asset, ChangeEvent } from '@impact/shared';
+import type { Asset, ChangeEvent } from '@panchnama/shared';
 import type { CloudinaryPort, DbPort, QueuePort } from '../ports.js';
 import type { AuthContext } from '../types.js';
 import { errors } from '../types.js';

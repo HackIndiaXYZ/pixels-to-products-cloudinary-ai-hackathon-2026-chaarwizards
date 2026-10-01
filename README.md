@@ -1,4 +1,6 @@
-# Impact Media Intelligence Platform
+# Panchnama
+
+> **_पंचनामा_ — a written record of inspection, signed by a witness.**
 
 AI-powered media intelligence platform that transforms raw field media (photos & videos) into **searchable evidence**, **quantified impact metrics**, and **audit-ready visual reports** for NGOs, governments, and sustainability organizations.
 
@@ -53,7 +55,7 @@ We're building an **end-to-end media intelligence platform** that solves the cor
 ## Quick Start (New Chat)
 
 ```
-This is the Impact Media Intelligence Platform - a monorepo for an AI-powered media intelligence platform.
+This is Panchnama - a monorepo for an AI-powered media intelligence platform.
 
 Key files to start (read in this order):
 - PRD.md            - What to build: requirements, acceptance criteria, exit criteria

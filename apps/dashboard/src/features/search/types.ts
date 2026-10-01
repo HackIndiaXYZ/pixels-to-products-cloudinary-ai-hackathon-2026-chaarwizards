@@ -1,4 +1,4 @@
-import type { AssetPhase, AssetType } from '@impact/shared/rn';
+import type { AssetPhase, AssetType } from '@panchnama/shared/rn';
 
 /**
  * The seven search facets (BUILD_ORDER Phase 8 — "Search + facets"): free text,

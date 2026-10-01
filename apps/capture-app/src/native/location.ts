@@ -7,7 +7,7 @@
 import * as Location from 'expo-location';
 
 import type { GpsFix, LocationProvider } from '../ports.js';
-import type { GpsProvider } from '@impact/shared/rn';
+import type { GpsProvider } from '@panchnama/shared/rn';
 
 export class ExpoLocationProvider implements LocationProvider {
   /** Request foreground permission; returns whether it was granted. */

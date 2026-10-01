@@ -128,10 +128,15 @@ SELECT is(
 -- Without this, next month's partition re-opens the identical hole, because
 -- add_audit_log_month used to create a bare partition and stop.
 
-SELECT add_audit_log_month(DATE '2026-10-01');
+-- Use a fixed far-future month. The appended rows above are dated now(), so a
+-- partition for the current month cannot be created while they sit in the
+-- default partition (Postgres rejects CREATE ... PARTITION OF when a default-
+-- partition row would fall in the new range). A far-future month is always
+-- empty, keeping this assertion deterministic regardless of the wall clock.
+SELECT add_audit_log_month(DATE '2099-01-01');
 
 SELECT ok(
-  (SELECT relrowsecurity FROM pg_class WHERE relname = 'audit_logs_202610'),
+  (SELECT relrowsecurity FROM pg_class WHERE relname = 'audit_logs_209901'),
   'a partition created by add_audit_log_month has RLS enabled'
 );
 
@@ -139,7 +144,7 @@ SELECT test_helpers.set_claims(:'org_b', 'member');
 SET LOCAL ROLE authenticated;
 
 SELECT is(
-  (SELECT count(*)::int FROM audit_logs_202610),
+  (SELECT count(*)::int FROM audit_logs_209901),
   0,
   'Org B member reads 0 rows from the fresh partition (Org A row is not there)'
 );

@@ -1,4 +1,4 @@
-import type { VerificationState } from '@impact/shared/rn';
+import type { VerificationState } from '@panchnama/shared/rn';
 import type { AssetIntegrity } from '../../assets/api';
 import { toVerdict } from '../verdict';
 

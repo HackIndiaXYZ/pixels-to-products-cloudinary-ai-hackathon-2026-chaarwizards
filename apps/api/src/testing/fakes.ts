@@ -11,8 +11,8 @@
  */
 import jwt from 'jsonwebtoken';
 import { createHash, generateKeyPairSync, sign as edSign } from 'node:crypto';
-import { buildSigningPayload, canonicalize, type JsonValue, type SigningPayloadInput } from '@impact/shared';
-import type { Asset, AssetDerivative, ChangeEvent, Observation, Org, Project, Report, ReportManifestEntry } from '@impact/shared';
+import { buildSigningPayload, canonicalize, type JsonValue, type SigningPayloadInput } from '@panchnama/shared';
+import type { Asset, AssetDerivative, ChangeEvent, Observation, Org, Project, Report, ReportManifestEntry } from '@panchnama/shared';
 import type { Config } from '../config.js';
 import type {
   AssetInsert,

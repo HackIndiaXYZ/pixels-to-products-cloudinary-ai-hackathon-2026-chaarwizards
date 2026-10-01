@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import type { Project } from '@impact/shared/rn';
+import type { Project } from '@panchnama/shared/rn';
 import {
   buildProjectTree,
   resolveObservationTypes,

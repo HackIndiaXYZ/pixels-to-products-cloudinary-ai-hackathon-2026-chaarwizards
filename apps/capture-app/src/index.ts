@@ -1,5 +1,5 @@
 /**
- * @impact/capture-app — Expo · React Native capture client.
+ * @panchnama/capture-app — Expo · React Native capture client.
  *
  * Phase 4 implements the platform-agnostic capture pipeline behind injectable
  * ports (see `ports.ts`): project picker, GPS gating, EXIF freeze, streamed
@@ -8,12 +8,12 @@
  * port to its Expo/React-Native module and the UI screens are exercised by the
  * device tests deferred to user review (BUILD_ORDER Phase 4).
  */
-import { SHARED_PACKAGE_VERSION } from '@impact/shared/rn';
+import { SHARED_PACKAGE_VERSION } from '@panchnama/shared/rn';
 
 export const CAPTURE_APP_VERSION = '0.0.0' as const;
 
 export function captureAppBanner(): string {
-  return `@impact/capture-app ${CAPTURE_APP_VERSION} (shared ${SHARED_PACKAGE_VERSION})`;
+  return `@panchnama/capture-app ${CAPTURE_APP_VERSION} (shared ${SHARED_PACKAGE_VERSION})`;
 }
 
 export * from './ports.js';

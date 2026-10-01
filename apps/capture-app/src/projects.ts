@@ -7,8 +7,8 @@
  * of their own, so a deep site tree does not force every leaf to re-declare the
  * same config — the gate proves inheritance across a two-level hierarchy.
  */
-import { ASSET_PHASES } from '@impact/shared/rn';
-import type { AssetPhase, ObservationTypeConfig, Project } from '@impact/shared/rn';
+import { ASSET_PHASES } from '@panchnama/shared/rn';
+import type { AssetPhase, ObservationTypeConfig, Project } from '@panchnama/shared/rn';
 
 /** A project plus its resolved children, for rendering the picker tree. */
 export interface ProjectNode {

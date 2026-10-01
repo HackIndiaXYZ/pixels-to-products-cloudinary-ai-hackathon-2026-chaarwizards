@@ -12,7 +12,7 @@
  * worker over an unchanged window enqueues the same jobs without duplicating
  * them; the detect-change worker then dedupes at the row level via findPair.
  */
-import { ProjectConfigSchema } from '@impact/shared';
+import { ProjectConfigSchema } from '@panchnama/shared';
 import type { DbPort, QueuePort } from '../ports.js';
 import { pairAssets, type CandidatePair, type ObservationTypeRadius } from './pairing.js';
 

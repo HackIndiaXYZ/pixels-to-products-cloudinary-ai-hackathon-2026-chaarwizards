@@ -10,8 +10,8 @@
  * This module is **pure** (no `node:crypto`, no `Buffer`) so it bundles under
  * React Native as well as Node. The Ed25519 sign/verify primitives, which do
  * need `node:crypto`, live in `signing.ts` and re-export everything here so the
- * `@impact/shared` barrel is unchanged for Node consumers (the API); React
- * Native imports the pure surface from `@impact/shared/rn`.
+ * `@panchnama/shared` barrel is unchanged for Node consumers (the API); React
+ * Native imports the pure surface from `@panchnama/shared/rn`.
  *
  * Any later edit to caption, phase, or location changes the canonical bytes and
  * therefore invalidates the signature. That is the integrity guarantee, not a

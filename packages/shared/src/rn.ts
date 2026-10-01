@@ -1,9 +1,9 @@
 /**
- * @impact/shared/rn — the **pure**, React-Native-safe surface of the shared
+ * @panchnama/shared/rn — the **pure**, React-Native-safe surface of the shared
  * package. Identical to the main barrel except it omits the Ed25519 sign/verify
  * primitives in `signing.ts`, which import `node:crypto` and cannot bundle under
  * React Native. The capture app imports from here; the API and other Node
- * services import the full barrel (`@impact/shared`).
+ * services import the full barrel (`@panchnama/shared`).
  *
  * Everything exported here is dependency-free of `node:crypto` and `Buffer`:
  * canonicalization, the pure-JS SHA-256, enums, the response envelope, the Zod
