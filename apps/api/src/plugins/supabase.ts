@@ -15,6 +15,13 @@
  */
 import { createClient, type SupabaseClient } from '@supabase/supabase-js';
 import { z } from 'zod';
+import WebSocket from 'ws';
+
+// Polyfill global WebSocket for Supabase realtime (Node 20 compatibility)
+if (typeof globalThis.WebSocket === 'undefined') {
+  // @ts-expect-error - polyfill
+  globalThis.WebSocket = WebSocket;
+}
 import {
   canonicalize,
   ProjectSchema,

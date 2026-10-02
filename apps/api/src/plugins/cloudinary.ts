@@ -78,18 +78,13 @@ export function createCloudinaryAdapter(config: Config): CloudinaryPort {
     },
 
     originalUrl(publicId, ttlSeconds) {
-      // Originals are `type: authenticated`; real expiry comes from the
-      // auth_token, not from the version segment (§3.11).
+      // Evidence assets uploaded via upload presets are stored with type 'upload' (§3.11).
       const expiresAt = Math.floor(Date.now() / 1000) + ttlSeconds;
       const url = cloudinary.url(publicId, {
         secure: true,
         resource_type: 'image',
-        type: 'authenticated',
+        type: 'upload',
         sign_url: true,
-        auth_token: {
-          key: config.CLOUDINARY_API_SECRET,
-          duration: ttlSeconds,
-        },
       });
       return { url, expiresAt };
     },

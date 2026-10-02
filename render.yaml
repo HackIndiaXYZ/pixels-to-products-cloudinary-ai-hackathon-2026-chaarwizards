@@ -1,19 +1,22 @@
-# Render Blueprint — ML service (Docker) + Node API (web) + BullMQ worker.
+# Render Blueprint — FREE tier.
 #
-# The dashboard is NOT here: it deploys to Vercel (vercel.json). This file covers
-# only the two services you asked for, plus the API's queue worker, which is a
-# SEPARATE process from the web server (apps/api/src/jobs/workers.ts). Without it
-# the HTTP API runs but nothing drains the BullMQ queues.
+# Free Render has no Background Worker and only 512 MB web instances, so the full
+# four-service topology doesn't fit. This blueprint deploys ONLY the Node API as
+# a single free web service that ALSO runs the BullMQ workers in-process
+# (RUN_WORKERS_IN_WEB=true, handled in apps/api/src/start.ts). The rest of the
+# stack lives off Render on free tiers:
+#   • Dashboard  → Vercel            (vercel.json)
+#   • ML service → Google Cloud Run   (apps/ml-service/Dockerfile, torch image) → ML_SERVICE_URL
+#   • Redis      → Upstash            → REDIS_URL
+#   • DB / media → Supabase / Cloudinary (managed)
 #
-# No secret value is committed. Secrets are either `sync: false` (entered once in
-# the Render dashboard) or shared through the env group below so INTERNAL_JWT_SECRET
-# is byte-identical across api, worker, and ml-service (ENVIRONMENT.md §2 — a
-# mismatch makes every API→ML call 401).
+# No secret value is committed — all are sync:false (entered in the Render
+# dashboard). Free web services sleep after ~15 min idle (cold start on wake).
 
 envVarGroups:
-  - name: impact-shared-secrets
+  - name: panchnama-shared-secrets
     envVars:
-      - key: INTERNAL_JWT_SECRET # MUST be identical in api, worker, and ml-service
+      - key: INTERNAL_JWT_SECRET # MUST equal the value set on the HF ML Space
         sync: false
       - key: SUPABASE_URL
         sync: false
@@ -27,86 +30,34 @@ envVarGroups:
         sync: false
 
 services:
-  # ---- Redis / Key Value, backing BullMQ ----
-  # If your Render account uses the newer schema, change `type: redis` to
-  # `type: keyvalue`. An empty ipAllowList keeps it reachable only from your own
-  # Render services (no public endpoint).
-  - type: redis
-    name: impact-redis
-    plan: starter
-    ipAllowList: []
-    maxmemoryPolicy: noeviction
-
-  # ---- ML inference service (FastAPI, Docker) ----
-  # torch + ultralytics (requirements-ml.txt) do not fit the free/512MB tier, so
-  # this is pinned to `standard` (2GB). The Dockerfile honours Render's $PORT.
-  # NOTE: this endpoint is internet-facing — the API authenticates to it with
-  # INTERNAL_JWT_SECRET; do not disable that check (AGENTS.md §3.5).
+  # ---- Node API (Fastify) + BullMQ workers in the same free web service ----
   - type: web
-    name: impact-ml-service
-    runtime: docker
-    dockerfilePath: ./apps/ml-service/Dockerfile
-    dockerContext: ./apps/ml-service
-    plan: standard
-    healthCheckPath: /health
-    autoDeploy: false
-    envVars:
-      - fromGroup: impact-shared-secrets
-      - key: WEIGHTS_DIR
-        value: /app/weights
-
-  # ---- Node API (Fastify) ----
-  # The server already binds 0.0.0.0 and reads $PORT (apps/api/src/config.ts), so
-  # no port shim is needed. turbo builds @panchnama/shared first (^build) exactly as CI.
-  - type: web
-    name: impact-api
+    name: panchnama-api
     runtime: node
-    plan: starter
+    plan: free
     buildCommand: corepack enable && pnpm install --frozen-lockfile && pnpm turbo run build --filter=@panchnama/api
     startCommand: node apps/api/dist/start.js
     healthCheckPath: /health
     autoDeploy: false
     envVars:
-      - fromGroup: impact-shared-secrets
+      - fromGroup: panchnama-shared-secrets
       - key: NODE_ENV
         value: production
+      - key: RUN_WORKERS_IN_WEB # free tier: no separate worker service
+        value: "true"
       - key: SUPABASE_ANON_KEY
         sync: false
       - key: SUPABASE_JWT_SECRET
         sync: false
-      - key: DASHBOARD_URL
+      - key: CLOUDINARY_UPLOAD_PRESET
+        value: verified_capture
+      - key: DASHBOARD_URL # your Vercel dashboard URL (CORS + invite links)
         sync: false
-      - key: REDIS_URL
-        fromService:
-          type: redis
-          name: impact-redis
-          property: connectionString
-      # Full URL incl. scheme, e.g. https://impact-ml-service.onrender.com — set
-      # after the ML service's first deploy. (Render's fromService exposes only the
-      # bare host, which the ML client needs prefixed, so this stays explicit.)
-      - key: ML_SERVICE_URL
+      - key: REDIS_URL # Upstash free Redis connection string (rediss://…)
+        sync: false
+      - key: ML_SERVICE_URL # your Cloud Run URL, e.g. https://panchnama-ml-xxxx.run.app
         sync: false
       - key: ORG_UPLOAD_RATE_MAX
         value: "600"
       - key: ORG_UPLOAD_RATE_WINDOW_MS
         value: "60000"
-
-  # ---- BullMQ queue worker: same build, different entrypoint ----
-  - type: worker
-    name: impact-api-worker
-    runtime: node
-    plan: starter
-    buildCommand: corepack enable && pnpm install --frozen-lockfile && pnpm turbo run build --filter=@panchnama/api
-    startCommand: node apps/api/dist/jobs/workers.js
-    autoDeploy: false
-    envVars:
-      - fromGroup: impact-shared-secrets
-      - key: NODE_ENV
-        value: production
-      - key: REDIS_URL
-        fromService:
-          type: redis
-          name: impact-redis
-          property: connectionString
-      - key: ML_SERVICE_URL
-        sync: false

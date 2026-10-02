@@ -9,6 +9,7 @@ import { createSupabaseDb } from './plugins/supabase.js';
 import { createCloudinaryAdapter } from './plugins/cloudinary.js';
 import { createQueue } from './plugins/queue.js';
 import { createMlClient } from './services/ml-client.js';
+import { startWorkers, type WorkersHandle } from './jobs/workers.js';
 import { createPuppeteerRenderer, loadFontFaceCss } from './reports/renderer.js';
 import { fileURLToPath } from 'node:url';
 import { dirname, join } from 'node:path';
@@ -37,8 +38,16 @@ async function main(): Promise<void> {
     fetchBytes: async (url) => Buffer.from(await (await fetch(url)).arrayBuffer()),
   });
 
+  // Free-tier deploy (no separate Render worker): start the BullMQ workers in
+  // this process too. A paid deploy leaves this false and runs the worker as its
+  // own service.
+  const workers: WorkersHandle | undefined = config.RUN_WORKERS_IN_WEB
+    ? startWorkers()
+    : undefined;
+
   const closeGracefully = async (): Promise<void> => {
     await app.close();
+    if (workers) await workers.close();
     await queue.close();
     process.exit(0);
   };

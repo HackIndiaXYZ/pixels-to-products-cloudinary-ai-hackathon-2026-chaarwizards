@@ -1,8 +1,12 @@
 /**
  * Pairing & change-detection worker entrypoint (BUILD_ORDER Phase 7). Starts the
  * BullMQ consumers for the `pair-assets` and `detect-change` queues, wiring the
- * real Supabase DB, Cloudinary, ML client, and queue. Intended to run as a
- * long-lived process alongside the API, never inside a request path.
+ * real Supabase DB, Cloudinary, ML client, and queue.
+ *
+ * `startWorkers()` is reusable: it runs standalone as its own process (the paid
+ * deploy, via `main()` below) OR in-process alongside the web server on the free
+ * tier (see `start.ts` + `RUN_WORKERS_IN_WEB`). Either way it returns a handle
+ * whose `close()` tears the workers + Redis connection down for graceful exit.
  *
  * The processing logic lives in the pure services (`pair-assets.ts`,
  * `change-detection.ts`); this file is only the transport wiring, so the logic
@@ -19,7 +23,12 @@ import { runPairAssets } from '../services/pair-assets.js';
 import { runDetectChange } from '../services/change-detection.js';
 import { runReportGenAi, type ReportGenAiPayload } from '../services/report-genai.js';
 
-function main(): void {
+export interface WorkersHandle {
+  close(): Promise<void>;
+}
+
+/** Wire and start the BullMQ workers. Returns a handle for graceful shutdown. */
+export function startWorkers(): WorkersHandle {
   const config = loadConfig();
   const connection = new IORedis(config.REDIS_URL, { maxRetriesPerRequest: null });
   const db = createSupabaseDb(config);
@@ -102,11 +111,12 @@ function main(): void {
 
   // A job that throws is retried by BullMQ and, on final failure, left on the
   // failed set with its reason — never silently dropped (§3.6).
-  for (const [name, worker] of [
+  const workers = [
     ['pair-assets', pairWorker],
     ['detect-change', detectWorker],
     ['report-genai', genAiWorker],
-  ] as const) {
+  ] as const;
+  for (const [name, worker] of workers) {
     worker.on('failed', (job, err) => {
       console.error(
         JSON.stringify({ msg: `${name}_job_failed`, job_id: job?.id, reason: err.message }),
@@ -120,6 +130,23 @@ function main(): void {
       queues: [PAIR_ASSETS_QUEUE, DETECT_CHANGE_QUEUE, REPORT_GENAI_QUEUE],
     }),
   );
+
+  return {
+    async close(): Promise<void> {
+      await Promise.all([pairWorker.close(), detectWorker.close(), genAiWorker.close()]);
+      await queue.close();
+      connection.disconnect();
+    },
+  };
 }
 
-main();
+/** Standalone process entrypoint (paid deploy: workers as their own service). */
+function main(): void {
+  startWorkers();
+}
+
+// Only self-start when run directly (`node dist/jobs/workers.js`), not when
+// imported by start.ts for the in-web path.
+if (process.argv[1] && process.argv[1].endsWith('workers.js')) {
+  main();
+}

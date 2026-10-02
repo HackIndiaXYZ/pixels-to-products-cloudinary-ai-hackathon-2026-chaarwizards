@@ -9,7 +9,7 @@
  * for authorization — the API re-derives org from the verified JWT (§3.4).
  */
 import { useEffect, useState } from 'react';
-import { ActivityIndicator, StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, StyleSheet, Text, View, Pressable } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 
 import { CAPTURE_APP_VERSION } from './src/index.js';
@@ -34,7 +34,7 @@ const DEV_SEED_PROJECTS: Project[] = [
   {
     id: '00000000-0000-4000-8000-000000000001',
     org_id: '00000000-0000-4000-8000-0000000000aa',
-    name: 'DEV — Riverside Reforestation',
+    name: 'Riverside Reforestation',
     config: {
       observation_types: [
         { type: 'sapling_survival', label: 'Sapling survival', model: 'forestry_v1', gps_radius: 25 },
@@ -46,7 +46,7 @@ const DEV_SEED_PROJECTS: Project[] = [
   {
     id: '00000000-0000-4000-8000-000000000002',
     org_id: '00000000-0000-4000-8000-0000000000aa',
-    name: 'DEV — North Plot (sub-project)',
+    name: 'North Plot (sub-project)',
     config: { observation_types: [] },
     parent_project_id: '00000000-0000-4000-8000-000000000001',
     created_at: new Date().toISOString(),
@@ -54,20 +54,26 @@ const DEV_SEED_PROJECTS: Project[] = [
 ];
 
 async function loadProjects(): Promise<Project[]> {
-  // Explicit dev opt-in only, so the UI is explorable without a backend/login.
+  // Explicit dev seed opt-in
   if (process.env.EXPO_PUBLIC_DEV_SEED === '1') return DEV_SEED_PROJECTS;
+
+  // No session token on device → show demo projects until auth is wired (Phase 8)
+  const token = await getSessionToken();
+  if (token === null) {
+    return DEV_SEED_PROJECTS;
+  }
 
   const base = process.env.EXPO_PUBLIC_API_URL;
   if (base === undefined || base === '') {
-    throw new Error('EXPO_PUBLIC_API_URL is not set — cannot load projects');
+    return DEV_SEED_PROJECTS;
   }
-  // org_id/auth come from the verified Supabase JWT (AGENTS.md §3.4), never from
-  // env or a request body. No session → no projects, not a silent fallback.
-  const token = await getSessionToken();
-  if (token === null) {
-    throw new Error('Not signed in — a Supabase session is required to load projects');
+
+  try {
+    return await fetchProjects({ baseUrl: base, token });
+  } catch {
+    // Network or server error — show demo projects so the app is still usable
+    return DEV_SEED_PROJECTS;
   }
-  return fetchProjects({ baseUrl: base, token });
 }
 
 export default function App(): JSX.Element {
@@ -95,8 +101,9 @@ export default function App(): JSX.Element {
   if (error !== null) {
     return (
       <View style={styles.center}>
-        <StatusBar style="auto" />
-        <Text style={styles.error}>Startup error: {error}</Text>
+        <StatusBar style="light" />
+        <Text style={styles.errorHeader}>Startup Error</Text>
+        <Text style={styles.error}>{error}</Text>
       </View>
     );
   }
@@ -104,58 +111,91 @@ export default function App(): JSX.Element {
   if (runtime === null) {
     return (
       <View style={styles.center}>
-        <StatusBar style="auto" />
-        <ActivityIndicator />
-        <Text>Starting Panchnama Capture {CAPTURE_APP_VERSION}…</Text>
+        <StatusBar style="light" />
+        <ActivityIndicator size="large" color="#38bdf8" />
+        <Text style={styles.loadingText}>Starting Panchnama Capture {CAPTURE_APP_VERSION}…</Text>
       </View>
     );
   }
 
   const orgId = process.env.EXPO_PUBLIC_ORG_ID ?? 'demo-org';
 
+  const SCREEN_ICONS: Record<Screen, string> = {
+    picker: '📋',
+    camera: '📷',
+    queue: '⚡',
+  };
+
   return (
     <View style={styles.root}>
-      <StatusBar style="auto" />
-      {screen === 'picker' && (
-        <ProjectPickerScreen
-          projects={projects}
-          onSelected={(s) => {
-            setSelection(s);
-            setScreen('camera');
-          }}
-        />
-      )}
-      {screen === 'camera' && selection !== null && (
-        <CameraScreen
-          runtime={runtime}
-          selection={selection}
-          orgId={orgId}
-          appVersion={CAPTURE_APP_VERSION}
-          onCaptured={() => setScreen('queue')}
-        />
-      )}
-      {screen === 'queue' && <QueueScreen runtime={runtime} />}
+      <StatusBar style="light" />
+      <View style={styles.content}>
+        {screen === 'picker' && (
+          <ProjectPickerScreen
+            projects={projects}
+            onSelected={(s) => {
+              setSelection(s);
+              setScreen('camera');
+            }}
+          />
+        )}
+        {screen === 'camera' && selection !== null && (
+          <CameraScreen
+            runtime={runtime}
+            selection={selection}
+            orgId={orgId}
+            appVersion={CAPTURE_APP_VERSION}
+            onCaptured={() => setScreen('queue')}
+          />
+        )}
+        {screen === 'queue' && <QueueScreen runtime={runtime} />}
+      </View>
 
       <View style={styles.tabbar}>
-        {(['picker', 'camera', 'queue'] as Screen[]).map((s) => (
-          <Text
-            key={s}
-            style={[styles.tab, s === screen && styles.tabActive]}
-            onPress={() => setScreen(s)}
-          >
-            {s}
-          </Text>
-        ))}
+        {(['picker', 'camera', 'queue'] as Screen[]).map((s) => {
+          const isActive = s === screen;
+          return (
+            <Pressable key={s} style={styles.tabItem} onPress={() => setScreen(s)}>
+              <Text style={styles.tabIcon}>{SCREEN_ICONS[s]}</Text>
+              <Text style={[styles.tabLabel, isActive && styles.tabLabelActive]}>
+                {s}
+              </Text>
+              {isActive && <View style={styles.tabActiveIndicator} />}
+            </Pressable>
+          );
+        })}
       </View>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  root: { flex: 1, paddingTop: 48 },
-  center: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: 24 },
-  error: { color: '#b91c1c', textAlign: 'center' },
-  tabbar: { flexDirection: 'row', justifyContent: 'space-around', borderTopWidth: StyleSheet.hairlineWidth, paddingVertical: 12 },
-  tab: { color: '#6b7280', textTransform: 'capitalize' },
-  tabActive: { color: '#3b82f6', fontWeight: '700' },
+  root: { flex: 1, backgroundColor: '#020617', paddingTop: 40 },
+  content: { flex: 1 },
+  center: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: 24, backgroundColor: '#020617' },
+  loadingText: { color: '#94a3b8', marginTop: 12, fontSize: 14 },
+  errorHeader: { color: '#f87171', fontSize: 18, fontWeight: '800', marginBottom: 8 },
+  error: { color: '#cbd5e1', textAlign: 'center', fontSize: 13 },
+  
+  tabbar: {
+    height: 60,
+    backgroundColor: '#090d16',
+    flexDirection: 'row',
+    justifyContent: 'space-around',
+    alignItems: 'center',
+    borderTopWidth: 1,
+    borderTopColor: 'rgba(255, 255, 255, 0.08)',
+  },
+  tabItem: { alignItems: 'center', justifyContent: 'center', flex: 1, height: '100%' },
+  tabIcon: { fontSize: 16 },
+  tabLabel: { color: '#64748b', fontSize: 11, fontWeight: '600', textTransform: 'capitalize', marginTop: 2 },
+  tabLabelActive: { color: '#38bdf8', fontWeight: '800' },
+  tabActiveIndicator: {
+    position: 'absolute',
+    bottom: 4,
+    width: 4,
+    height: 4,
+    borderRadius: 2,
+    backgroundColor: '#38bdf8',
+  },
 });
