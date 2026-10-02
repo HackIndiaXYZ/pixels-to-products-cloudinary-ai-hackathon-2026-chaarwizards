@@ -1,4 +1,5 @@
 import { AsyncView } from '../../../shared/components/QueryBoundary';
+import { CldImage } from '../../../components/CldImage';
 import type { SearchResponse, AssetSearchResultRow } from '../types';
 
 /**
@@ -34,11 +35,17 @@ export function SearchResults({ status, data, error, onOpenAsset, onRetry }: Sea
               {d.truncated ? ' (truncated)' : ''}
             </p>
           ) : null}
-          <ul>
+          <ul style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: '1rem', listStyle: 'none', padding: 0 }}>
             {d.data.map((asset) => (
               <li key={asset.id}>
-                <button type="button" onClick={() => onOpenAsset(asset)} data-testid="result-row">
-                  <span>{asset.caption ?? asset.cloudinary_public_id}</span>
+                <button
+                  type="button"
+                  onClick={() => onOpenAsset(asset)}
+                  data-testid="result-row"
+                  style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.5rem', width: '100%', padding: '0.75rem', border: '1px solid #ccc', borderRadius: '8px', cursor: 'pointer', background: '#fff' }}
+                >
+                  <CldImage publicId={asset.cloudinary_public_id} alt={asset.caption ?? 'Asset thumbnail'} width={160} />
+                  <span style={{ fontSize: '0.85rem', wordBreak: 'break-all' }}>{asset.caption ?? asset.cloudinary_public_id.split('/').pop()}</span>
                   <span className={`status status-${asset.upload_status}`}>
                     {asset.upload_status}
                   </span>

@@ -120,7 +120,7 @@ supabase functions deploy signed-delivery-url \
    - **Faces**: Yes
    - **Quality analysis**: Yes
    - **Access mode**: Authenticated (or Public with signed delivery)
-   - **Notification URL**: `https://api.impact-platform.example.com/webhooks/cloudinary`
+   - **Notification URL**: `https://api.panchnama-platform.example.com/webhooks/cloudinary`
    - **Eager transformations**:
      ```json
      [
@@ -156,7 +156,7 @@ railway login
 
 # Create project
 railway init
-# Select "Empty Project" → Name: impact-api
+# Select "Empty Project" → Name: panchnama-api
 
 # Add services
 railway add redis        # Redis for BullMQ
@@ -173,7 +173,7 @@ CLOUDINARY_CLOUD_NAME=<cloud-name>
 CLOUDINARY_API_KEY=<cloudinary-api-key>
 CLOUDINARY_API_SECRET=<cloudinary-api-secret>
 REDIS_URL=<redis-connection-url>
-ML_SERVICE_URL=https://ml.impact-platform.fly.dev
+ML_SERVICE_URL=https://ml.panchnama-platform.fly.dev
 NODE_ENV=production
 PORT=3000
 
@@ -211,7 +211,7 @@ variables = { NODE_ENV = "production" }
 
 ### Custom Domain
 - Railway Dashboard → Settings → Domains → Add Custom Domain
-- Configure DNS: CNAME `api.impact-platform.example.com` → `xxx.railway.app`
+- Configure DNS: CNAME `api.panchnama-platform.example.com` → `xxx.railway.app`
 
 ---
 
@@ -224,7 +224,7 @@ curl -L https://fly.io/install.sh | sh
 flyctl auth login
 
 # Create app
-flyctl apps create impact-ml-service --org personal
+flyctl apps create panchnama-ml-service --org personal
 
 # Set secrets
 flyctl secrets set \
@@ -260,7 +260,7 @@ CMD ["uvicorn", "src.main:app", "--host", "0.0.0.0", "--port", "8000", "--worker
 
 ### fly.toml (apps/ml-service/fly.toml)
 ```toml
-app = "impact-ml-service"
+app = "panchnama-ml-service"
 primary_region = "iad"  # or closest to users
 
 [build]
@@ -327,7 +327,7 @@ vercel link
 # Required
 VITE_SUPABASE_URL=https://xxx.supabase.co
 VITE_SUPABASE_ANON_KEY=eyJhbGciOiJIUzI1NiIs...
-VITE_API_URL=https://api.impact-platform.example.com/v1
+VITE_API_URL=https://api.panchnama-platform.example.com/v1
 VITE_CLOUDINARY_CLOUD_NAME=your_cloud_name
 VITE_CLOUDINARY_UPLOAD_PRESET=verified_capture
 
@@ -374,7 +374,7 @@ vercel --prod
 
 ### Custom Domain
 - Vercel Dashboard → Settings → Domains → Add
-- Configure DNS: CNAME `app.impact-platform.example.com` → `cname.vercel-dns.com`
+- Configure DNS: CNAME `app.panchnama-platform.example.com` → `cname.vercel-dns.com`
 
 ---
 
@@ -557,7 +557,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - name: Build ML Docker image
-        run: docker build -t impact-ml-service ./apps/ml-service
+        run: docker build -t panchnama-ml-service ./apps/ml-service
 ```
 
 ### Deploy Workflows (one per service)
@@ -627,7 +627,7 @@ jobs:
       - name: Deploy to Fly.io
         uses: superfly/flyctl-actions@1.5
         with:
-          args: "deploy --app impact-ml-service"
+          args: "deploy --app panchnama-ml-service"
         env:
           FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
 ```
@@ -738,10 +738,10 @@ vercel promote <deployment-url>
 ### ML Service (Fly.io)
 ```bash
 # List releases
-flyctl releases --app impact-ml-service
+flyctl releases --app panchnama-ml-service
 
 # Rollback
-flyctl release rollback <release-id> --app impact-ml-service
+flyctl release rollback <release-id> --app panchnama-ml-service
 ```
 
 ### Capture App (Expo)

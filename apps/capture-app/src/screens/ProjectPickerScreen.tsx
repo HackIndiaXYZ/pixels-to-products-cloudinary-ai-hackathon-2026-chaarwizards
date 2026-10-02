@@ -53,52 +53,72 @@ export function ProjectPickerScreen({ projects, onSelected }: Props): JSX.Elemen
 
   return (
     <View style={styles.container}>
-      <Text style={styles.heading}>Select project</Text>
+      <Text style={styles.mainTitle}>Select Inspection Project</Text>
+      <Text style={styles.subTitle}>Choose your assigned location and evidence scope</Text>
+
+      <Text style={styles.heading}>Active Projects</Text>
       <FlatList
         data={rows}
         keyExtractor={(row) => row.project.id}
-        renderItem={({ item }) => (
-          <Pressable
-            style={[styles.row, item.project.id === projectId && styles.rowActive]}
-            onPress={() => {
-              setProjectId(item.project.id);
-              setObservationType(null);
-              setPhase(null);
-            }}
-          >
-            <Text style={{ marginLeft: item.depth * 16 }}>{item.project.name}</Text>
-          </Pressable>
-        )}
+        renderItem={({ item }) => {
+          const isSelected = item.project.id === projectId;
+          return (
+            <Pressable
+              style={[styles.card, isSelected && styles.cardActive]}
+              onPress={() => {
+                setProjectId(item.project.id);
+                setObservationType(null);
+                setPhase(null);
+              }}
+            >
+              <View style={{ marginLeft: item.depth * 16 }}>
+                <Text style={[styles.cardTitle, isSelected && styles.cardTitleActive]}>
+                  {item.depth > 0 ? '↳ ' : ''}{item.project.name}
+                </Text>
+                <Text style={styles.cardOrg}>ID: {item.project.id.slice(0, 18)}…</Text>
+              </View>
+              {isSelected && <Text style={styles.checkIcon}>✓</Text>}
+            </Pressable>
+          );
+        }}
       />
 
       {projectId !== null && (
-        <>
-          <Text style={styles.heading}>Observation type</Text>
-          {observationTypes.length === 0 ? (
-            <Text style={styles.muted}>No observation types configured for this project.</Text>
-          ) : (
-            observationTypes.map((t) => (
-              <Pressable
-                key={t.type}
-                style={[styles.chip, t.type === observationType && styles.chipActive]}
-                onPress={() => setObservationType(t.type)}
-              >
-                <Text>{t.type}</Text>
-              </Pressable>
-            ))
-          )}
+        <View style={styles.selectionSection}>
+          <Text style={styles.heading}>Observation Type</Text>
+          <View style={styles.chipRow}>
+            {observationTypes.length === 0 ? (
+              <Text style={styles.muted}>No observation types configured for this project.</Text>
+            ) : (
+              observationTypes.map((t) => (
+                <Pressable
+                  key={t.type}
+                  style={[styles.chip, t.type === observationType && styles.chipActive]}
+                  onPress={() => setObservationType(t.type)}
+                >
+                  <Text style={[styles.chipText, t.type === observationType && styles.chipTextActive]}>
+                    🌿 {t.type} ({t.model})
+                  </Text>
+                </Pressable>
+              ))
+            )}
+          </View>
 
           <Text style={styles.heading}>Phase</Text>
-          {PHASE_OPTIONS.map((p) => (
-            <Pressable
-              key={p}
-              style={[styles.chip, p === phase && styles.chipActive]}
-              onPress={() => setPhase(p)}
-            >
-              <Text>{p}</Text>
-            </Pressable>
-          ))}
-        </>
+          <View style={styles.chipRow}>
+            {PHASE_OPTIONS.map((p) => (
+              <Pressable
+                key={p}
+                style={[styles.chip, p === phase && styles.chipActive]}
+                onPress={() => setPhase(p)}
+              >
+                <Text style={[styles.chipText, p === phase && styles.chipTextActive]}>
+                  {p === 'before' ? '⏪ Before' : '⏩ After'}
+                </Text>
+              </Pressable>
+            ))}
+          </View>
+        </View>
       )}
 
       <Pressable
@@ -110,28 +130,54 @@ export function ProjectPickerScreen({ projects, onSelected }: Props): JSX.Elemen
           }
         }}
       >
-        <Text style={styles.confirmText}>Continue to camera</Text>
+        <Text style={[styles.confirmText, !canConfirm && styles.confirmTextDisabled]}>
+          Continue to Camera 📷
+        </Text>
       </Pressable>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, padding: 16 },
-  heading: { fontSize: 16, fontWeight: '600', marginTop: 16, marginBottom: 8 },
-  muted: { color: '#888' },
-  row: { paddingVertical: 10, borderBottomWidth: StyleSheet.hairlineWidth },
-  rowActive: { backgroundColor: '#e6f0ff' },
+  container: { flex: 1, padding: 16, backgroundColor: '#020617' },
+  mainTitle: { fontSize: 22, fontWeight: '800', color: '#f8fafc', marginBottom: 2 },
+  subTitle: { fontSize: 13, color: '#94a3b8', marginBottom: 16 },
+  heading: { fontSize: 12, fontWeight: '700', color: '#38bdf8', textTransform: 'uppercase', letterSpacing: 1, marginTop: 14, marginBottom: 8 },
+  muted: { color: '#64748b', fontSize: 12 },
+  
+  card: {
+    backgroundColor: 'rgba(15, 23, 42, 0.8)',
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.08)',
+    padding: 14,
+    borderRadius: 14,
+    marginBottom: 8,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  cardActive: { borderColor: '#38bdf8', backgroundColor: 'rgba(15, 23, 42, 0.95)' },
+  cardTitle: { fontSize: 14, fontWeight: '600', color: '#cbd5e1' },
+  cardTitleActive: { color: '#ffffff', fontWeight: '700' },
+  cardOrg: { fontSize: 11, color: '#64748b', marginTop: 2 },
+  checkIcon: { color: '#38bdf8', fontWeight: '800', fontSize: 16 },
+
+  selectionSection: { marginTop: 8 },
+  chipRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginBottom: 4 },
   chip: {
     paddingVertical: 8,
     paddingHorizontal: 12,
-    borderRadius: 8,
+    borderRadius: 20,
     borderWidth: 1,
-    borderColor: '#ccc',
-    marginBottom: 6,
+    borderColor: 'rgba(255, 255, 255, 0.1)',
+    backgroundColor: 'rgba(255, 255, 255, 0.04)',
   },
-  chipActive: { backgroundColor: '#e6f0ff', borderColor: '#3b82f6' },
-  confirm: { marginTop: 24, backgroundColor: '#3b82f6', padding: 14, borderRadius: 10 },
-  confirmDisabled: { backgroundColor: '#9db8e8' },
-  confirmText: { color: 'white', textAlign: 'center', fontWeight: '600' },
+  chipActive: { backgroundColor: 'rgba(56, 189, 248, 0.15)', borderColor: '#38bdf8' },
+  chipText: { color: '#94a3b8', fontSize: 12, fontWeight: '500' },
+  chipTextActive: { color: '#38bdf8', fontWeight: '700' },
+
+  confirm: { marginTop: 24, backgroundColor: '#38bdf8', padding: 14, borderRadius: 12 },
+  confirmDisabled: { backgroundColor: 'rgba(255, 255, 255, 0.08)' },
+  confirmText: { color: '#0f172a', textAlign: 'center', fontWeight: '800', fontSize: 14 },
+  confirmTextDisabled: { color: '#475569' },
 });

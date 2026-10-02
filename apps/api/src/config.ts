@@ -41,6 +41,15 @@ const ConfigSchema = z.object({
   ML_SERVICE_URL: z.string().min(1),
   DASHBOARD_URL: z.string().default('http://localhost:5173'),
 
+  // Free-tier deploy: Render's free plan has no separate Background Worker, so
+  // when this is 'true'/'1' the web process ALSO starts the BullMQ workers
+  // (jobs/workers.ts) in-process. Default false — a paid deploy runs the worker
+  // as its own service and leaves the web process HTTP-only.
+  RUN_WORKERS_IN_WEB: z
+    .string()
+    .optional()
+    .transform((v) => v === 'true' || v === '1'),
+
   // Per-org upload ceiling on the webhook ingest path (Phase 11 "Rate limiting";
   // unsigned-preset abuse mitigation). Keyed on the org derived from the SIGNED
   // project_id, so throttling one tenant never denies service to another. A

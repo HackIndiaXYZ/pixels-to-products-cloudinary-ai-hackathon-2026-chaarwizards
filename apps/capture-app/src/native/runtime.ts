@@ -45,8 +45,7 @@ export interface CaptureRuntime {
   readonly queue: CaptureQueue;
 }
 
-function requireEnv(name: string): string {
-  const value = process.env[name];
+function requireEnv(value: string | undefined, name: string): string {
   if (value === undefined || value === '') {
     throw new Error(`missing required env ${name}`);
   }
@@ -77,8 +76,8 @@ export async function createCaptureRuntime(): Promise<CaptureRuntime> {
     location: new ExpoLocationProvider(),
     network: new NetInfoMonitor(),
     uploader: new CloudinaryUploader({
-      cloudName: requireEnv('EXPO_PUBLIC_CLOUDINARY_CLOUD_NAME'),
-      uploadPreset: requireEnv('EXPO_PUBLIC_CLOUDINARY_UPLOAD_PRESET'),
+      cloudName: requireEnv(process.env.EXPO_PUBLIC_CLOUDINARY_CLOUD_NAME, 'EXPO_PUBLIC_CLOUDINARY_CLOUD_NAME'),
+      uploadPreset: requireEnv(process.env.EXPO_PUBLIC_CLOUDINARY_UPLOAD_PRESET, 'EXPO_PUBLIC_CLOUDINARY_UPLOAD_PRESET'),
     }),
     queue,
   };
