@@ -30,10 +30,11 @@ export function LoginForm() {
   return (
     <form aria-label="Sign in" onSubmit={onSubmit}>
       <label>
-        Email
+        Email address
         <input
           type="email"
           autoComplete="email"
+          placeholder="you@org.example"
           value={email}
           onChange={(e) => setEmail(e.target.value)}
           required
@@ -44,19 +45,23 @@ export function LoginForm() {
         <input
           type="password"
           autoComplete="current-password"
+          placeholder="••••••••"
           value={password}
           onChange={(e) => setPassword(e.target.value)}
           required
         />
       </label>
       {error !== null ? (
-        <p role="alert" data-testid="login-error">
+        <p role="alert" data-testid="login-error" className="status status-flagged" style={{ alignSelf: 'stretch', justifyContent: 'center' }}>
           {error}
         </p>
       ) : null}
-      <button type="submit" disabled={busy}>
+      <button type="submit" disabled={busy} style={{ marginTop: '4px' }}>
         {busy ? 'Signing in…' : 'Sign in'}
       </button>
+      <p style={{ fontSize: '0.6875rem', color: 'var(--color-fg-subtle)', marginTop: '4px', textAlign: 'center' }}>
+        Access is by invitation only. Contact your platform admin.
+      </p>
     </form>
   );
 }

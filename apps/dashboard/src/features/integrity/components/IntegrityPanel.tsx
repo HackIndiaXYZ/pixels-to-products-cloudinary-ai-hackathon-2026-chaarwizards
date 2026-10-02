@@ -28,32 +28,30 @@ function VerdictBadge({ verdict }: { readonly verdict: VerificationState }) {
 export function IntegrityPanel({ integrity }: IntegrityPanelProps) {
   const checks: readonly Check[] = [
     { label: 'Device signature', verdict: toVerdict(integrity.device_signature_verified) },
-    { label: 'EXIF hash', verdict: toVerdict(integrity.exif_hash_verified) },
-    { label: 'Caption signature', verdict: toVerdict(integrity.caption_signature_verified) },
-    { label: 'Audit chain', verdict: toVerdict(integrity.audit_chain_intact) },
-    { label: 'SHA-256 matches commit', verdict: toVerdict(integrity.sha256_matches_commit) },
+    { label: 'EXIF hash',        verdict: toVerdict(integrity.exif_hash_verified) },
+    { label: 'Caption signature',verdict: toVerdict(integrity.caption_signature_verified) },
+    { label: 'Audit chain',      verdict: toVerdict(integrity.audit_chain_intact) },
+    { label: 'SHA-256 matches',  verdict: toVerdict(integrity.sha256_matches_commit) },
   ];
 
-  const anyFail = checks.some((c) => c.verdict === 'fail');
+  const anyFail    = checks.some((c) => c.verdict === 'fail');
   const anyUnknown = checks.some((c) => c.verdict === 'unknown');
   const overall: VerificationState = anyFail ? 'fail' : anyUnknown ? 'unknown' : 'pass';
 
   return (
-    <section aria-label="Integrity" data-testid="integrity-panel">
-      <header>
-        <span>Integrity</span>
+    <section className="integrity-section" aria-label="Integrity" data-testid="integrity-panel">
+      <div className="integrity-header">
+        <span>Integrity verification</span>
         <VerdictBadge verdict={overall} />
-      </header>
-      <dl>
+      </div>
+      <div className="integrity-checks" role="list">
         {checks.map((check) => (
-          <div key={check.label} data-testid="integrity-check">
-            <dt>{check.label}</dt>
-            <dd>
-              <VerdictBadge verdict={check.verdict} />
-            </dd>
+          <div key={check.label} className="integrity-check-row" role="listitem" data-testid="integrity-check">
+            <span className="integrity-check-label">{check.label}</span>
+            <VerdictBadge verdict={check.verdict} />
           </div>
         ))}
-      </dl>
+      </div>
     </section>
   );
 }

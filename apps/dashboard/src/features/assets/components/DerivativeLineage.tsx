@@ -16,30 +16,37 @@ export interface DerivativeLineageProps {
 
 export function DerivativeLineage({ originalPublicId, derivatives }: DerivativeLineageProps) {
   return (
-    <section aria-label="Derivative lineage" data-testid="lineage-tree">
-      <ul>
-        <li>
-          <span data-testid="lineage-original">{originalPublicId}</span>
-          <span className="badge badge-original">original</span>
-          {derivatives.length > 0 ? (
-            <ul>
-              {derivatives.map((d) => (
-                <li key={d.id} data-testid="lineage-derivative">
-                  <code data-testid="lineage-transformation">{d.transformation}</code>
-                  {d.is_generative ? (
-                    <span className="badge badge-generative" data-testid="lineage-generative">
-                      generative
-                    </span>
-                  ) : null}
-                  <span className="lineage-public-id">{d.public_id}</span>
-                </li>
-              ))}
-            </ul>
-          ) : (
-            <p data-testid="lineage-empty">No derivatives — original only.</p>
-          )}
-        </li>
-      </ul>
+    <section className="integrity-section" aria-label="Derivative lineage" data-testid="lineage-tree">
+      <div className="integrity-header">
+        <span>Derivative lineage</span>
+        <span className="badge">{derivatives.length} derivative{derivatives.length !== 1 ? 's' : ''}</span>
+      </div>
+      <div className="lineage-tree">
+        <div className="lineage-node original" data-testid="lineage-original">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="m9 18 6-6-6-6"/></svg>
+          {originalPublicId}
+          <span className="badge" style={{ marginLeft: 'auto' }}>original</span>
+        </div>
+        {derivatives.length > 0 ? (
+          <div style={{ paddingLeft: '16px', display: 'flex', flexDirection: 'column', gap: '6px', marginTop: '6px' }}>
+            {derivatives.map((d) => (
+              <div key={d.id} className="lineage-node" data-testid="lineage-derivative" style={{ gap: '8px' }}>
+                <code className="mono" data-testid="lineage-transformation" style={{ flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                  {d.transformation}
+                </code>
+                {d.is_generative ? (
+                  <span className="badge warning" data-testid="lineage-generative">generative</span>
+                ) : null}
+                <span style={{ fontSize: '0.625rem', color: 'var(--color-fg-subtle)', marginLeft: 'auto', flexShrink: 0 }}>{d.public_id}</span>
+              </div>
+            ))}
+          </div>
+        ) : (
+          <p data-testid="lineage-empty" style={{ padding: '12px 16px', fontSize: '0.8125rem', color: 'var(--color-fg-muted)' }}>
+            No derivatives — original only.
+          </p>
+        )}
+      </div>
     </section>
   );
 }

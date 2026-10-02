@@ -24,130 +24,132 @@ function withoutKey<K extends keyof SearchFilters>(
 
 export function FilterPanel({ filters, onChange }: FilterPanelProps) {
   return (
-    <form aria-label="Filters" onSubmit={(e) => e.preventDefault()}>
-      <label>
-        Search
-        <input
-          type="search"
-          aria-label="q"
-          value={filters.q ?? ''}
-          onChange={(e) =>
-            onChange(
-              e.target.value === '' ? withoutKey(filters, 'q') : { ...filters, q: e.target.value },
-            )
-          }
-        />
-      </label>
+    <div className="filter-panel">
+      <form aria-label="Filters" onSubmit={(e) => e.preventDefault()}>
+        <label>
+          Search
+          <input
+            type="search"
+            aria-label="q"
+            value={filters.q ?? ''}
+            onChange={(e) =>
+              onChange(
+                e.target.value === '' ? withoutKey(filters, 'q') : { ...filters, q: e.target.value },
+              )
+            }
+          />
+        </label>
 
-      <label>
-        From
-        <input
-          type="date"
-          aria-label="date_from"
-          value={filters.dateFrom ?? ''}
-          onChange={(e) =>
-            onChange(
-              e.target.value === ''
-                ? withoutKey(filters, 'dateFrom')
-                : { ...filters, dateFrom: e.target.value },
-            )
-          }
-        />
-      </label>
+        <label>
+          From
+          <input
+            type="date"
+            aria-label="date_from"
+            value={filters.dateFrom ?? ''}
+            onChange={(e) =>
+              onChange(
+                e.target.value === ''
+                  ? withoutKey(filters, 'dateFrom')
+                  : { ...filters, dateFrom: e.target.value },
+              )
+            }
+          />
+        </label>
 
-      <label>
-        To
-        <input
-          type="date"
-          aria-label="date_to"
-          value={filters.dateTo ?? ''}
-          onChange={(e) =>
-            onChange(
-              e.target.value === ''
-                ? withoutKey(filters, 'dateTo')
-                : { ...filters, dateTo: e.target.value },
-            )
-          }
-        />
-      </label>
+        <label>
+          To
+          <input
+            type="date"
+            aria-label="date_to"
+            value={filters.dateTo ?? ''}
+            onChange={(e) =>
+              onChange(
+                e.target.value === ''
+                  ? withoutKey(filters, 'dateTo')
+                  : { ...filters, dateTo: e.target.value },
+              )
+            }
+          />
+        </label>
 
-      <label>
-        Tags
-        <input
-          type="text"
-          aria-label="tags"
-          placeholder="tree,planting"
-          value={(filters.tags ?? []).join(',')}
-          onChange={(e) => {
-            const tags = e.target.value
-              .split(',')
-              .map((t) => t.trim())
-              .filter((t) => t !== '');
-            onChange(tags.length === 0 ? withoutKey(filters, 'tags') : { ...filters, tags });
-          }}
-        />
-      </label>
+        <label>
+          Tags
+          <input
+            type="text"
+            aria-label="tags"
+            placeholder="tree,planting"
+            value={(filters.tags ?? []).join(',')}
+            onChange={(e) => {
+              const tags = e.target.value
+                .split(',')
+                .map((t) => t.trim())
+                .filter((t) => t !== '');
+              onChange(tags.length === 0 ? withoutKey(filters, 'tags') : { ...filters, tags });
+            }}
+          />
+        </label>
 
-      <label>
-        Max GPS accuracy (m)
-        <input
-          type="number"
-          aria-label="gps_accuracy_max"
-          min={0}
-          value={filters.gpsAccuracyMax ?? ''}
-          onChange={(e) =>
-            onChange(
-              e.target.value === ''
-                ? withoutKey(filters, 'gpsAccuracyMax')
-                : { ...filters, gpsAccuracyMax: Number(e.target.value) },
-            )
-          }
-        />
-      </label>
+        <label>
+          GPS accuracy (m)
+          <input
+            type="number"
+            aria-label="gps_accuracy_max"
+            min={0}
+            value={filters.gpsAccuracyMax ?? ''}
+            onChange={(e) =>
+              onChange(
+                e.target.value === ''
+                  ? withoutKey(filters, 'gpsAccuracyMax')
+                  : { ...filters, gpsAccuracyMax: Number(e.target.value) },
+              )
+            }
+          />
+        </label>
 
-      <label>
-        Asset type
-        <select
-          aria-label="asset_type"
-          value={filters.assetType ?? ''}
-          onChange={(e) =>
-            onChange(
-              e.target.value === ''
-                ? withoutKey(filters, 'assetType')
-                : { ...filters, assetType: e.target.value as AssetType },
-            )
-          }
-        >
-          <option value="">Any</option>
-          {ASSET_TYPES.map((t) => (
-            <option key={t} value={t}>
-              {t}
-            </option>
-          ))}
-        </select>
-      </label>
+        <label>
+          Asset type
+          <select
+            aria-label="asset_type"
+            value={filters.assetType ?? ''}
+            onChange={(e) =>
+              onChange(
+                e.target.value === ''
+                  ? withoutKey(filters, 'assetType')
+                  : { ...filters, assetType: e.target.value as AssetType },
+              )
+            }
+          >
+            <option value="">Any</option>
+            {ASSET_TYPES.map((t) => (
+              <option key={t} value={t}>
+                {t}
+              </option>
+            ))}
+          </select>
+        </label>
 
-      <label>
-        Phase
-        <select
-          aria-label="phase"
-          value={filters.phase ?? ''}
-          onChange={(e) =>
-            onChange(
-              e.target.value === ''
-                ? withoutKey(filters, 'phase')
-                : { ...filters, phase: e.target.value as AssetPhase },
-            )
-          }
-        >
-          <option value="">Any</option>
-          {ASSET_PHASES.map((p) => (
-            <option key={p} value={p}>
-              {p}
-            </option>
-          ))}
-        </select>
-      </label>
-    </form>
+        <label>
+          Phase
+          <select
+            aria-label="phase"
+            value={filters.phase ?? ''}
+            onChange={(e) =>
+              onChange(
+                e.target.value === ''
+                  ? withoutKey(filters, 'phase')
+                  : { ...filters, phase: e.target.value as AssetPhase },
+              )
+            }
+          >
+            <option value="">Any</option>
+            {ASSET_PHASES.map((p) => (
+              <option key={p} value={p}>
+                {p}
+              </option>
+            ))}
+          </select>
+        </label>
+      </form>
+    </div>
   );
 }

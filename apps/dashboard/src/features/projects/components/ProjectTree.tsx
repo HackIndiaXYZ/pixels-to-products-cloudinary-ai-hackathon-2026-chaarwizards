@@ -19,7 +19,7 @@ function ObservationTypeBadges({ project }: { readonly project: Project }) {
     return null;
   }
   return (
-    <span data-testid="observation-badges">
+    <span className="project-badges" data-testid="observation-badges">
       {types.map((t) => (
         <span key={t.type} className="badge" data-testid="observation-badge">
           {t.label ?? t.type}
@@ -47,10 +47,11 @@ function TreeNode({
         type="button"
         aria-current={isSelected ? 'true' : undefined}
         onClick={() => onSelect(node.project)}
-        style={{ paddingLeft: `${depth * 16}px` }}
+        style={{ paddingLeft: `${12 + depth * 16}px` }}
         data-testid="project-node"
+        className="project-node-btn"
       >
-        <span>{node.project.name}</span>
+        <span className="project-node-name">{node.project.name}</span>
         <ObservationTypeBadges project={node.project} />
       </button>
       {node.children.length > 0 ? (
@@ -72,7 +73,7 @@ function TreeNode({
 
 export function ProjectTree({ nodes, selectedProjectId, onSelect }: ProjectTreeProps) {
   return (
-    <nav aria-label="Projects">
+    <nav aria-label="Projects" className="project-tree-nav">
       <ul>
         {nodes.map((node) => (
           <TreeNode

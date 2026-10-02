@@ -12,13 +12,21 @@ export function MapPage() {
   const { data } = useSearch(filters);
 
   return (
-    <section aria-label="Map" style={{ height: '80vh' }}>
-      <h2>Map</h2>
-      <AssetMap
-        assets={data?.data ?? []}
-        styleUrl="https://demotiles.maplibre.org/style.json"
-        onViewportChange={(bbox) => setFilters((f) => ({ ...f, bbox }))}
-      />
-    </section>
+    <>
+      <div className="page-header">
+        <h1 className="page-title">Map view</h1>
+      </div>
+      <section className="map-section" aria-label="Map" style={{ height: '72vh' }}>
+        <AssetMap
+          assets={data?.data ?? []}
+          styleUrl="https://demotiles.maplibre.org/style.json"
+          onViewportChange={(bbox) => setFilters((f) => ({ ...f, bbox }))}
+        />
+        <div className="map-controls" aria-label="Map style">
+          <button type="button" className="map-btn active">Map</button>
+          <button type="button" className="map-btn">Satellite</button>
+        </div>
+      </section>
+    </>
   );
 }

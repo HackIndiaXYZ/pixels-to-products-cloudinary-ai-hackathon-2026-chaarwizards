@@ -31,40 +31,50 @@ export function MetricsTable({ metrics, modelVersion, confidence }: MetricsTable
 
   if (entries.length === 0) {
     return (
-      <div data-testid="metrics-empty">
-        <p>No CV metrics for this pair.</p>
-        <span data-testid="metric-model-version">model {modelVersion}</span>
+      <div className="state-container" data-testid="metrics-empty" style={{ padding: '24px' }}>
+        <p style={{ color: 'var(--color-fg-muted)', fontSize: '0.8125rem' }}>No CV metrics for this pair.</p>
+        <span className="metrics-model-version" data-testid="metric-model-version">model {modelVersion}</span>
       </div>
     );
   }
 
   return (
-    <table data-testid="metrics-table">
-      <thead>
-        <tr>
-          <th scope="col">Metric</th>
-          <th scope="col">Value</th>
-          <th scope="col">Model version</th>
-        </tr>
-      </thead>
-      <tbody>
-        {entries.map(([key, value]) => (
-          <tr key={key} data-testid="metric-row">
-            <td>{key}</td>
-            <td data-testid="metric-value">{formatValue(value)}</td>
-            <td data-testid="metric-model-version">{modelVersion}</td>
-          </tr>
-        ))}
-      </tbody>
-      {confidence !== null && confidence !== undefined ? (
-        <tfoot>
+    <div style={{ overflowX: 'auto' }}>
+      <table className="metrics-table" data-testid="metrics-table">
+        <thead>
           <tr>
-            <td>confidence</td>
-            <td data-testid="metric-confidence">{confidence}</td>
-            <td data-testid="metric-model-version">{modelVersion}</td>
+            <th scope="col">Metric</th>
+            <th scope="col">Value</th>
+            <th scope="col">Model version</th>
           </tr>
-        </tfoot>
-      ) : null}
-    </table>
+        </thead>
+        <tbody>
+          {entries.map(([key, value]) => (
+            <tr key={key} data-testid="metric-row">
+              <td style={{ fontWeight: 600 }}>{key}</td>
+              <td data-testid="metric-value" style={{ fontFamily: "'JetBrains Mono', monospace", color: 'var(--color-primary)' }}>
+                {formatValue(value)}
+              </td>
+              <td data-testid="metric-model-version">
+                <span className="metrics-model-version">{modelVersion}</span>
+              </td>
+            </tr>
+          ))}
+        </tbody>
+        {confidence !== null && confidence !== undefined ? (
+          <tfoot>
+            <tr>
+              <td style={{ fontWeight: 600 }}>Confidence</td>
+              <td data-testid="metric-confidence" style={{ fontFamily: "'JetBrains Mono', monospace", color: 'var(--color-success)' }}>
+                {confidence}
+              </td>
+              <td data-testid="metric-model-version">
+                <span className="metrics-model-version">{modelVersion}</span>
+              </td>
+            </tr>
+          </tfoot>
+        ) : null}
+      </table>
+    </div>
   );
 }

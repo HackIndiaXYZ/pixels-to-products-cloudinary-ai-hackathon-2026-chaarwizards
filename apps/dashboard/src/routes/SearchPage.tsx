@@ -35,15 +35,19 @@ export function SearchPage() {
         }
       : search.data;
 
-  // Resolved signed URL from API or fallback to Cloudinary URL so it never gets stuck on "Loading media..."
+  // Resolved signed URL from API or fallback to Cloudinary URL
   const originalUrl =
     originalUrlQuery.data?.url ??
     (selected?.cloudinary_public_id ? cld.image(selected.cloudinary_public_id).toURL() : null);
 
   return (
-    <section aria-label="Search">
-      <h2>Search</h2>
+    <>
+      <div className="page-header">
+        <h1 className="page-title">Field evidence</h1>
+      </div>
+
       <FilterPanel filters={filters} onChange={setFilters} />
+
       <SearchResults
         status={search.status}
         data={displayData}
@@ -51,6 +55,7 @@ export function SearchPage() {
         onOpenAsset={setSelected}
         onRetry={() => void search.refetch()}
       />
+
       {selected !== null ? (
         <AssetDetail
           asset={selected}
@@ -63,6 +68,6 @@ export function SearchPage() {
           derivativesError={derivatives.error}
         />
       ) : null}
-    </section>
+    </>
   );
 }

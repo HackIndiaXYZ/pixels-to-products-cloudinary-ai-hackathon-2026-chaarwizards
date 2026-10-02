@@ -39,7 +39,8 @@ export function AssetDetail({
   derivativesError,
 }: AssetDetailProps) {
   return (
-    <article aria-label="Asset detail" data-testid="asset-detail">
+    <article className="asset-detail" aria-label="Asset detail" data-testid="asset-detail">
+      {/* Media preview */}
       <div className="media-viewer" data-testid="media-viewer">
         {originalUrl ? (
           asset.asset_type === 'video' ? (
@@ -48,11 +49,14 @@ export function AssetDetail({
             <img src={originalUrl} alt={asset.caption ?? 'Asset'} data-testid="media-image" />
           )
         ) : (
-          <div data-testid="media-pending">Loading media…</div>
+          <div data-testid="media-pending" style={{ color: 'var(--color-fg-muted)', fontSize: '0.8125rem' }}>
+            Loading media…
+          </div>
         )}
       </div>
 
-      <section aria-label="Capture context">
+      {/* Capture context metadata */}
+      <section aria-label="Capture context" className="capture-context">
         <dl>
           <div>
             <dt>Observation</dt>
@@ -74,12 +78,13 @@ export function AssetDetail({
             </dd>
           </div>
           <div>
-            <dt>Tags</dt>
+            <dt>AI tags</dt>
             <dd>{asset.ai_tags.length > 0 ? asset.ai_tags.join(', ') : '—'}</dd>
           </div>
         </dl>
       </section>
 
+      {/* Integrity panel */}
       <AsyncView<AssetIntegrity>
         status={integrityStatus}
         data={integrity}
@@ -90,6 +95,7 @@ export function AssetDetail({
         {(data) => <IntegrityPanel integrity={data} />}
       </AsyncView>
 
+      {/* Derivative lineage */}
       <AsyncView<{ readonly data: readonly AssetDerivative[] }>
         status={derivativesStatus}
         data={derivatives}

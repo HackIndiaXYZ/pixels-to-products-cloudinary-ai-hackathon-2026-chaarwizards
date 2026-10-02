@@ -27,10 +27,10 @@ export function AdminQueue({ status, data, error, onRetry }: AdminQueueProps) {
       {...(onRetry ? { onRetry } : {})}
     >
       {(d) => (
-        <ul aria-label="Quarantine queue">
+        <ul className="quarantine-list" aria-label="Quarantine queue">
           {selectQuarantined(d).map((asset) => (
-            <li key={asset.id} data-testid="quarantine-row">
-              <span>{asset.cloudinary_public_id}</span>
+            <li key={asset.id} className="quarantine-row" data-testid="quarantine-row">
+              <span className="quarantine-id">{asset.cloudinary_public_id}</span>
               <span className="status status-flagged">flagged</span>
             </li>
           ))}

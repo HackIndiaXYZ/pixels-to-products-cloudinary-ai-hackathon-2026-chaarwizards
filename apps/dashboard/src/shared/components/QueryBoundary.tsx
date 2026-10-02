@@ -41,18 +41,25 @@ export function AsyncView<T>({
 }: AsyncViewProps<T>) {
   if (status === 'pending') {
     return (
-      <div role="status" aria-live="polite" data-testid="async-loading">
-        {loadingLabel}
+      <div className="state-container" role="status" aria-live="polite" data-testid="async-loading">
+        <div className="spinner" aria-hidden="true" />
+        <span className="state-label">{loadingLabel}</span>
       </div>
     );
   }
 
   if (status === 'error') {
     return (
-      <div role="alert" data-testid="async-error">
-        <p>{errorMessage(error)}</p>
+      <div className="state-container" role="alert" data-testid="async-error">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="var(--color-destructive)" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+          <path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3"/>
+          <path d="M12 9v4"/><path d="M12 17h.01"/>
+        </svg>
+        <span className="state-label" style={{ color: 'var(--color-destructive)' }}>
+          {errorMessage(error)}
+        </span>
         {onRetry ? (
-          <button type="button" onClick={onRetry}>
+          <button type="button" className="btn-sm" onClick={onRetry}>
             Retry
           </button>
         ) : null}
@@ -62,8 +69,11 @@ export function AsyncView<T>({
 
   if (data === undefined || isEmpty(data)) {
     return (
-      <div data-testid="async-empty">
-        <p>{emptyLabel}</p>
+      <div className="state-container" data-testid="async-empty">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="var(--color-fg-subtle)" strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+          <rect width="20" height="16" x="2" y="4" rx="2"/><path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/>
+        </svg>
+        <span className="state-label">{emptyLabel}</span>
       </div>
     );
   }

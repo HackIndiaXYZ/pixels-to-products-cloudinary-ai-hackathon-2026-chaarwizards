@@ -18,7 +18,25 @@ function Gate() {
   const { session, loading } = useAuth();
 
   if (loading) {
-    return <div role="status">Loading…</div>;
+    return (
+      <div
+        role="status"
+        style={{
+          minHeight: '100vh',
+          display: 'grid',
+          placeItems: 'center',
+          background: 'hsl(220 16% 8%)',
+          color: 'hsl(215 16% 50%)',
+          fontFamily: "'Sora', sans-serif",
+          fontSize: '0.875rem',
+          gap: '12px',
+          flexDirection: 'column',
+        }}
+      >
+        <div style={{ width: 24, height: 24, border: '2px solid hsla(220,20%,100%,0.08)', borderTopColor: 'hsl(238 72% 64%)', borderRadius: '50%', animation: 'spin 0.7s linear infinite' }} />
+        Authenticating…
+      </div>
+    );
   }
   if (session === null) {
     return <AuthLayout />;

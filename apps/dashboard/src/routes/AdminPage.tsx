@@ -9,14 +9,22 @@ import { AdminQueue } from '../features/admin/components/AdminQueue';
 export function AdminPage() {
   const { status, data, error, refetch } = useSearch({});
   return (
-    <section aria-label="Admin queue">
-      <h2>Quarantine queue</h2>
-      <AdminQueue
-        status={status}
-        data={data?.data}
-        error={error}
-        onRetry={() => void refetch()}
-      />
-    </section>
+    <>
+      <div className="page-header">
+        <h1 className="page-title">Quarantine queue</h1>
+      </div>
+      <section className="card" aria-label="Admin queue">
+        <div className="card-header">
+          <h2 className="card-title">Flagged assets for review</h2>
+          <span className="badge danger">Needs attention</span>
+        </div>
+        <AdminQueue
+          status={status}
+          data={data?.data}
+          error={error}
+          onRetry={() => void refetch()}
+        />
+      </section>
+    </>
   );
 }
