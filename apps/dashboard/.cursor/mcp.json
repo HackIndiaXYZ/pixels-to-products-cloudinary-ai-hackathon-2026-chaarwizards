@@ -1,9 +1,0 @@
-{
-  "mcpServers": {
-    "cloudinary-asset-management": {
-      "command": "npx",
-      "args": ["-y", "--package", "@cloudinary/asset-management", "mcp"],
-      "comment": "Credentials are read from the shell environment (CLOUDINARY_URL) at MCP launch. Never inline secrets here — this file lives under apps/dashboard and must contain no secret and no secret key names (AGENTS.md §3.5)."
-    }
-  }
-}

@@ -8,7 +8,17 @@ import type { FastifyInstance } from 'fastify';
 import { ok } from '@panchnama/shared';
 
 export async function registerHealthRoutes(app: FastifyInstance): Promise<void> {
-  app.get('/health', async () => ok({ status: 'ok' }));
+  const checkLiveness = async () =>
+    ok({
+      status: 'ok',
+      service: 'panchnama-api',
+      version: '1.0.0',
+      uptime: process.uptime(),
+      timestamp: new Date().toISOString(),
+    });
+
+  app.get('/health', checkLiveness);
+  app.get('/', checkLiveness);
 
   app.get('/health/ready', async (_request, reply) => {
     const checks: Record<string, 'ok' | 'fail'> = {

@@ -1,0 +1,279 @@
+/* Panchnama AI — Warm Enterprise Evidence Console
+   Token layer and base. Every value in this file is UI configuration, never a business value.
+
+   Direction provenance: the palette follows the supplied visual reference (warm off-white ground,
+   white cards, subtle borders, soft shadows, 12-18px radii, dark charcoal type, restrained green
+   success, muted red failure) as characterized in the project brief. It supersedes the earlier
+   Claymorphism / Tactical Dark direction. */
+
+@layer reset, tokens, base, components;
+
+@layer reset {
+  *,
+  *::before,
+  *::after {
+    box-sizing: border-box;
+  }
+
+  html,
+  body,
+  h1,
+  h2,
+  h3,
+  h4,
+  h5,
+  h6,
+  p,
+  figure,
+  blockquote,
+  dl,
+  dd {
+    margin: 0;
+  }
+
+  ul[role='list'],
+  ol[role='list'] {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+  }
+
+  body {
+    min-height: 100dvh;
+  }
+
+  img,
+  picture,
+  svg,
+  video,
+  canvas {
+    display: block;
+    max-width: 100%;
+  }
+
+  input,
+  button,
+  textarea,
+  select {
+    font: inherit;
+    color: inherit;
+  }
+
+  a {
+    color: inherit;
+  }
+}
+
+@layer tokens {
+  :root {
+    color-scheme: light;
+
+    /* Grounds and surfaces: warm off-white page, white cards. */
+    --pn-ground: hsl(38 30% 96%);
+    --pn-surface: hsl(0 0% 100%);
+    --pn-surface-raised: hsl(0 0% 100%);
+    --pn-surface-sunken: hsl(38 24% 93%);
+    --pn-hover: hsl(38 26% 91%);
+    --pn-active: hsl(38 24% 88%);
+
+    --pn-line: hsl(36 16% 88%);
+    --pn-line-strong: hsl(36 12% 78%);
+
+    /* Dark charcoal typography. `--pn-text-faint` still clears 4.5:1 on the warm ground. */
+    --pn-text: hsl(220 14% 14%);
+    --pn-text-muted: hsl(220 8% 38%);
+    --pn-text-faint: hsl(220 6% 44%);
+
+    /* Brand accent — a single deep cobalt, reserved for interactive affordances. */
+    --pn-accent: hsl(224 72% 46%);
+    --pn-accent-hover: hsl(224 72% 39%);
+    --pn-accent-text: hsl(0 0% 100%);
+    --pn-accent-tint: hsl(224 72% 46% / 0.09);
+    --pn-accent-line: hsl(224 72% 46% / 0.42);
+
+    /* Five signals, each as a base, a readable text variant, a tint fill, a border, and a ring.
+       Every badge and note composes these instead of hardcoding a color. */
+    --pn-pass: #16a34a;
+    --pn-pass-text: hsl(145 72% 27%);
+    --pn-pass-tint: hsl(145 60% 95%);
+    --pn-pass-line: hsl(145 55% 62% / 0.5);
+    --pn-ring-pass: hsl(145 72% 40% / 0.22);
+
+    --pn-info: #2563eb;
+    --pn-info-text: hsl(224 76% 42%);
+    --pn-info-tint: hsl(224 78% 96%);
+    --pn-info-line: hsl(224 70% 65% / 0.5);
+    --pn-ring-info: hsl(224 72% 46% / 0.2);
+
+    --pn-warn: #b45309;
+    --pn-warn-text: hsl(32 90% 30%);
+    --pn-warn-tint: hsl(38 92% 95%);
+    --pn-warn-line: hsl(38 80% 60% / 0.5);
+    --pn-ring-warn: hsl(38 84% 45% / 0.2);
+
+    --pn-fail: #b91c1c;
+    --pn-fail-text: hsl(0 72% 37%);
+    --pn-fail-tint: hsl(0 78% 97%);
+    --pn-fail-line: hsl(0 65% 62% / 0.5);
+    --pn-ring-fail: hsl(0 72% 45% / 0.2);
+
+    --pn-unknown: #6b7280;
+    --pn-unknown-text: hsl(220 8% 38%);
+    --pn-unknown-tint: hsl(220 14% 95%);
+    --pn-unknown-line: hsl(220 12% 74% / 0.55);
+    --pn-unknown-hatch: hsl(220 12% 62% / 0.16);
+
+    /* Radii: 16px sits inside the reference's 12-18px card range. */
+    --pn-radius-card: 16px;
+    --pn-radius-control: 10px;
+    --pn-radius-chip: 999px;
+    --pn-radius-inset: 6px;
+
+    --pn-space-1: 4px;
+    --pn-space-2: 8px;
+    --pn-space-3: 12px;
+    --pn-space-4: 16px;
+    --pn-space-5: 24px;
+    --pn-space-6: 32px;
+    --pn-space-7: 40px;
+    --pn-space-8: 48px;
+    --pn-space-9: 64px;
+
+    --pn-font-sans: 'Sora', ui-sans-serif, system-ui, 'Segoe UI', Roboto, sans-serif;
+    --pn-font-mono: 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+
+    --pn-text-xs: 0.75rem;
+    --pn-text-sm: 0.875rem;
+    --pn-text-base: 1rem;
+    --pn-text-md: 1.0625rem;
+    --pn-text-lg: 1.125rem;
+    --pn-text-xl: 1.375rem;
+    --pn-text-2xl: 1.75rem;
+    --pn-text-3xl: clamp(1.75rem, 1.24rem + 1.5vw, 2.5rem);
+
+    --pn-leading-body: 1.6;
+    --pn-leading-tight: 1.25;
+    --pn-measure: 68ch;
+
+    /* Soft warm elevation. No hard black shadow and no glass effect. */
+    --pn-shadow-1: 0 1px 2px hsl(30 24% 40% / 0.06), 0 0 0 1px hsl(36 14% 82% / 0.9);
+    --pn-shadow-2: 0 12px 28px -18px hsl(30 30% 30% / 0.22);
+    --pn-shadow-pop: 0 18px 40px -20px hsl(30 30% 26% / 0.28);
+    --pn-drawer-shadow: -24px 0 48px -32px hsl(30 26% 30% / 0.26);
+
+    /* Retains the token names the component layer already consumes, re-expressed for a light
+       surface: a top highlight plus a warm bottom shade instead of the old clay insets. */
+    --pn-clay: inset 0 1px 0 hsl(0 0% 100% / 0.7), inset 0 -1px 0 hsl(32 22% 78% / 0.16);
+    --pn-clay-raised: inset 0 1px 0 hsl(0 0% 100% / 0.85), inset 0 -1px 0 hsl(32 22% 74% / 0.2);
+    --pn-clay-sunken: inset 0 2px 6px hsl(30 22% 46% / 0.1);
+
+    /* Overlays that sit over imagery or the page. Chosen per surface rather than inherited. */
+    --pn-scrim: hsl(28 20% 22% / 0.42);
+    --pn-overlay: hsl(0 0% 100% / 0.94);
+    --pn-overlay-line: hsl(36 14% 86%);
+    --pn-map-panel: hsl(0 0% 100% / 0.92);
+    --pn-map-panel-line: hsl(36 14% 84%);
+    --pn-map-cover: hsl(38 30% 96% / 0.94);
+    --pn-media-chip: hsl(0 0% 100% / 0.9);
+    --pn-media-chip-line: hsl(36 14% 84%);
+
+    --pn-motion-small: 180ms;
+    --pn-motion-large: 320ms;
+    --pn-motion-exit: 120ms;
+    --pn-stagger: 40ms;
+    --pn-ease-enter: cubic-bezier(0.16, 0.84, 0.44, 1);
+    --pn-ease-exit: cubic-bezier(0.4, 0, 1, 1);
+
+    --pn-focus-ring: 0 0 0 2px var(--pn-ground), 0 0 0 4px var(--pn-accent);
+    --pn-focus-ring-inset: inset 0 0 0 2px var(--pn-accent);
+
+    --pn-header-h: 60px;
+    --pn-rail-w: 232px;
+    --pn-content-max: 1440px;
+    --pn-safe-x: clamp(16px, 4vw, 40px);
+  }
+}
+
+@layer base {
+  html {
+    background-color: var(--pn-ground);
+  }
+
+  body {
+    font-family: var(--pn-font-sans);
+    font-size: var(--pn-text-base);
+    line-height: var(--pn-leading-body);
+    color: var(--pn-text);
+    background-color: var(--pn-ground);
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
+  }
+
+  h1,
+  h2,
+  h3,
+  h4 {
+    line-height: var(--pn-leading-tight);
+    font-weight: 600;
+    letter-spacing: -0.01em;
+  }
+
+  :focus-visible {
+    outline: none;
+    box-shadow: var(--pn-focus-ring);
+    border-radius: var(--pn-radius-inset);
+  }
+
+  ::selection {
+    background-color: hsl(224 72% 46% / 0.22);
+  }
+
+  .pn-visually-hidden {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: 0;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
+    border: 0;
+  }
+
+  .pn-skip-link {
+    position: absolute;
+    top: var(--pn-space-2);
+    left: var(--pn-space-2);
+    z-index: 60;
+    transform: translateY(-200%);
+    padding: var(--pn-space-2) var(--pn-space-3);
+    border-radius: var(--pn-radius-control);
+    background-color: var(--pn-surface);
+    color: var(--pn-text);
+    box-shadow: var(--pn-shadow-2), var(--pn-clay-raised);
+  }
+
+  .pn-skip-link:focus-visible {
+    transform: translateY(0);
+  }
+
+  .pn-mono {
+    font-family: var(--pn-font-mono);
+    font-variant-ligatures: none;
+  }
+
+  .pn-prose {
+    max-width: var(--pn-measure);
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+      animation-duration: 1ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 1ms !important;
+      scroll-behavior: auto !important;
+    }
+  }
+}

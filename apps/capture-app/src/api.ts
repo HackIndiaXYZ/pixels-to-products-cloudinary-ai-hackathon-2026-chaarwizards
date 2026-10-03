@@ -20,9 +20,58 @@ export interface FetchProjectsInput {
   readonly fetchFn?: typeof fetch;
 }
 
+export interface LoginInput {
+  readonly email: string;
+  readonly password: string;
+  readonly supabaseUrl?: string;
+  readonly anonKey?: string;
+  readonly fetchFn?: typeof fetch;
+}
+
 interface ProjectsEnvelope {
   readonly data?: unknown[];
   readonly error?: { readonly code?: string; readonly message?: string } | null;
+}
+
+/**
+ * Authenticate directly against the deployed Supabase Auth service to receive a live verified JWT token.
+ */
+export async function loginWithSupabase(input: LoginInput): Promise<{ token: string; userEmail: string }> {
+  const url = input.supabaseUrl ?? process.env.EXPO_PUBLIC_SUPABASE_URL;
+  const key = input.anonKey ?? process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY;
+
+  if (!url || !key) {
+    throw new Error('Supabase Auth configuration missing (EXPO_PUBLIC_SUPABASE_URL / EXPO_PUBLIC_SUPABASE_ANON_KEY)');
+  }
+
+  const doFetch = input.fetchFn ?? fetch;
+  const response = await doFetch(`${url}/auth/v1/token?grant_type=password`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'apikey': key,
+    },
+    body: JSON.stringify({
+      email: input.email,
+      password: input.password,
+    }),
+  });
+
+  if (!response.ok) {
+    const errorBody = (await response.json().catch(() => ({}))) as { error_description?: string; msg?: string; error?: string };
+    const errorMsg = errorBody.error_description || errorBody.msg || errorBody.error || `Authentication failed: HTTP ${response.status}`;
+    throw new Error(errorMsg);
+  }
+
+  const data = (await response.json()) as { access_token?: string; user?: { email?: string } };
+  if (!data.access_token) {
+    throw new Error('Supabase Auth response missing access_token');
+  }
+
+  return {
+    token: data.access_token,
+    userEmail: data.user?.email ?? input.email,
+  };
 }
 
 /**
