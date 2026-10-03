@@ -14,7 +14,7 @@ single logit channel, so the binary mask is ``logit > 0`` (sigmoid > 0.5). The
 mask is resized back to the ``after`` image resolution with nearest-neighbour so
 ``changed_fraction`` and any overlay stay aligned to the original frame.
 
-Loaded once per model and cached on the object (AGENTS.md §4).
+Loaded once per model and cached on the object .
 """
 
 from __future__ import annotations

@@ -1,5 +1,5 @@
 /**
- * Nightly reconciliation entrypoint (BUILD_ORDER Phase 5). Wires the real
+ * Nightly reconciliation entrypoint (Phase). Wires the real
  * Supabase DB and the Cloudinary Admin adapter, runs the one-way integrity check
  * (§3.9), recomputes `orgs.bytes_used`, and prints a report. Intended to be run
  * on a schedule (cron / a BullMQ repeatable job), never in a request path.

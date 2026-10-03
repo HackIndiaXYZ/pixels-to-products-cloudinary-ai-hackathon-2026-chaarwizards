@@ -3,7 +3,7 @@
  * (api-contracts.md §4): a project's change events, and an asset's derivative
  * lineage. Both resolve strictly under the caller's RLS scope — org isolation is
  * the database's job, and a cross-org id returns an empty list or a 404, never
- * another org's rows (AGENTS.md §3.4).
+ * another org's rows .
  */
 import type { FastifyInstance } from 'fastify';
 import { z } from 'zod';

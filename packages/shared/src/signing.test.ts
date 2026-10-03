@@ -38,7 +38,7 @@ describe('buildSigningPayload', () => {
   it('re-derives byte-identical bytes from round-tripped column values', () => {
     // Simulate the API path: the client's typed values are persisted, then
     // re-read from the columns and re-encoded. This must reproduce the exact
-    // bytes the device signed (AGENTS.md §3.4, §3.8), or genuine captures fail
+    // bytes the device signed , or genuine captures fail
     // verification.
     const signed = buildSigningPayload(baseInput);
 

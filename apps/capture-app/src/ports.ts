@@ -1,6 +1,6 @@
 /**
  * Platform ports for the capture app (mirrors the API's injectable-ports
- * pattern, AGENTS.md §4). Every module here depends on these interfaces, never
+ * pattern, system invariants). Every module here depends on these interfaces, never
  * on a concrete Expo/React-Native module, so the whole capture pipeline —
  * EXIF freeze, streamed hashing, Ed25519 signing, the MMKV queue, and the sync
  * engine — is driven in tests with in-memory fakes and in production with the
@@ -8,7 +8,7 @@
  * `@react-native-community/netinfo`, `expo-background-fetch`).
  *
  * The on-device wiring of each port to its native module is a device test and is
- * deferred to user review (BUILD_ORDER Phase 4 "Deferred to user review"); the
+ * deferred to user review (Phase "Deferred to user review"); the
  * logic behind each port is what this phase implements and tests.
  */
 import type { GpsProvider, SignatureTier } from '@panchnama/shared/rn';
@@ -16,7 +16,7 @@ import type { GpsProvider, SignatureTier } from '@panchnama/shared/rn';
 /**
  * Streamed, chunked reader over a file's bytes. `readChunks` MUST yield the file
  * in bounded slices and never materialize the whole file in memory — that is the
- * "streamed" claim the hashing gate asserts (BUILD_ORDER Phase 4). The native
+ * "streamed" claim the hashing gate asserts (Phase). The native
  * adapter is a chunked `expo-file-system` read or a native hashing module.
  */
 export interface FileChunkReader {
@@ -40,7 +40,7 @@ export interface StreamingHasher {
 /** Factory for a fresh {@link StreamingHasher} per file. */
 export type HasherFactory = () => StreamingHasher;
 
-/** Raw EXIF as read off a captured file, before freezing (AGENTS.md §3.1). */
+/** Raw EXIF as read off a captured file, before freezing . */
 export type RawExif = Record<string, unknown>;
 
 /** Reads raw EXIF from a captured image. Native adapter: `expo-camera` / EXIF lib. */
@@ -52,7 +52,7 @@ export interface ExifReader {
  * A capture signer. The device path is an Ed25519 key wrapped by the platform
  * Keystore / Secure Enclave and reports `signatureTier: 'device'`. When that
  * hardware path is unavailable the honest fallback reports `'server'` — it is a
- * `FAIL`, per AGENTS.md §8, to report `'device'` for a non-hardware key.
+ * `FAIL`, per system invariants, to report `'device'` for a non-hardware key.
  */
 export interface CaptureSigner {
   readonly signatureTier: SignatureTier;
@@ -80,7 +80,7 @@ export interface NetworkMonitor {
   isConnected(): Promise<boolean>;
 }
 
-/** Wall-clock and monotonic clocks (AGENTS.md §3.7 — skew vs dwell). */
+/** Wall-clock and monotonic clocks . */
 export interface Clock {
   /** Wall-clock epoch milliseconds. */
   now(): number;

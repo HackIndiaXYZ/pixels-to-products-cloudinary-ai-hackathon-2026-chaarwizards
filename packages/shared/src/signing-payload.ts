@@ -1,5 +1,5 @@
 /**
- * Capture signing **payload** (AGENTS.md §3.4, ARCHITECTURE.md §3.1).
+ * Capture signing **payload** .
  *
  * `buildSigningPayload` produces the exact byte sequence the capture app signs:
  * the RFC 8785 canonical JSON of the claim set. The API re-derives the same
@@ -31,7 +31,7 @@ const hex = z.string().regex(/^[0-9a-f]+$/, 'must be lowercase hex');
  * Coordinates are signed as **integers**, never floats, because the destination
  * column is `gps_point GEOGRAPHY(POINT, 4326)` (a double). Signing a float and
  * re-deriving it from PostGIS could differ in the last bits and break
- * verification (AGENTS.md §3.8). The API re-derives with
+ * verification . The API re-derives with
  * `round(ST_Y(gps_point) * 1e7)` / `round(ST_X(gps_point) * 1e7)`, which
  * reproduces the signed integer exactly.
  */
@@ -57,14 +57,14 @@ export type SigningGps = z.infer<typeof SigningGpsSchema>;
  * Input to {@link buildSigningPayload}. `v` pins the payload schema version.
  *
  * Every field is encoded so the API can reproduce it byte-for-byte from the
- * stored columns (AGENTS.md §3.4, §3.8):
+ * stored columns :
  * - `captured_at_ms` is epoch milliseconds (integer), not an ISO string, because
  *   `device_capture_timestamp TIMESTAMPTZ` is normalized by Postgres and a
  *   free-form string would not round-trip. Re-derive with
  *   `round(extract(epoch from device_capture_timestamp) * 1000)`.
  * - `device_monotonic_ms` is signed here (DATABASE_SCHEMA.md `assets`) so the
  *   monotonic counter that anchors skew detection cannot be forged post-capture
- *   (AGENTS.md §3.7).
+ *   .
  * - `phase` is constrained to the same domain as `assets.phase`
  *   (`before` / `after`); a value the column cannot store must never be signed.
  */

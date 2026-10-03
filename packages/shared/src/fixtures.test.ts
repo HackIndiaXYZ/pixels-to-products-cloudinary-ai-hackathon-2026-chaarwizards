@@ -7,7 +7,7 @@ import { sha256Canonical } from './hash.js';
 /**
  * Cross-language conformance. The Python JCS port in Phase 6 loads this same
  * file and asserts identical `canonical` + `sha256` for every vector, so the two
- * implementations are proven byte-identical (AGENTS.md §3.8) rather than assumed.
+ * implementations are proven byte-identical  rather than assumed.
  */
 interface Vector {
   readonly name: string;

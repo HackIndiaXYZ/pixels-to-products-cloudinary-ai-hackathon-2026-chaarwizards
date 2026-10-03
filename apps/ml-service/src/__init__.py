@@ -2,7 +2,7 @@
 
 FastAPI service that turns verified before/after evidence into quantified,
 versioned change metrics. Every number it returns originates from a model
-resolved through ``model_registry`` — never from an LLM (AGENTS.md §3.2) — and
+resolved through ``model_registry`` — never from an LLM  — and
 it refuses to borrow another sector's model (§3.3), returning
 ``{"status": "unsupported"}`` instead.
 """

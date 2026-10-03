@@ -1,16 +1,16 @@
 -- Phase 7 — Pairing & Change Events: change_events lifecycle columns
 --
--- AGENTS.md §8 requires a migration plus a documented reason for any schema
+-- system invariants requires a migration plus a documented reason for any schema
 -- change not already in docs/architecture/DATABASE_SCHEMA.md. This is that
 -- migration, and here is the reason:
 --
 --   The §Change Events DDL in DATABASE_SCHEMA.md ships no `status` column, yet
 --   three documents require a persisted failure state on a change event:
---     * AGENTS.md §3.6  — "Every failure path writes a row or a log with a
+--     * system invariants  — "Every failure path writes a row or a log with a
 --                          reason: change_events.status = 'failed' ..."
---     * BUILD_ORDER Phase 7 "Failure capture" — "status = 'failed' rows with a
+--     * Phase "Failure capture" — "status = 'failed' rows with a
 --                          reason; never a silent drop"
---     * BUILD_ORDER Phase 7 gate — "an ML failure produces a `failed`
+--     * Phase gate — "an ML failure produces a `failed`
 --                          change_event, not a missing row"
 --
 --   A detect-change run that cannot produce a metric (ML unreachable, or the
@@ -19,7 +19,7 @@
 --   and a `failure_reason`. The spec was incomplete, not the design;
 --   DATABASE_SCHEMA.md is updated to match in the same change.
 --
--- WHY model_version STAYS NOT NULL (AGENTS.md §3.2)
+-- WHY model_version STAYS NOT NULL 
 --
 --   Phase 1 made change_events.model_version NOT NULL so a metric can never
 --   lack provenance. A `failed` row carries NO metric (change_metrics = '{}'),
@@ -53,7 +53,7 @@ ALTER TABLE change_events
     OR (status <> 'failed' AND failure_reason IS NULL)
   );
 
--- Idempotency (BUILD_ORDER Phase 7 gate: "Re-running the job over an unchanged
+-- Idempotency (Phase gate: "Re-running the job over an unchanged
 -- window creates no duplicate pairs"). At most one live pair per ordered
 -- (before, after). A split pair is excluded so a subsequent, deliberate re-pair
 -- of the same two assets is still possible. The pairing worker also guards with

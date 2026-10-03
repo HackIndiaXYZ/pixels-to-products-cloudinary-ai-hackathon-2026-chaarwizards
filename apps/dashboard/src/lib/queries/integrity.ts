@@ -58,7 +58,10 @@ export async function countVerificationBuckets(): Promise<DataState<Verification
     VERIFICATIONS.map(async (value) => {
       const assets = table('assets');
       if (assets === null) return { value, count: null as number | null, failed: true };
-      const envelope = await assets.eq('verification', value).countExact();
+      const envelope = await assets
+        .select('*', { count: 'exact', head: true })
+        .eq('verification', value)
+        .countExact();
       return { value, count: envelope.count, failed: envelope.error !== null };
     }),
   );

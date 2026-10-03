@@ -1,15 +1,15 @@
 /**
- * Derivative writer (BUILD_ORDER Phase 5: "Derivative writer").
+ * Derivative writer (Phase: "Derivative writer").
  *
  * `createDerivative(parentAssetId, transformation, kind, isGenerative)` is the
  * ONLY sanctioned way a transformed copy comes into existence. It enforces the
  * two invariants a transform must never break:
  *
- *  - AGENTS.md §3.1 — a transform never mutates the original; it always creates a
+ *  - system invariants — a transform never mutates the original; it always creates a
  *    NEW `asset_derivatives` row carrying `parent_asset_id` and the exact
  *    transformation string, and the outcome is appended to the asset's audit
  *    chain. Originals stay pristine.
- *  - AGENTS.md §3.1 — generative edits are permitted ONLY on report copies. A
+ *  - system invariants — generative edits are permitted ONLY on report copies. A
  *    generative transform whose source is an original (or any non-report
  *    derivative) is rejected, so a gen-AI edit can never be filed against raw
  *    evidence.

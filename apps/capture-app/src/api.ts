@@ -1,12 +1,12 @@
 /**
- * Minimal API client for the capture app (BUILD_ORDER Phase 5 carry-over: wire
+ * Minimal API client for the capture app (Phase carry-over: wire
  * the capture app to the real API). Platform-agnostic and dependency-injected —
  * the base URL, bearer token, and `fetch` are all passed in — so it runs under
  * Node/vitest exactly as it does on device, matching the capture pipeline's
  * ports+fakes pattern.
  *
  * `org_id` and role are NEVER sent by the client. The API resolves them from the
- * verified Supabase JWT (AGENTS.md §3.4); this client only forwards that JWT as
+ * verified Supabase JWT ; this client only forwards that JWT as
  * a bearer token.
  */
 import { ProjectSchema, type Project } from '@panchnama/shared/rn';
@@ -76,11 +76,11 @@ export async function loginWithSupabase(input: LoginInput): Promise<{ token: str
 
 /**
  * Load the caller's projects from `GET /v1/projects`. Throws on a non-2xx
- * response or a malformed row rather than silently degrading (AGENTS.md §3.6).
+ * response or a malformed row rather than silently degrading .
  */
 export async function fetchProjects(input: FetchProjectsInput): Promise<Project[]> {
   if (input.token.length === 0) {
-    throw new Error('fetchProjects requires a session token (AGENTS.md §3.4)');
+    throw new Error('fetchProjects requires a session token ');
   }
   const doFetch = input.fetchFn ?? fetch;
   const response = await doFetch(`${input.baseUrl}/v1/projects`, {

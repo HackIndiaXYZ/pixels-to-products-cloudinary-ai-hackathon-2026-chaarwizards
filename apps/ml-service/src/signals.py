@@ -3,7 +3,7 @@
 
 These are computer-vision signals — colour statistics over the pixels plus the
 object detector's output — tied to the resolved ``model_registry.version``. No
-LLM produces or adjusts any number here (AGENTS.md §3.2), and every result is a
+LLM produces or adjusts any number here , and every result is a
 pure function of the input, so it is deterministic.
 """
 

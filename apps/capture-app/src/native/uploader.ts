@@ -1,12 +1,12 @@
 /**
- * Native adapter: Cloudinary uploader (BUILD_ORDER Phase 4 "Sync engine"; §3.5,
+ * Native adapter: Cloudinary uploader (Phase "Sync engine"; §3.5,
  * §3.9, §3.11). Uploads one queued item's bytes and signed context to Cloudinary
  * through the **unsigned** `verified_capture` preset. No API secret ever reaches
  * the client (§3.5): only the public cloud name and preset name are used, and the
  * preset (server-configured) is what pins `type: authenticated`, allowed formats,
  * and `max_file_size`.
  *
- * Failure mapping is honest (AGENTS.md §3.6): a 2xx with a `public_id` is
+ * Failure mapping is honest : a 2xx with a `public_id` is
  * `confirmed`; a 4xx is a `rejected` outcome carrying Cloudinary's reason (the
  * sync engine persists it and never retries); a 5xx or a thrown network error is
  * an `interrupted` outcome, leaving the item resumable and never `confirmed`.

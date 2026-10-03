@@ -1,8 +1,7 @@
 /**
- * Environment configuration, validated once at boot with Zod (AGENTS.md §4:
- * validate at every trust boundary — the process environment is one).
+ * Environment configuration, validated once at boot with Zod .
  *
- * Every secret named here is server-only (AGENTS.md §3.5): none carries a
+ * Every secret named here is server-only : none carries a
  * `VITE_`/`EXPO_PUBLIC_` prefix, and none is ever returned in a response body or
  * a log line. A missing required variable is a fatal boot error, never a silent
  * default that ships a half-configured service.
@@ -22,18 +21,18 @@ const ConfigSchema = z.object({
   // 🔴 SECRET. HS256 secret used to verify Supabase-issued JWTs LOCALLY
   // (`plugins/auth.ts` → `jwt.verify(token, secret, { algorithms: ['HS256'] })`),
   // so the caller identity in `app.ts` is trusted without a round-trip. Server-only
-  // (AGENTS.md §3.5): it carries no `VITE_`/`EXPO_PUBLIC_` prefix, is never returned
+  // : it carries no `VITE_`/`EXPO_PUBLIC_` prefix, is never returned
   // in a response body, and is redacted from every log line (see `buildApp` redact
   // paths). Sourced from Supabase → Project Settings → API → JWT Secret.
   SUPABASE_JWT_SECRET: z.string().min(1),
 
-  // Cloudinary — media pipeline, never a query DB (AGENTS.md §3.9).
+  // Cloudinary — media pipeline, never a query DB .
   CLOUDINARY_CLOUD_NAME: z.string().min(1),
   CLOUDINARY_API_KEY: z.string().min(1),
   CLOUDINARY_API_SECRET: z.string().min(1),
   CLOUDINARY_UPLOAD_PRESET: z.string().min(1),
 
-  // Internal API -> ML auth. Byte-identical to the ML service (AGENTS.md §3.4).
+  // Internal API -> ML auth. Byte-identical to the ML service .
   INTERNAL_JWT_SECRET: z.string().min(1),
 
   // Infra.

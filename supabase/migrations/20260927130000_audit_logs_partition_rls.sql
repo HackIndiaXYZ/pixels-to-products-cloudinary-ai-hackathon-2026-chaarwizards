@@ -27,7 +27,7 @@
 --   only exercises the intended path cannot see a hole beside it.
 --
 --   Why it matters: audit_logs is the hash-chained evidence backbone
---   (append_audit_log / verify_audit_chain, AGENTS.md §3.8). Readable across
+--   (append_audit_log / verify_audit_chain, system invariants). Readable across
 --   tenants it leaks actor ids and change details. Writable by anyone it lets
 --   an unauthenticated caller rewrite or extend the chain, which is the single
 --   worst outcome for an audit product.
@@ -46,7 +46,7 @@
 -- ---------------------------------------------------------------------------
 
 -- Applies the same posture the parent has: RLS on, one org-scoped SELECT
--- policy, and no INSERT/UPDATE/DELETE policy at all (append-only, AGENTS.md
+-- policy, and no INSERT/UPDATE/DELETE policy at all (append-only, system specifications
 -- §3.8). The parent is deliberately not granted UPDATE, so a partition must
 -- not be either.
 --

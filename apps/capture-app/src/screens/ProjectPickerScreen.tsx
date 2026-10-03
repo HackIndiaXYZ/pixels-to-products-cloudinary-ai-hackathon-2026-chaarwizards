@@ -1,5 +1,5 @@
 /**
- * Project picker screen (BUILD_ORDER Phase 4 "Project picker"). Renders the
+ * Project picker screen (Phase "Project picker"). Renders the
  * hierarchical project tree, resolves each project's observation types (with the
  * two-level inheritance proven by the unit tests), and lets the worker pick a
  * project, observation type, and phase before capturing.

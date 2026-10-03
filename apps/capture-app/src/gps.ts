@@ -1,5 +1,5 @@
 /**
- * GPS capture and accuracy gating (BUILD_ORDER Phase 4 "GPS").
+ * GPS capture and accuracy gating (Phase "GPS").
  *
  * `expo-location` is read at `BestForNavigation`. We record `lat`, `lon`,
  * `accuracy_m`, `altitude_m` and `provider`, and gate on the horizontal accuracy:
@@ -32,7 +32,7 @@ export interface GpsAccuracyEvaluation {
   /** True only when capture must be refused. */
   readonly blocked: boolean;
   readonly accuracy_m: number;
-  /** Human-facing reason, persisted when a capture is blocked (AGENTS.md §3.6). */
+  /** Human-facing reason, persisted when a capture is blocked . */
   readonly message: string;
 }
 
@@ -72,7 +72,7 @@ export function evaluateGpsAccuracy(
   };
 }
 
-/** Integer E7 encoding of a coordinate for the signed payload (AGENTS.md §3.8). */
+/** Integer E7 encoding of a coordinate for the signed payload . */
 export function toE7(degrees: number): number {
   return Math.round(degrees * GPS_COORD_SCALE);
 }

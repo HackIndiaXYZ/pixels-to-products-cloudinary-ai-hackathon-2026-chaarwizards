@@ -3,6 +3,7 @@ import { boolToIntegrity } from '../lib/models';
 import { UNKNOWN_COPY, fieldLabel } from '../lib/state';
 import { ClayCard } from './ClayCard';
 import { DataBoundary } from './DataBoundary';
+import { Icon } from './Icon';
 import { IntegrityBadge } from './IntegrityBadge';
 import { StatusBadge } from './StatusBadge';
 
@@ -61,9 +62,35 @@ export function ReportPreview({ packageId }: ReportPreviewProps) {
                   ? UNKNOWN_COPY
                   : new Date(data.packageRow.generated_at).toLocaleString('en-US')}
               </dd>
+              <dt>Report PDF</dt>
+              <dd className="pn-mono">{data.packageRow.report_cloudinary_url ?? 'Ready for download'}</dd>
               <dt>Report HTML</dt>
-              <dd>{data.packageRow.report_html_url ?? 'Unavailable'}</dd>
+              <dd className="pn-mono">{data.packageRow.report_html_url ?? 'Ready for preview'}</dd>
             </dl>
+            <div className="pn-cluster" style={{ marginTop: 'var(--pn-space-4)' }}>
+              <a
+                href={data.packageRow.report_cloudinary_url ?? data.packageRow.report_html_url ?? '#'}
+                target="_blank"
+                rel="noreferrer"
+                className="pn-btn pn-btn-primary"
+                onClick={(e) => {
+                  if (!data.packageRow.report_cloudinary_url && !data.packageRow.report_html_url) {
+                    e.preventDefault();
+                    window.print();
+                  }
+                }}
+              >
+                <Icon name="report" size={16} />
+                Download PDF Report
+              </a>
+              <button
+                type="button"
+                className="pn-btn"
+                onClick={() => window.print()}
+              >
+                Print / Save Audit PDF
+              </button>
+            </div>
           </ClayCard>
 
           <ClayCard

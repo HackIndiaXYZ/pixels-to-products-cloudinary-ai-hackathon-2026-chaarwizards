@@ -1,6 +1,6 @@
 /**
  * Native adapter: encrypted key/value store over `react-native-mmkv`
- * (BUILD_ORDER Phase 4 "MMKV queue"). Backs the offline capture queue. MMKV is
+ * (Phase "MMKV queue"). Backs the offline capture queue. MMKV is
  * synchronous by design, matching the {@link SecureKeyValueStore} contract, so a
  * queue write cannot be lost to an unawaited promise if the app is killed
  * mid-capture. The instance is encrypted at rest with a key held in the platform

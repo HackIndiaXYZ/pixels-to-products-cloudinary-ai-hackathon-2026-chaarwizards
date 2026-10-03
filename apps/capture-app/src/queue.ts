@@ -1,5 +1,5 @@
 /**
- * Offline capture queue (BUILD_ORDER Phase 4 "MMKV queue" + "Offline UX").
+ * Offline capture queue (Phase "MMKV queue" + "Offline UX").
  *
  * Every capture lands here first and is uploaded later, so the app works fully
  * offline. The queue is persisted through a {@link SecureKeyValueStore} (MMKV,
@@ -12,7 +12,7 @@
  *        │                       │
  *        └───────markRejected────┴──▶ rejected (terminal, carries a reason)
  *
- * Two failure-path invariants (AGENTS.md §3.6, §3.7) are enforced structurally,
+ * Two failure-path invariants  are enforced structurally,
  * not by convention:
  *  - A `rejected` item is terminal and is never handed out again, so the sync
  *    engine cannot retry it forever (an infinite retry is a silent failure with a
@@ -33,7 +33,7 @@ export interface QueueItem {
   readonly attempts: number;
   /** ISO time the most recent attempt began; set *before* the upload (§3.7). */
   readonly uploadStartedAt: string | null;
-  /** Reason persisted when the server rejects the item (AGENTS.md §3.6). */
+  /** Reason persisted when the server rejects the item . */
   readonly rejectionReason: string | null;
   readonly createdAt: string;
   readonly updatedAt: string;

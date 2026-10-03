@@ -2,7 +2,7 @@
  * RFC 8785 — JSON Canonicalization Scheme (JCS).
  *
  * Produces a byte-deterministic serialization of a JSON value so that the same
- * logical value hashes to the same digest in TypeScript and Python (AGENTS.md
+ * logical value hashes to the same digest in TypeScript and Python (system specifications
  * §3.8). The canonical string is what the capture app signs and what the audit
  * hash chain feeds into SHA-256.
  *

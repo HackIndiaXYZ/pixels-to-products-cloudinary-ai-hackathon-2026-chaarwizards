@@ -11,7 +11,7 @@ import { SEARCH_ASSETS_HARD_ROW_CAP, SEARCH_ASSETS_LIMIT_MAX } from '../../types
 import type { AssetMediaRef } from '../media';
 import { failed, ready, readyOrEmpty, undetermined, type DataState } from '../state';
 import { apiFetch, rpc, table } from '../supabase/client';
-import { asRecord, num, parseAsset, parseAssetDerivatives, parseSearchAssets, str, strArray } from './parse';
+import { asRecord, parseAsset, parseAssetDerivatives, parseSearchAssets, str, strArray } from './parse';
 
 export interface EvidenceFilters {
   text: string;
@@ -111,7 +111,7 @@ export function hitHardCap(page: EvidencePage): boolean {
 export async function countAssets(): Promise<DataState<number>> {
   const assets = table('assets');
   if (assets === null) return failed();
-  const envelope = await assets.select('*').countExact();
+  const envelope = await assets.select('*', { count: 'exact', head: true }).countExact();
   if (envelope.error) return failed();
   return envelope.count === null ? undetermined() : ready(envelope.count);
 }
@@ -170,24 +170,38 @@ export async function getObservations(assetId: string): Promise<DataState<Observ
    A client never supplies a `public_id`. It asks by `asset_id` and the API resolves the resource
    under RLS, so the media component takes an `assetId`, not a URL. */
 
-function parseMediaRef(raw: unknown, assetId: string): AssetMediaRef | null {
+function parseMediaRef(raw: unknown, assetId: string, assetType: AssetType): AssetMediaRef | null {
   const record = asRecord(raw);
   if (record === null) return null;
-  const declaredType = str(record.asset_type);
+  const signedDeliveryUrl = str(record.url);
+  if (signedDeliveryUrl === null) return null;
   return {
     assetId,
-    assetType: declaredType === 'video' ? 'video' : 'image',
-    publicId: str(record.public_id),
-    signedDeliveryUrl: str(record.signed_delivery_url),
-    authenticated: record.authenticated === true,
-    width: num(record.width),
-    height: num(record.height),
+    assetType,
+    publicId: null,
+    signedDeliveryUrl,
+    authenticated: true,
+    width: null,
+    height: null,
   };
 }
 
-export async function resolveAssetMedia(assetId: string): Promise<AssetMediaRef | null> {
-  return apiFetch<AssetMediaRef>(`/v1/assets/${encodeURIComponent(assetId)}/media`, (raw) =>
-    parseMediaRef(raw, assetId),
+export async function resolveAssetMedia(
+  assetId: string,
+  assetType?: AssetType,
+): Promise<AssetMediaRef | null> {
+  let resolvedType = assetType;
+  if (resolvedType === undefined) {
+    const asset = await getAsset(assetId);
+    if (asset.status !== 'ready') {
+      throw new Error('Unable to determine the asset type before requesting its media URL.');
+    }
+    resolvedType = asset.data.asset_type;
+  }
+  return apiFetch<AssetMediaRef>(
+    `/v1/assets/${encodeURIComponent(assetId)}/original-url`,
+    (raw) => parseMediaRef(raw, assetId, resolvedType),
+    { method: 'POST', body: {} },
   );
 }
 

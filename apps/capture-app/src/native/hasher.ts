@@ -1,5 +1,5 @@
 /**
- * Native adapter: streaming SHA-256 via `@noble/hashes` (BUILD_ORDER Phase 4
+ * Native adapter: streaming SHA-256 via `@noble/hashes` (Phase
  * "Hashing"). React Native has no `node:crypto`, so the on-device hasher is a
  * pure-JS incremental SHA-256. It is fed bounded chunks by {@link ExpoFileChunkReader}
  * so the whole file is never resident in memory — the "streamed" claim the gate

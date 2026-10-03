@@ -1,5 +1,5 @@
 /**
- * Capture orchestration (BUILD_ORDER Phase 4 "Camera screen").
+ * Capture orchestration (Phase "Camera screen").
  *
  * Ties the capture pipeline together for a single still or video: read + freeze
  * EXIF, stream-hash the bytes, take a GPS fix and gate on accuracy, build and
@@ -8,7 +8,7 @@
  * native module directly — every effect is a port — so the whole flow is driven
  * in tests end-to-end with fakes.
  *
- * The client is untrusted (AGENTS.md §3.4): `org_id` is used only to build the
+ * The client is untrusted : `org_id` is used only to build the
  * Cloudinary `public_id` path; the API re-derives authorization from the signed
  * `project_id`, never from this context. A capture blocked by GPS accuracy is
  * refused with a persisted reason (§3.6), not silently uploaded.

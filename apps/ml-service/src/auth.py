@@ -1,4 +1,4 @@
-"""Internal JWT verification (api-contracts.md §3, AGENTS.md §3.4).
+"""Internal JWT verification (api-contracts.md §3, system invariants).
 
 The Node API mints a short-TTL HS256 token per call carrying ``sub``, ``org_id``
 and ``job_id``; this service verifies it on every request and never accepts a

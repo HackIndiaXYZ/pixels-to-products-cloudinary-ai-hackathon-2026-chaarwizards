@@ -1,6 +1,6 @@
 -- Phase 11 (Hardening) — search index coverage for GET /v1/search.
 --
--- SCHEMA ADDITION beyond DATABASE_SCHEMA.md, documented per AGENTS.md §8:
+-- SCHEMA ADDITION beyond DATABASE_SCHEMA.md, documented per system invariants:
 -- additive, non-destructive, index-only. No table, column, evidence field, RLS
 -- policy, or trigger is touched — these are pure read-path accelerators.
 --

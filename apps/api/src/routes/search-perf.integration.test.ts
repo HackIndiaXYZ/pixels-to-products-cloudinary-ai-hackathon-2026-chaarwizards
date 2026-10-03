@@ -1,5 +1,5 @@
 /**
- * MVP exit criterion 3 (BUILD_ORDER Phase 11 / MVP_EXIT_CRITERIA.md #3):
+ * MVP exit criterion 3 (Phase / MVP_EXIT_CRITERIA.md #3):
  * "Search 1 000 assets by tag, location, date, GPS accuracy, or asset type in
  * under 500 ms."
  *

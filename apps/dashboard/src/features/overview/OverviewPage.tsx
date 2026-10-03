@@ -88,10 +88,7 @@ export function OverviewPage({ onOpenEvidence, onOpenProject }: OverviewPageProp
         </p>
       </ClayCard>
 
-      <div className="pn-split pn-split-wide">
-        <ActivityStream assetId={selected} onSelect={setSelected} />
-        <SystemStatus state={sync} />
-      </div>
+      <SystemStatus state={sync} onSelect={setSelected} />
 
       {selected === null ? null : (
         <>
@@ -103,37 +100,52 @@ export function OverviewPage({ onOpenEvidence, onOpenProject }: OverviewPageProp
   );
 }
 
-function SystemStatus({ state }: { state: ReturnType<typeof useCurrentWorkspace>['sync'] }) {
+function SystemStatus({
+  state,
+  onSelect,
+}: {
+  state: ReturnType<typeof useCurrentWorkspace>['sync'];
+  onSelect: (assetId: string) => void;
+}) {
   return (
-    <ClayCard title="System status" subtitle="sync_state.last_status, per scope.">
-      <DataBoundary
-        state={state}
-        onReady={(rows: SyncHealth[]) =>
-          rows.length === 0 ? (
-            <p className="pn-unknown">No sync_state rows recorded.</p>
+    <ClayCard title="System status" subtitle="Recorded reconciliation runs and append-only audit activity.">
+      <div className="pn-split pn-split-wide">
+        <section className="pn-stack-3" aria-label="Cloudinary reconciliation status">
+          <h3 className="pn-card-title">Cloudinary reconciliation</h3>
+          {state.status === 'empty' ? (
+            <div className="pn-row pn-row-wrap">
+              <StatusBadge label="No runs recorded" tone="unknown" />
+              <span className="pn-evidence-meta">No sync_state row is available for this workspace.</span>
+            </div>
           ) : (
-            <ul className="pn-queue" role="list">
-              {rows.map((row) => (
-                <li key={row.scope} className="pn-row pn-row-wrap">
-                  <span className="pn-evidence-name">{row.scope}</span>
-                  {row.lastStatus === 'ok' ? (
-                    <StatusBadge label="ok" tone="pass" />
-                  ) : row.lastStatus === 'partial' ? (
-                    <StatusBadge label="partial" tone="pending" />
-                  ) : row.lastStatus === 'failed' ? (
-                    <StatusBadge label="failed" tone="fail" />
-                  ) : (
-                    <StatusBadge label="status Unknown" tone="unknown" />
-                  )}
-                  <span className="pn-evidence-meta">
-                    {row.lastRunAt === null ? 'never run' : new Date(row.lastRunAt).toLocaleString('en-US')}
-                  </span>
-                </li>
-              ))}
-            </ul>
-          )
-        }
-      />
+            <DataBoundary
+              state={state}
+              onReady={(rows: SyncHealth[]) => (
+                <ul className="pn-queue" role="list">
+                  {rows.map((row) => (
+                    <li key={row.scope} className="pn-row pn-row-wrap">
+                      <span className="pn-evidence-name">{row.scope}</span>
+                      {row.lastStatus === 'ok' ? (
+                        <StatusBadge label="ok" tone="pass" />
+                      ) : row.lastStatus === 'partial' ? (
+                        <StatusBadge label="partial" tone="pending" />
+                      ) : row.lastStatus === 'failed' ? (
+                        <StatusBadge label="failed" tone="fail" />
+                      ) : (
+                        <StatusBadge label="status unknown" tone="unknown" />
+                      )}
+                      <span className="pn-evidence-meta">
+                        {row.lastRunAt === null ? 'never run' : new Date(row.lastRunAt).toLocaleString('en-US')}
+                      </span>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            />
+          )}
+        </section>
+        <ActivityStream assetId={null} onSelect={onSelect} embedded />
+      </div>
     </ClayCard>
   );
 }

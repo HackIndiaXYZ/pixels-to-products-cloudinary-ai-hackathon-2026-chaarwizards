@@ -1,5 +1,5 @@
 /**
- * Report renderer (BUILD_ORDER Phase 9 "Renderer"): HTML → PDF via Puppeteer,
+ * Report renderer (Phase "Renderer"): HTML → PDF via Puppeteer,
  * plus the Inter font embedding that makes rendering deterministic.
  *
  * Determinism notes (Phase 9 "Determinism"):

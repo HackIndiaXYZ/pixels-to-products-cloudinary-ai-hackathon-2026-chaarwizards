@@ -1,9 +1,9 @@
 /**
- * Session token source for authenticated API calls (BUILD_ORDER Phase 5
+ * Session token source for authenticated API calls (Phase
  * carry-over: wire the capture app to the real API).
  *
  * The API derives `org_id`, `user_id`, and role from the verified Supabase JWT
- * — never from the request body or an env var (AGENTS.md §3.4). This module is
+ * — never from the request body or an env var . This module is
  * the single place the app reads that JWT. A real Supabase login flow (Phase 8)
  * deposits the session token in the platform secure store under {@link SESSION_KEY};
  * this reader hands it to the API client.

@@ -37,7 +37,14 @@ export function EvidenceCard({ model, selected, onSelect }: EvidenceCardProps) {
       aria-label={`Open evidence ${title}`}
     >
       <div className="pn-media-frame" style={{ position: 'relative' }}>
-        <AssetMedia assetId={assetId} maxWidth={640} maxHeight={480} alt={title} ratio="4 / 3" />
+        <AssetMedia
+          assetId={assetId}
+          assetType={model.assetType.state === 'value' ? model.assetType.value : undefined}
+          maxWidth={640}
+          maxHeight={480}
+          alt={title}
+          ratio="4 / 3"
+        />
         <div className="pn-media-overlay">
           <PhaseBadge phase={model.phase.state === 'value' ? model.phase.value : null} />
           <UploadStatusBadge status={model.uploadStatus.state === 'value' ? model.uploadStatus.value : 'pending'} />

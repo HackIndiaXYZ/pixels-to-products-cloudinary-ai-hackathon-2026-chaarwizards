@@ -1,5 +1,5 @@
 /**
- * Streamed SHA-256 over a file's raw bytes (BUILD_ORDER Phase 4 "Hashing").
+ * Streamed SHA-256 over a file's raw bytes (Phase "Hashing").
  *
  * The rule is explicit: **never load the whole file into JS memory.** A 200 MB
  * capture is hashed by pulling bounded chunks from a {@link FileChunkReader} and

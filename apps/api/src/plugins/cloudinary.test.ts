@@ -1,8 +1,4 @@
-/**
- * Phase 5 gate — Cloudinary signing goes through the SDK, never by hand (§3.11),
- * and URL signing grants no expiry (the `v{}` segment is a cache-buster; real
- * expiry lives on the authenticated original's auth_token).
- */
+/** Cloudinary signing uses SDK helpers; Free-plan signed URLs have no expiry. */
 import { describe, expect, it } from 'vitest';
 import { v2 as cloudinary } from 'cloudinary';
 import { createCloudinaryAdapter, isEagerPending } from './cloudinary.js';
@@ -33,15 +29,20 @@ describe('Cloudinary signing is SDK-produced (§3.11)', () => {
   });
 });
 
-describe('URL signing grants no expiry (§3.11)', () => {
+describe('Authenticated originals use SDK signatures without token-based expiry', () => {
   const adapter = createCloudinaryAdapter(config);
 
-  it('an authenticated original carries an auth_token with a real deadline', () => {
-    const { url, expiresAt } = adapter.originalUrl('org/proj/sha', 300);
+  it('an authenticated original has a signed URL and no auth token', () => {
+    const url = adapter.originalUrl('org/proj/sha', 'image');
     expect(url).toContain('/image/authenticated/');
-    // Real expiry is the auth_token, not the version counter.
-    expect(url).toMatch(/__cld_token__|exp=/);
-    expect(expiresAt).toBeGreaterThan(Math.floor(Date.now() / 1000));
+    expect(url).toMatch(/\/s--[^/]+--\//);
+    expect(url).not.toContain('__cld_token__');
+  });
+
+  it('uses the video resource type for authenticated video originals', () => {
+    const url = adapter.originalUrl('org/proj/video', 'video');
+    expect(url).toContain('/video/authenticated/');
+    expect(url).toMatch(/\/s--[^/]+--\//);
   });
 
   it('the v{} segment is a cache-buster, never treated as a deadline', () => {

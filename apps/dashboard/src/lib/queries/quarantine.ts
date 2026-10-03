@@ -10,7 +10,10 @@ const QUARANTINE_FLOOR = '1970-01-01T00:00:00Z';
 export async function countQuarantineAssets(): Promise<DataState<number>> {
   const assets = table('assets');
   if (assets === null) return failed();
-  const envelope = await assets.select('*').gte('quarantined_at', QUARANTINE_FLOOR).countExact();
+  const envelope = await assets
+    .select('*', { count: 'exact', head: true })
+    .gte('quarantined_at', QUARANTINE_FLOOR)
+    .countExact();
   if (envelope.error) return failed();
   return envelope.count === null ? undetermined() : ready(envelope.count);
 }

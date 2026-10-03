@@ -1,5 +1,5 @@
 /**
- * Cloudinary upload webhook ingest (api-contracts.md §2, AGENTS.md §3.4/§3.6).
+ * Cloudinary upload webhook ingest (api-contracts.md §2, system invariants/§3.6).
  *
  * The client is untrusted, so this handler re-verifies everything independently
  * before a row exists:
@@ -74,7 +74,7 @@ const WebhookBodySchema = z.object({
     bytes: z.number().optional(),
     // AI tagging from the upload preset (`categorization`/`detection`). Copied
     // into `observations` at ingest and NEVER queried back from Cloudinary
-    // (AGENTS.md §3.9). Shapes are permissive: Cloudinary's analysis payload is
+    // . Shapes are permissive: Cloudinary's analysis payload is
     // a third-party boundary.
     tags: z.array(z.string()).optional(),
     info: z
@@ -89,7 +89,7 @@ const WebhookBodySchema = z.object({
 export async function registerCloudinaryWebhook(app: FastifyInstance): Promise<void> {
   await app.register(async (instance) => {
     // Capture the raw body: the signature is computed over the exact bytes, so a
-    // re-serialized JSON object would not match (AGENTS.md §3.11).
+    // re-serialized JSON object would not match .
     instance.addContentTypeParser(
       'application/json',
       { parseAs: 'string' },
@@ -198,7 +198,7 @@ export async function registerCloudinaryWebhook(app: FastifyInstance): Promise<v
         } else {
           // Structural fallback: the content-addressed public_id must carry the
           // same sha256 the device committed. Not a byte re-hash, so `unknown`
-          // rather than a false `pass` (AGENTS.md §3.7) when it merely matches.
+          // rather than a false `pass`  when it merely matches.
           const publicIdSha = body.info.public_id.split('/').pop();
           shaState =
             publicIdSha === meta.sha256 && meta.sha256 === ctx.capture_commit_hash

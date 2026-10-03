@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { pairAssets, haversineMeters, type PairingAsset } from './pairing.js';
 
 /**
- * Pure pairing algorithm (BUILD_ORDER Phase 7). These cover the two named gate
+ * Pure pairing algorithm (Phase). These cover the two named gate
  * cases — cross-sector isolation and radius bounding — plus ordering and
  * phase-splitting behaviour.
  */

@@ -205,7 +205,7 @@ Not a transformation parameter, but it appears in the same URL and is easy to ge
 
 | Kind | Upload | URL path segment | Access |
 |------|--------|------------------|--------|
-| Original evidence | `type: authenticated` | `/image/authenticated/` | `auth_token` with a real `exp` |
+| Original evidence | `type: authenticated` | `/image/authenticated/` | SDK-signed URL; no expiry on the Free plan |
 | Derivative / report copy | `type: upload` | `/image/upload/` | Signed URL, CDN-cacheable |
 
 The segment in the delivery URL must match the upload type. Serving an `authenticated` asset

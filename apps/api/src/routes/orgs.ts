@@ -1,5 +1,5 @@
 /**
- * Org provisioning (api-contracts.md §5, AGENTS.md §3.10). There is no public
+ * Org provisioning (api-contracts.md §5, system invariants). There is no public
  * signup: only a `platform_admin` may create an org, and doing so mints a
  * single-use, 72-hour invite for the first `org_admin`. The raw invite token is
  * returned exactly once, in the `invite_url`; only its SHA-256 is stored, so the

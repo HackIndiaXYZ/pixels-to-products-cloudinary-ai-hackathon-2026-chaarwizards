@@ -38,7 +38,7 @@ describe('signCapture / verifyLocalCapture', () => {
   });
 });
 
-describe('resolveSigner (AGENTS.md §8 honesty)', () => {
+describe('resolveSigner ', () => {
   it('prefers the hardware keystore signer, reporting device', () => {
     const keystore = new NodeEd25519Signer('device');
     const fallback = new NodeEd25519Signer('server');

@@ -1,4 +1,4 @@
--- Phase 1 — Test helpers (BUILD_ORDER Phase 1 "Test helper")
+-- Phase 1 — Test helpers (Phase "Test helper")
 --
 -- TEST-ONLY. These live in a dedicated `test_helpers` schema, not `public`, so
 -- they are easy to identify and drop. They give the gate tests a concise way to

@@ -29,7 +29,7 @@ export interface DeliveryOptions {
  *  a URL, and the caller renders `Unavailable`. */
 export function buildDeliveryUrl(ref: AssetMediaRef, options: DeliveryOptions): string | null {
   if (ref.authenticated && ref.signedDeliveryUrl !== null) {
-    return appendSignature(ref.signedDeliveryUrl, options);
+    return ref.signedDeliveryUrl;
   }
   if (ref.publicId === null || cloudName === undefined || cloudName.length === 0) return null;
   const image = new CloudinaryImage(ref.publicId, { cloudName });
@@ -37,13 +37,6 @@ export function buildDeliveryUrl(ref: AssetMediaRef, options: DeliveryOptions): 
     .resize(limitFit().width(options.maxWidth).height(options.maxHeight))
     .quality('auto')
     .toURL();
-}
-
-/** Authenticated originals can only be fetched through a server-signed URL, so the API route
- *  signs the transformation and the client appends nothing but its own width constraint. */
-function appendSignature(signedUrl: string, options: DeliveryOptions): string {
-  const separator = signedUrl.includes('?') ? '&' : '?';
-  return `${signedUrl}${separator}w=${Math.round(options.maxWidth)}&h=${Math.round(options.maxHeight)}`;
 }
 
 /** Intrinsic ratio from the measured dimensions, so a content-bearing image is never forced into

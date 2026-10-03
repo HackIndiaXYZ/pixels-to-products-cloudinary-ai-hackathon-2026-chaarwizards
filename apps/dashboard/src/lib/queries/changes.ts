@@ -86,7 +86,10 @@ export function changeGeoDistance(event: ChangeEvent): number | null {
 export async function countPairedChangeEvents(projectId: string | null): Promise<DataState<number>> {
   const events = table('change_events');
   if (events === null) return failed();
-  let query = events.select('*').notNull('before_asset_id').notNull('after_asset_id');
+  let query = events
+    .select('*', { count: 'exact', head: true })
+    .notNull('before_asset_id')
+    .notNull('after_asset_id');
   if (projectId !== null) query = query.eq('project_id', projectId);
   const envelope = await query.countExact();
   if (envelope.error) return failed();

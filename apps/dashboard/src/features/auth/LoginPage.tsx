@@ -116,16 +116,48 @@ export function LoginPage({ unconfigured }: LoginPageProps) {
 
   return (
     <main className="pn-auth">
-      <section className="pn-auth-card" aria-labelledby="pn-auth-title">
-        <span className="pn-brand-mark" aria-hidden="true">
-          <Icon name="layers" size={16} />
-        </span>
+      <section className="pn-auth-story" aria-label="About Panchnama">
+        <div className="pn-auth-story-brand">
+          <img className="pn-auth-wordmark" src="/panchnama-wordmark.png" alt="Panchnama" />
+        </div>
+        <div className="pn-auth-story-copy">
+          <h2>Field evidence, ready to stand behind.</h2>
+          <p>
+            Bring captured media, integrity checks and project reviews together in one auditable
+            workspace.
+          </p>
+        </div>
+        <ol className="pn-auth-workflow">
+          <li>
+            <span className="pn-auth-step">01</span>
+            <span>
+              <strong>Capture</strong>
+              <span>Record photos, video, location and time in the field.</span>
+            </span>
+          </li>
+          <li>
+            <span className="pn-auth-step">02</span>
+            <span>
+              <strong>Verify</strong>
+              <span>Review hashes, signatures and the audit trail.</span>
+            </span>
+          </li>
+          <li>
+            <span className="pn-auth-step">03</span>
+            <span>
+              <strong>Review</strong>
+              <span>Follow evidence and changes across projects.</span>
+            </span>
+          </li>
+        </ol>
+      </section>
 
+      <section className="pn-auth-card" aria-labelledby="pn-auth-title">
         <h1 className="pn-auth-title" id="pn-auth-title">
           Sign in to Panchnama
         </h1>
         <p className="pn-auth-lede">
-          Media intelligence for land records, imagery and field evidence.
+          Use the account issued by your organisation.
         </p>
 
         {unconfigured ? (

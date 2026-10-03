@@ -7,8 +7,7 @@ fails this test outright, regardless of how plausible it looks.
 
 This is a seeded end-to-end run over fixture pairs through the actual endpoints
 (`/v1/detect-change`, `/v1/detect-change-video`), reusing the synthetic-image
-and injected-keyframe fixtures from ``conftest`` (AGENTS.md Python conventions —
-no new pipeline is invented). The photo path also asserts a diff IMAGE artifact
+and injected-keyframe fixtures from ``conftest`` . The photo path also asserts a diff IMAGE artifact
 is produced and uploaded; the video path asserts per-keyframe change metrics
 (the video "diff") plus an aggregate.
 """

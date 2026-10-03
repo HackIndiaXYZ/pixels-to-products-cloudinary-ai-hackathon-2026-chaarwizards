@@ -33,7 +33,8 @@ export type AuditAction =
   | 'detect'
   | 'package'
   | 'export'
-  | 'verify';
+  | 'verify'
+  | 'demo_seed';
 export type AuditActorType = 'system' | 'user' | 'ml_model' | 'device';
 export type ModelStatus = 'trained' | 'prebuilt' | 'unsupported';
 export type SyncLastStatus = 'ok' | 'partial' | 'failed';

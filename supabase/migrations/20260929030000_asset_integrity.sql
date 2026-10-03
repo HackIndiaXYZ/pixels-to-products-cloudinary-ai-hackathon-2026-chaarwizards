@@ -13,7 +13,7 @@
 --   backs the corrected route.
 --
 --   Two checks (Ed25519 signature, RFC 8785 EXIF hash) cannot run in Postgres
---   (no Ed25519 primitive; JCS differs from jsonb::text — AGENTS.md §3.8), so this
+--   (no Ed25519 primitive; JCS differs from jsonb::text — system invariants), so this
 --   function ALSO projects the exact stored inputs the API needs to re-derive the
 --   signed payload and verify them in Node (services/verification.ts). The API
 --   fills device_signature_verified / exif_hash_verified from those; a `null`

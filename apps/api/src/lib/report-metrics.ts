@@ -1,12 +1,12 @@
 /**
- * Deterministic metric serialization for reports (BUILD_ORDER Phase 9
+ * Deterministic metric serialization for reports (Phase
  * "Determinism"). Numbers are formatted through Decimal.js, never
  * `JSON.stringify` on a float, so binary floating-point drift (`0.1 + 0.2`)
  * cannot change a single byte of the generated artifact between two runs over
  * identical inputs.
  *
  * Every value here originates from a `change_events.change_metrics` object that
- * a versioned CV model already produced (AGENTS.md §3.2). This module only
+ * a versioned CV model already produced . This module only
  * *formats* those numbers for display — it never computes, rounds toward a
  * "nicer" number, or infers a metric.
  */

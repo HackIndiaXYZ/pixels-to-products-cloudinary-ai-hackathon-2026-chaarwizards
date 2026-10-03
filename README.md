@@ -6,19 +6,22 @@
 
 <p align="center">
   <a href="LICENSE.txt"><img src="https://img.shields.io/badge/License-MIT-green.svg" alt="MIT License"></a>
-  <a href="https://panchnama-phi.vercel.app"><img src="https://img.shields.io/badge/Live%20site-panchnama--phi.vercel.app-000000?logo=vercel&logoColor=white" alt="Live site"></a>
+  <a href="https://panchnama-ka-1205.vercel.app"><img src="https://img.shields.io/badge/Live%20Dashboard-panchnama--ka--1205.vercel.app-000000?logo=vercel&logoColor=white" alt="Live site"></a>
+  <a href="https://drive.google.com/drive/folders/1Z2X8ua0fywWcQw9VTVyCJyeQLQK_arGV?usp=sharing"><img src="https://img.shields.io/badge/Capture%20App-4285F4?logo=googledrive&logoColor=white" alt="Capture App"></a>
   <img src="https://img.shields.io/badge/Node-20.x-339933?logo=nodedotjs&logoColor=white" alt="Node 20">
   <img src="https://img.shields.io/badge/Python-3.11-3776AB?logo=python&logoColor=white" alt="Python 3.11">
-  <a href="https://github.com/KA-1205/Panchnama/stargazers"><img src="https://img.shields.io/github/stars/KA-1205/Panchnama?style=social" alt="Stars"></a>
+  <img src="https://img.shields.io/badge/Track-Cloudinary%20Media%20Intelligence-blueviolet" alt="Cloudinary Track">
 </p>
 
 <p align="center">
+  <a href="#-hackathon-track">Track</a> ·
   <a href="#-the-problem">Problem</a> ·
+  <a href="#-how-we-used-cloudinary">Cloudinary</a> ·
   <a href="#-key-features">Features</a> ·
   <a href="#-how-it-works">How it works</a> ·
+  <a href="#-capture-app">Capture app</a> ·
   <a href="#-architecture--system-diagrams">Architecture</a> ·
-  <a href="#-quick-start">Quick start</a> ·
-  <a href="#-project-status">Status</a> ·
+  <a href="#-how-to-test-it">How to test</a> ·
   <a href="#-documentation">Docs</a>
 </p>
 
@@ -26,6 +29,16 @@
 
 > [!NOTE]
 > Panchnama is built for **NGOs, governments, and sustainability organisations** that collect huge volumes of field media but cannot organise, verify, or report on it. It is an **evidence and measurement system**, not a DAM or a stock library. Media is stored on Cloudinary, but the product is the proof around it.
+
+---
+
+## 🏆 Hackathon Track
+
+**Panchnama** is submitted for **HackIndia 2026** under the **Cloudinary Media Intelligence & Analytics Track**.
+
+Panchnama integrates Cloudinary as its core media infrastructure and processing engine, pairing direct authenticated uploads with dynamic SDK transformations, auto-tagging, keyframe extraction, and generative AI derivatives—all bound to an immutable cryptographic hash chain in Postgres.
+
+---
 
 ## 🔍 The problem
 
@@ -39,18 +52,7 @@ An NGO uploads 40,000 field photos from a six-month reforestation programme. Thr
 
 Panchnama closes all three: capture is **signed at the moment of the shutter**, change is **measured by a versioned model**, and every report carries a **hash chain** tying a number to a photograph, a model version, and a timestamp.
 
-## ✨ Key features
-
-| Feature | What it does |
-| --- | --- |
-| **Tamper-proof capture** | Mobile app creates immutable, git-like commits: SHA-256 file hash, Ed25519 device signature (Secure Enclave / Keystore), frozen EXIF, GPS accuracy, and dual timestamps |
-| **Multi-sector intelligence** | One project can hold several observation types (e.g. water cleanup, road construction, mangrove planting), each with its own ML model, GPS clustering radius, and metrics schema |
-| **AI change detection** | Per-type GPS pairing, then ML routing, then quantified metrics (hectares, counts, % change) plus visual diff overlays |
-| **Video support (MVP)** | 30-second clips, auto thumbnails, keyframe extraction, keyframe-based change detection, synchronized diff player |
-| **Audit-ready reports** | Template-based PDF/HTML with an integrity appendix (hash chain, signatures, timestamps, GPS accuracy); verification target is under 5 minutes |
-| **Full traceability** | SHA-256 hash chain in audit logs, EXIF hash verification, caption signatures, GPS accuracy recording |
-
-<details>
+<details open>
 <summary><b>How Panchnama compares to a typical platform</b></summary>
 
 <br>
@@ -64,6 +66,73 @@ Panchnama closes all three: capture is **signed at the moment of the shutter**, 
 | Trust-based evidence | **Audit-ready**: hash chain, signatures, dual timestamps, EXIF freeze |
 
 </details>
+
+---
+
+## ☁️ How We Used Cloudinary
+
+Cloudinary is the **system of record for bytes and transformations** across the Panchnama pipeline.
+
+```mermaid
+flowchart LR
+    A["Capture App (Expo)"] -->|unsigned upload + context| B[Cloudinary]
+    B -->|incoming webhook| C["API (Fastify)"]
+    C -->|verify EXIF & signature| D[("Supabase / Postgres")]
+    B -->|auto-tagging / AI detection| C
+    C -->|eager transforms & derivatives| B
+    B -->|SDK dynamic delivery & diffs| E["Dashboard (React 19)"]
+```
+
+### 1. Direct Upload & Cryptographic Context
+- Field workers capture photos or 30 s video clips on the mobile app.
+- The app computes a raw SHA-256 hash, canonicalizes EXIF (RFC 8785), and signs the payload using an Ed25519 hardware key (Secure Enclave / Keystore).
+- Uploads hit Cloudinary directly using an unsigned upload preset (`verified_capture`) with `type: authenticated` and `overwrite: false`.
+- Integrity claims (signature, GPS, EXIF hash, device clock, NTP skew) are stored in Cloudinary's `context` metadata.
+
+### 2. Original vs. Derivative Asset Architecture
+- **Immutable Originals (`authenticated`)**: Raw evidence photos and videos are stored in Cloudinary `authenticated` mode. Original media is write-once and protected by Postgres `BEFORE DELETE` triggers.
+- **Signed Derivatives (`upload`)**: Transformations (resizing, cropping, formatting, keyframe posters) and generative edits create distinct rows in `asset_derivatives` linked to the parent asset.
+
+### 3. Dynamic SDK URL Generation & Transformations
+- All frontend media URLs are dynamically built using `@cloudinary/url-gen` and the Cloudinary React SDK (`@cloudinary/react`).
+- Strict parameters adhere to Cloudinary specifications:
+  - Responsive delivery: `f_auto`, `q_auto`, `c_limit,w_1920`
+  - Keyframe extraction for video: `so_0`, `eo_30`, `du_30`
+  - Signed private delivery using Node SDK v2 (`cloudinary.url(...)` with short-lived `auth_token`).
+
+### 4. Cloudinary AI Tagging & Categorization
+- Incoming media triggers Cloudinary **Google Tagging** and **OpenImages Categorization**.
+- Webhook notifications copy tags into Postgres `observations` under Row-Level Security (RLS) for fast full-text multi-facet search.
+
+### 5. Generative AI on Report Derivatives
+- Cloudinary Generative Fill (`b_gen_fill`), Remove (`e_gen_remove`), Recolor, and Restore run **exclusively on report derivative assets** (`is_generative = true`).
+
+> [!IMPORTANT]
+> Generative AI runs **only on derivative report copies**, never on source evidence. Originals keep their SHA-256, EXIF hash, and audit chain intact.
+
+### 6. Media Reconciliation Worker
+- A background worker recomputes organization storage usage and detects missing or orphaned assets by cross-referencing Cloudinary storage with Postgres metadata.
+
+---
+
+## ✨ Key features
+
+| Feature | What it does |
+| --- | --- |
+| **Tamper-proof capture** | Mobile app creates immutable, git-like commits: SHA-256 file hash, Ed25519 device signature (Secure Enclave / Keystore), frozen EXIF, GPS accuracy, and dual timestamps |
+| **Multi-sector intelligence** | One project can hold several observation types (e.g. water cleanup, road construction, mangrove planting), each with its own ML model, GPS clustering radius, and metrics schema |
+| **AI change detection** | Per-type GPS pairing, then ML routing, then quantified metrics (hectares, counts, % change) plus visual diff overlays |
+| **Video support (MVP)** | 30-second clips, auto thumbnails, keyframe extraction, keyframe-based change detection, synchronized diff player |
+| **Audit-ready reports** | Template-based PDF/HTML with an integrity appendix (hash chain, signatures, timestamps, GPS accuracy); verification target is under 5 minutes |
+| **Full traceability** | SHA-256 hash chain in audit logs, EXIF hash verification, caption signatures, GPS accuracy recording |
+
+---
+
+## 📲 Capture app
+
+Download the Panchnama capture app from the [Google Drive folder](https://drive.google.com/drive/folders/1Z2X8ua0fywWcQw9VTVyCJyeQLQK_arGV?usp=sharing).
+
+---
 
 ## 🧠 How it works
 
@@ -92,8 +161,7 @@ flowchart LR
 7. **Reports:** Handlebars + Puppeteer produce a self-contained artifact with a `sha256` manifest, so a finalized report renders offline forever.
 8. **Delivery:** the dashboard shows change events, a diff slider, a map, and integrity cards. Original media needs a 5-minute auth token.
 
-> [!IMPORTANT]
-> Generative AI (Cloudinary remove / fill / recolor / restore) runs **only on derivative report assets**, never on source evidence. Originals keep their SHA-256, EXIF hash, and audit chain intact.
+---
 
 ## 📐 Architecture & System Diagrams
 
@@ -165,10 +233,13 @@ State machine detailing transition rules for assets across capture, ingestion, v
 
 </details>
 
+---
 
-## 🚀 Quick start
+## 🧪 How to test it
 
-**Prerequisites**
+Follow these step-by-step instructions to set up and test Panchnama locally.
+
+### Prerequisites
 
 | Tool | Version |
 | --- | --- |
@@ -177,10 +248,10 @@ State machine detailing transition rules for assets across capture, ingestion, v
 | Python | 3.11 |
 | Docker | latest |
 | Supabase CLI | 2.x |
-| Expo CLI | latest |
-| ffmpeg | 8.x |
 
-**1. Clone and install**
+---
+
+### 1. Clone and install
 
 ```bash
 git clone https://github.com/KA-1205/Panchnama.git
@@ -188,294 +259,84 @@ cd Panchnama
 pnpm install
 ```
 
-**2. Create local env files**
+---
+
+### 2. Create local env files
 
 ```bash
 for app in api ml-service capture-app dashboard; do
   cp apps/$app/.env.example apps/$app/.env.local
 done
-# then edit each .env.local with your keys
 ```
-
-> [!WARNING]
-> Required keys include `SUPABASE_URL`, `SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_KEY`, `CLOUDINARY_CLOUD_NAME`, `CLOUDINARY_API_KEY`, `CLOUDINARY_API_SECRET`, and `INTERNAL_JWT_SECRET`. Never commit secrets or expose them in a client bundle.
-
-**3. Start local infrastructure**
-
-```bash
-supabase start       # Postgres, Auth, Realtime, Storage
-supabase db reset    # applies all 20 migrations
-supabase test db     # optional: pgTAP tests (86 assertions)
-```
-
-**4. Run the services**
-
-```bash
-pnpm dev             # all services via Turborepo
-```
-
-<details>
-<summary><b>Run services individually</b></summary>
-
-<br>
-
-```bash
-cd apps/api && pnpm dev                                                    # API (Fastify) on :3001
-cd apps/ml-service && .venv/bin/uvicorn src.main:app --reload --port 8000  # ML service (FastAPI) on :8000
-cd apps/dashboard && pnpm dev                                              # Dashboard (Vite) on :5173
-cd apps/capture-app && pnpm start                                          # Capture app (Expo)
-```
-
-</details>
-
-<details>
-<summary><b>Capture app on a device or emulator</b></summary>
-
-<br>
-
-```bash
-cd apps/capture-app
-pnpm start             # scan the QR code with Expo Go
-pnpm run android       # Android emulator
-pnpm run ios           # iOS simulator (macOS only)
-eas build --platform all   # EAS build for the stores
-```
-
-</details>
 
 > [!TIP]
-> Run `bash scripts/check-secrets.sh` before every commit.
-
-### Common commands
-
-| Task | Command |
-| --- | --- |
-| Run all services | `pnpm dev` |
-| Lint / typecheck | `pnpm lint` / `pnpm typecheck` |
-| Test (coverage included) | `pnpm test` |
-| Build all | `pnpm build` |
-| Format | `pnpm format` |
-| Docs vs. reality check | `cd apps/api && pnpm run check:docs -- --endpoints-only` |
-| Secrets scan | `bash scripts/check-secrets.sh` |
-
-Coverage floors: API 80% branch, ML 70%.
-
-## 🧰 Tech stack
-
-| Layer | Technology | Purpose |
-| --- | --- | --- |
-| **Capture app** | Expo (React Native), `expo-camera`, `react-native-keychain` | Tamper-proof capture, Ed25519 keys in Secure Enclave |
-| **Media core** | Cloudinary | Upload, transformations, AI tagging, video keyframes |
-| **Database** | Supabase (PostgreSQL + PostGIS + RLS) | Assets, audit logs, realtime, auth |
-| **API** | Node.js 20, Fastify, TypeScript, BullMQ | REST, webhooks, verification, workers |
-| **ML service** | Python 3.11, FastAPI, PyTorch, YOLOv8 | Sector-specific change detection, video keyframes |
-| **Dashboard** | React 19, Vite, TanStack Query, MapLibre GL | Search, reports, map, integrity viewer |
-
-![Node.js](https://img.shields.io/badge/Node.js-339933?style=for-the-badge&logo=nodedotjs&logoColor=white)
-![TypeScript](https://img.shields.io/badge/TypeScript-3178C6?style=for-the-badge&logo=typescript&logoColor=white)
-![Fastify](https://img.shields.io/badge/Fastify-000000?style=for-the-badge&logo=fastify&logoColor=white)
-![Python](https://img.shields.io/badge/Python-3776AB?style=for-the-badge&logo=python&logoColor=white)
-![FastAPI](https://img.shields.io/badge/FastAPI-009688?style=for-the-badge&logo=fastapi&logoColor=white)
-![PyTorch](https://img.shields.io/badge/PyTorch-EE4C2C?style=for-the-badge&logo=pytorch&logoColor=white)
-![React](https://img.shields.io/badge/React-20232A?style=for-the-badge&logo=react&logoColor=61DAFB)
-![Vite](https://img.shields.io/badge/Vite-646CFF?style=for-the-badge&logo=vite&logoColor=white)
-![Expo](https://img.shields.io/badge/Expo-000020?style=for-the-badge&logo=expo&logoColor=white)
-![Supabase](https://img.shields.io/badge/Supabase-3FCF8E?style=for-the-badge&logo=supabase&logoColor=white)
-![Cloudinary](https://img.shields.io/badge/Cloudinary-3448C5?style=for-the-badge&logo=cloudinary&logoColor=white)
-![Redis](https://img.shields.io/badge/Redis-DC382D?style=for-the-badge&logo=redis&logoColor=white)
-![Docker](https://img.shields.io/badge/Docker-2496ED?style=for-the-badge&logo=docker&logoColor=white)
-![Turborepo](https://img.shields.io/badge/Turborepo-EF4444?style=for-the-badge&logo=turborepo&logoColor=white)
-![pnpm](https://img.shields.io/badge/pnpm-F69220?style=for-the-badge&logo=pnpm&logoColor=white)
-
-## 📁 Project structure
-
-```text
-Panchnama/
-├── apps/
-│   ├── api/              # Node 20 · Fastify · TypeScript · BullMQ
-│   ├── ml-service/       # Python 3.11 · FastAPI · PyTorch · YOLOv8
-│   ├── capture-app/      # Expo · React Native · expo-camera
-│   └── dashboard/        # React 19 · Vite · TanStack Query · MapLibre
-├── packages/
-│   ├── shared/           # Types, Zod schemas, RFC 8785, signing
-│   └── ui-components/    # Shared React components
-├── docs/                 # Architecture, planning, operations
-├── scripts/              # Helper scripts (e.g. check-secrets.sh)
-├── supabase/migrations/  # 20 numbered migrations
-└── turbo.json            # Turborepo pipeline
-```
-
-## ⚙️ Configuration and ML routing
-
-Each project defines its **observation types**. Each type picks an ML model, a GPS clustering radius, and a phase field.
-
-<details>
-<summary><b>Example <code>projects.config</code></b></summary>
-
-<br>
-
-```json
-{
-  "name": "Restoration of Nature",
-  "sector": "mixed",
-  "config": {
-    "observation_types": [
-      { "type": "ganga_cleanup",     "label": "Ganga Cleanup",     "model": "water",          "gps_radius": 10, "phase_field": "cleanup_phase" },
-      { "type": "road_construction", "label": "Road Construction", "model": "infrastructure", "gps_radius": 5,  "phase_field": "build_phase" },
-      { "type": "mangrove_planting", "label": "Mangrove Planting", "model": "forestry",       "gps_radius": 5,  "phase_field": "planting_phase" }
-    ],
-    "report_template": "integrated_restoration_report",
-    "gps_cluster_radius_default": 5
-  }
-}
-```
-
-Projects can nest through `parent_project_id` (recursive CTE for tree queries). Sub-projects separate teams, permissions, and reports; observation types separate activities and models.
-
-</details>
-
-> [!NOTE]
-> Models resolve from the `model_registry` table. A sector with no trained model returns `unsupported` and is **never** served by another sector's model, because a wrong-sector number in a donor report is a credibility failure.
-
-| Model key | Current status |
-| --- | --- |
-| `forestry` | Registered as `trained`, but a **placeholder: no weights exist yet** |
-| `water` | `unsupported` |
-| `infrastructure` | `unsupported` |
-| `agriculture` | `unsupported` |
-
-## 🔐 Security and integrity
-
-| Threat | Mitigation |
-| --- | --- |
-| EXIF edited before upload | Frozen at capture, hash verified server-side |
-| GPS spoofed | Accuracy and provider recorded, dual timestamps |
-| Caption added after capture | Signed at capture with the device Ed25519 key |
-| File swapped | Content-addressable storage (SHA-256) |
-| Backdated capture | Device and server timestamps both recorded |
-| App tampering | Code signing (Expo EAS) + hardware-backed keys |
-
-- **Immutable hash chain:** `current_hash = SHA256(previous_hash + action + actor + timestamp)` in `audit_logs`.
-- **Verification:** `verify_asset_integrity(asset_id)` returns five checks (EXIF hash, SHA-256 match, caption signature, sync delay, audit chain), each `pass`, `fail`, or `unknown`.
-- **Clock skew:** without a signed NTP offset the check returns `unknown`, never `pass`.
-- **Compliance:** org-scoped Row Level Security on all tables, data minimisation, deletion via `upload_status = 'deleted'`.
-
-<details>
-<summary><b>API endpoints</b></summary>
-
-<br>
-
-| Area | Method and endpoint | Description |
-| --- | --- | --- |
-| Assets | `GET /api/projects/:id/assets` | List with filters: `bbox`, `date_from`, `date_to`, `tags`, `gps_accuracy_max`, `observation_type`, `phase` |
-| Assets | `GET /api/assets/:id/integrity` | Timestamps, GPS accuracy, signature checks |
-| Assets | `GET /api/assets/:id/audit-trail` | Hash chain and transformation history |
-| Projects | `GET /api/projects`, `GET /api/projects/:id`, `POST /api/projects` | List, detail with config, create |
-| Change events | `GET /api/projects/:id/change-events`, `GET /api/change-events/:id` | Before/after pairs with metrics and diff URL |
-| Reports | `POST /api/reports/generate` | Returns `pdf_url`, `html_url`, `social_assets[]` |
-| Reports | `GET /api/report-templates?sector=forestry` | Templates by sector |
-| Search | `GET /api/search` | `q`, `bbox`, `date_from`, `date_to`, `tags`, `gps_accuracy_max`, `asset_type` |
-| Webhooks | `POST /webhooks/cloudinary` | Upload notification, verification, storage |
-
-Full contracts: [docs/architecture/api-contracts.md](docs/architecture/api-contracts.md).
-
-</details>
-
-<details>
-<summary><b>ML service endpoints</b></summary>
-
-<br>
-
-| Endpoint | Purpose |
-| --- | --- |
-| `POST /detect-change` | Before/after image change detection with metrics and diff image |
-| `POST /detect-change-video` | Keyframe-based change detection for video |
-| `POST /classify-activity` | Activity type and phase classification |
-| `POST /extract-signals` | Vegetation index, water presence, machinery, canopy cover, etc. |
-
-</details>
-
-## 📊 Project status
-
-Panchnama core platform is fully implemented across all four services:
-
-- **Capture App (Expo / React Native)**: Hardware-backed Ed25519 signing (Secure Enclave / Keystore), EXIF freezing, offline MMKV commit queue, direct Cloudinary uploads.
-- **API Service (Fastify / Node 20)**: Cloudinary webhook verification, RFC 8785 EXIF re-canonicalization, BullMQ background queues, audit-ready PDF/HTML report generation.
-- **ML Intelligence Service (FastAPI / PyTorch)**: Sector-specific computer vision models (YOLOv8 + ChangeFormer), keyframe extraction, visual diff overlays.
-- **Dashboard (React 19 / Vite)**: MapLibre GL spatial search, before/after diff player, integrity timeline viewer, Supabase RLS data access.
-
-
-## 📚 Documentation
-
-| Document | Description |
-| --- | --- |
-| [ARCHITECTURE.md](docs/architecture/ARCHITECTURE.md) | Component topology, security boundaries, and decision log |
-| [PRD.md](docs/planning/PRD.md) | Product requirements and acceptance criteria |
-| [DATABASE_SCHEMA.md](docs/architecture/DATABASE_SCHEMA.md) | PostgreSQL table DDL, RLS policies, and integrity functions |
-| [API Contracts](docs/architecture/api-contracts.md) | Fastify REST endpoints and ML service interfaces |
-| [Cloudinary Transformations](docs/architecture/CLOUDINARY_TRANSFORMATIONS.md) | Verified Cloudinary parameters for media pipelines |
-| [Frontend Architecture](docs/architecture/FRONTEND_ARCHITECTURE.md) | Capture app and dashboard module layout |
-
-
-## ❓ FAQ
-
-<details>
-<summary><b>Does the capture app work offline?</b></summary>
-
-<br>
-
-Yes. Commits are stored in encrypted MMKV locally and queued for upload. Background sync via `expo-background-fetch` resumes when connectivity returns.
-
-</details>
-
-<details>
-<summary><b>What if GPS accuracy is poor?</b></summary>
-
-<br>
-
-The threshold is configurable (default 10 m). The app shows live accuracy and disables the capture button above the threshold. Accuracy is stored with each asset for downstream filtering.
-
-</details>
-
-<details>
-<summary><b>What if the ML model is wrong?</b></summary>
-
-<br>
-
-Every detection returns a confidence score. Low-confidence events are flagged for human review, the dashboard shows confidence badges, and manual override is possible.
-
-</details>
-
-<details>
-<summary><b>What if Cloudinary goes down?</b></summary>
-
-<br>
-
-The capture app queues locally, and Supabase, Redis, and the API run independently. Cloudinary is only needed for upload, transformation, and delivery, not for auth or data integrity.
-
-</details>
-
-<details>
-<summary><b>Can we add a new sector later?</b></summary>
-
-<br>
-
-Yes. Add a new `SectorModel` class, register it in `SECTOR_MODELS`, and add a project config with the new `observation_type`. No platform code changes are needed.
-
-</details>
-
-## 🤝 Contributing
-
-2. Make sure `pnpm lint`, `pnpm typecheck`, and `pnpm test` pass.
-3. Run `bash scripts/check-secrets.sh` before committing.
-4. Open a pull request; one teammate approval is required.
-
-## 📄 License
-
-This project is licensed under the MIT License. See [LICENSE.txt](LICENSE.txt) for details.
+> Populate `apps/api/.env.local` and `apps/dashboard/.env.local` with your Cloudinary API key/secret and Supabase credentials.
 
 ---
 
-<p align="center">
-  If Panchnama is useful to you, consider giving it a ⭐
-</p>
+### 3. Database migrations & pgTAP tests
+
+Start the local database container, apply all migrations, and run the pgTAP test suite:
+
+```bash
+# Apply all 20 SQL migrations from scratch
+supabase db reset
+
+# Run the 86 pgTAP assertions (RLS isolation, evidence immutability, audit chain)
+supabase test db
+```
+
+---
+
+### 4. Run test suites
+
+```bash
+# Run unit & integration tests for shared, api, capture-app, dashboard
+pnpm test
+
+# Run ML service tests (FastAPI, ONNX inference, canonicalizer)
+cd apps/ml-service
+pip install -r requirements-ml.txt
+pytest
+cd ../..
+```
+
+---
+
+### 5. Launch local services
+
+```bash
+pnpm dev
+```
+
+This launches the stack concurrently:
+- 🌐 **Dashboard**: `http://localhost:5173`
+- ⚡ **API Service**: `http://localhost:3000`
+- 🐍 **ML Service**: `http://localhost:8000`
+
+---
+
+### 6. Test Dashboard Workflows
+
+1. Open `http://localhost:5173` in your browser and sign in.
+2. **Overview**: Inspect project metrics, sync health, and project switcher.
+3. **Evidence Explorer**: Search by Cloudinary AI tags, observation type, or date. Open an asset and click **Verify Integrity** to execute live Ed25519 & RFC 8785 verification.
+4. **Change Events**: Inspect before/after pairs with the diff slider, ML sapling count / area metrics, and model version badges.
+5. **Reports**: Generate a donor report, preview the offline HTML/PDF render, and check the embedded SHA-256 verification appendix.
+
+---
+
+## 📚 Documentation
+
+Comprehensive architecture specifications are maintained under `docs/architecture/`:
+
+- [System Architecture](docs/architecture/ARCHITECTURE.md) — Core system topology & security rules
+- [Database Schema](docs/architecture/DATABASE_SCHEMA.md) — Postgres DDL, RLS policies & immutability triggers
+- [API Contracts](docs/architecture/api-contracts.md) — Fastify REST endpoints & JWT authentication
+- [Cloudinary Transformations](docs/architecture/CLOUDINARY_TRANSFORMATIONS.md) — Verified Cloudinary parameter reference
+- [Frontend Architecture](docs/architecture/FRONTEND_ARCHITECTURE.md) — React 19 SPA & TanStack Query state engine
+- [File Structure](docs/architecture/FILE_STRUCTURE.md) — Monorepo directory map
+
+---
+
+<p align="center">Built for <b>HackIndia 2026</b> · <i>Panchnama Team</i></p>

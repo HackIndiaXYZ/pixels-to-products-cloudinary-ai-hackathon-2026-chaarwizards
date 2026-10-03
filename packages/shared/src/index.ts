@@ -3,7 +3,7 @@
  * Zod schemas, RFC 8785 canonicalization, and the signing payload.
  *
  * Import domain types and schemas from here; never re-declare them in a service
- * (AGENTS.md §4). The canonicalizer and signing payload are the byte-exact
+ * . The canonicalizer and signing payload are the byte-exact
  * contract the capture app, the API, and the ML service all agree on.
  */
 

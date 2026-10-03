@@ -1,7 +1,7 @@
 """RFC 8785 — JSON Canonicalization Scheme (JCS), Python port.
 
 Byte-identical to the TypeScript canonicalizer in ``packages/shared`` so the
-same logical value hashes to the same digest in both languages (AGENTS.md §3.8).
+same logical value hashes to the same digest in both languages .
 The shared conformance vectors live in
 ``packages/shared/fixtures/jcs-cross-language.json`` and are asserted against by
 both implementations.

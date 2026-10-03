@@ -1,5 +1,5 @@
 /**
- * Ed25519 sign/verify primitives (AGENTS.md §3.4, §3.6).
+ * Ed25519 sign/verify primitives .
  *
  * These need `node:crypto`, so they live apart from the pure payload builder in
  * `signing-payload.ts`. This module re-exports the entire payload surface, so
@@ -35,7 +35,7 @@ export function signPayload(input: SigningPayloadInput, privateKey: Ed25519Key):
  *
  * Returns `false` — never throwing — for a tampered payload or a signature made
  * with the wrong key, so a verification failure is a handled outcome and never
- * mistaken for a pass (AGENTS.md §3.6).
+ * mistaken for a pass .
  */
 export function verifyPayload(
   input: SigningPayloadInput,

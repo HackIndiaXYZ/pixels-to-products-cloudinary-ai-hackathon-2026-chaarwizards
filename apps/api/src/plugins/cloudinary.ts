@@ -1,5 +1,5 @@
 /**
- * Cloudinary adapter (AGENTS.md §3.9, §3.11). Cloudinary is a media pipeline,
+ * Cloudinary adapter . Cloudinary is a media pipeline,
  * never a query database — this adapter exposes signature verification, delivery
  * URL signing, and eager derivative creation, all through the official SDK v2
  * helpers. No HMAC is ever hand-rolled, and no Search/`resources_by_*`/`api.list()`
@@ -38,7 +38,7 @@ export interface EagerEntry {
  * the status is `'complete'` (async) or absent altogether (a synchronous eager
  * finished inline). Any other state — `'processing'`, `'pending'`, `'failed'`,
  * or a missing entry — is NOT ready: the caller must record the derivative as
- * pending and never serve that URL yet (AGENTS.md §3.11, §3.6). Verified against
+ * pending and never serve that URL yet . Verified against
  * the live account, which returns `'processing'` for `e_gen_*`.
  */
 export function isEagerPending(eager: EagerEntry | undefined): boolean {
@@ -65,6 +65,9 @@ export function createCloudinaryAdapter(config: Config): CloudinaryPort {
     },
 
     signedDerivativeUrl(publicId, transformation) {
+      if (publicId.startsWith('http://') || publicId.startsWith('https://')) {
+        return publicId;
+      }
       // Derivatives are `type: upload`, signed, no expiry (§3.11). The SDK
       // computes the HMAC-SHA1 signature.
       return cloudinary.url(publicId, {
@@ -77,16 +80,16 @@ export function createCloudinaryAdapter(config: Config): CloudinaryPort {
       });
     },
 
-    originalUrl(publicId, ttlSeconds) {
-      // Evidence assets uploaded via upload presets are stored with type 'upload' (§3.11).
-      const expiresAt = Math.floor(Date.now() / 1000) + ttlSeconds;
-      const url = cloudinary.url(publicId, {
+    originalUrl(publicId, resourceType) {
+      if (publicId.startsWith('http://') || publicId.startsWith('https://')) {
+        return publicId;
+      }
+      return cloudinary.url(publicId, {
         secure: true,
-        resource_type: 'image',
-        type: 'upload',
+        resource_type: resourceType,
+        type: 'authenticated',
         sign_url: true,
       });
-      return { url, expiresAt };
     },
 
     async createEagerDerivative(input: EagerDerivativeInput): Promise<EagerDerivativeResult> {

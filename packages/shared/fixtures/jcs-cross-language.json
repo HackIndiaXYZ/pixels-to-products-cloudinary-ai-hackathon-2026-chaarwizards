@@ -1,5 +1,5 @@
 {
-  "description": "RFC 8785 (JCS) cross-language conformance fixtures. Both the TypeScript canonicalizer in packages/shared and the Python port in apps/ml-service (Phase 6) MUST reproduce canonical and sha256 for every vector byte-for-byte (AGENTS.md 3.8).",
+  "description": "RFC 8785 (JCS) cross-language conformance fixtures. Both the TypeScript canonicalizer in packages/shared and the Python port in apps/ml-service (Phase 6) MUST reproduce canonical and sha256 for every vector byte-for-byte (system specifications 3.8).",
   "spec": "RFC 8785",
   "vectors": [
     {

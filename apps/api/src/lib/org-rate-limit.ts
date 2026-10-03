@@ -1,5 +1,5 @@
 /**
- * Per-org upload rate limiting (BUILD_ORDER Phase 11 "Rate limiting"; gate:
+ * Per-org upload rate limiting (Phase "Rate limiting"; gate:
  * "rate limits are enforced per org").
  *
  * The capture app uploads directly to Cloudinary through an UNSIGNED preset, so

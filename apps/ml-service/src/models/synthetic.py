@@ -1,7 +1,7 @@
 """Deterministic classical-CV baseline used while the forestry weights are NULL.
 
 ``model_registry`` seeds forestry as ``status='trained'`` with ``weights_uri``
-NULL — a trained *placeholder* (see the Phase 1 seed migration). Per AGENTS.md
+NULL — a trained *placeholder* (see the Phase 1 seed migration). Per system specifications
 §3.3 a ``trained`` sector must still return forestry output rather than
 ``unsupported``, so this module provides an honest, fully deterministic
 computer-vision baseline (HSV green-blob sapling counting + grayscale-diff

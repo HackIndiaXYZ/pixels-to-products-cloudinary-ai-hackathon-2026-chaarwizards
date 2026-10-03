@@ -5,7 +5,6 @@ import {
   listModelRegistry,
   registryForSector,
 } from '../lib/queries/changes';
-import { resolveAssetMedia } from '../lib/queries/evidence';
 import { listProjects } from '../lib/queries/projects';
 import { toChangeMetricRows, toModelProvenance, type ChangeDetailModel } from '../lib/models';
 import type { Asset, ChangeEvent, ModelRegistryEntry, Project } from '../types/database';
@@ -45,11 +44,7 @@ async function loadDetail(
   registry: ModelRegistryEntry[],
   projects: Project[],
 ): Promise<DataState<ChangeDetailModel>> {
-  const [pair, beforeMedia, afterMedia] = await Promise.all([
-    getChangeEventAssets(event),
-    event.before_asset_id === null ? Promise.resolve(null) : resolveAssetMedia(event.before_asset_id),
-    event.after_asset_id === null ? Promise.resolve(null) : resolveAssetMedia(event.after_asset_id),
-  ]);
+  const pair = await getChangeEventAssets(event);
   if (pair.status !== 'ready') return pair;
   const [before, after] = pair.data;
   const project = projects.find((entry) => entry.id === event.project_id) ?? null;
@@ -58,8 +53,6 @@ async function loadDetail(
     paired: isPairedChangeEvent(event),
     before,
     after,
-    beforeMedia,
-    afterMedia,
     /* The diff mask is a column on the row the client already read under RLS, so the public id is
        resolved server-side rather than supplied by the request. It is absent for most events. */
     diffPublicId:

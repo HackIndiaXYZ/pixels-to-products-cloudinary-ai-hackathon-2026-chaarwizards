@@ -2,12 +2,12 @@
 -- Source: docs/architecture/DATABASE_SCHEMA.md §Assets + §"New columns required".
 --
 -- SCHEMA ADDITIONS beyond the CREATE TABLE block in DATABASE_SCHEMA.md
--- (documented per AGENTS.md §8 — additive only, no evidence column mutated):
+-- (documented per system invariants — additive only, no evidence column mutated):
 --   * verification / verified_at / quarantined_at / notes
 --     The §Assets DDL block defines only `upload_status`, but the same doc's
---     "Legitimate asset updates" table, AGENTS.md §3.6 (`assets.verification =
+--     "Legitimate asset updates" table, system invariants (`assets.verification =
 --     'failed'`), ARCHITECTURE.md §329 (`verification != 'passed'`) and
---     BUILD_ORDER Phase 1 all reference a `verification` column plus `verified_at`.
+--     Phase all reference a `verification` column plus `verified_at`.
 --     `upload_status` is retained (api-contracts.md returns it) as the coarse
 --     ingest state; `verification` is the three-state integrity result.
 --   * The six "New columns required" fields (upload_started_at,
@@ -66,7 +66,7 @@ CREATE TABLE assets (
   custom_metadata JSONB DEFAULT '{}',
 
   -- Signals harvested ONCE from Cloudinary at ingest, then owned by Postgres.
-  -- Never queried back from Cloudinary (AGENTS.md §3.9).
+  -- Never queried back from Cloudinary .
   phash TEXT,
   dominant_colors TEXT[],
   cloudinary_quality_score FLOAT,
@@ -117,7 +117,7 @@ CREATE POLICY "assets_org_scope" ON assets FOR SELECT
 -- There is deliberately NO insert policy for assets. Uploads are ingested by the
 -- webhook handler through the service role, which bypasses RLS by design. An
 -- earlier draft had WITH CHECK (true), which granted every caller -- anon
--- included -- the right to insert into any org. Never do that (AGENTS.md §3.4).
+-- included -- the right to insert into any org. Never do that .
 --
 -- The webhook derives org_id from the verified signature's org claim, never from
 -- the request body's context field.
@@ -126,7 +126,7 @@ CREATE POLICY "assets_org_scope" ON assets FOR SELECT
 -- REVOKE the table-wide UPDATE first: a column-level REVOKE does not subtract
 -- from a table-level grant, so we must drop the broad grant and re-grant only
 -- the mutable columns. The BEFORE UPDATE trigger below is the real control —
--- it fires for every role, including service_role (AGENTS.md §3.1).
+-- it fires for every role, including service_role .
 REVOKE UPDATE ON assets FROM anon, authenticated;
 GRANT UPDATE (
   caption, caption_signature, caption_language, caption_created_at, caption_verified_at,
@@ -139,7 +139,7 @@ GRANT UPDATE (
 
 -- Evidence immutability trigger. Fires BEFORE UPDATE for EVERY role including
 -- service_role and superusers, which bypass RLS and column grants. This is the
--- authoritative control (AGENTS.md §3.1, DATABASE_SCHEMA.md immutability note).
+-- authoritative control .
 CREATE OR REPLACE FUNCTION assets_prevent_evidence_update() RETURNS trigger
 LANGUAGE plpgsql AS $$
 BEGIN
@@ -178,8 +178,7 @@ CREATE TRIGGER assets_evidence_immutable
   BEFORE UPDATE ON assets
   FOR EACH ROW EXECUTE FUNCTION assets_prevent_evidence_update();
 
--- Source evidence is never DELETEd either (AGENTS.md §3.1: "Never UPDATE or
--- DELETE an original asset row"). RLS has no DELETE policy, so anon/authenticated
+-- Source evidence is never DELETEd either . RLS has no DELETE policy, so anon/authenticated
 -- are already blocked — but service_role and the table owner bypass RLS, and the
 -- immutability story above is authoritative precisely because it fires for those
 -- roles. A BEFORE DELETE trigger closes the matching hole: an original asset row,

@@ -1,6 +1,6 @@
 /**
  * Native adapter: network reachability over `@react-native-community/netinfo`
- * (BUILD_ORDER Phase 4 "Sync engine"). The sync engine uploads only when this
+ * (Phase "Sync engine"). The sync engine uploads only when this
  * reports a reachable connection, so captures made offline stay queued.
  */
 import NetInfo from '@react-native-community/netinfo';

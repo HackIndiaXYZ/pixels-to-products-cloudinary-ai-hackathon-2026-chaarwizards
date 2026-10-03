@@ -167,11 +167,32 @@ describe('Asset list + original-url happy paths (Phase 11 coverage)', () => {
       method: 'POST',
       url: `/v1/assets/${asset.id}/original-url`,
       headers: { authorization: `Bearer ${memberA()}` },
-      payload: { ttl_seconds: 120 },
+      payload: {},
     });
     expect(url.statusCode).toBe(200);
     expect(typeof url.json().data.url).toBe('string');
-    expect(typeof url.json().data.expires_at).toBe('number');
+    expect(url.json().data.expires_at).toBeNull();
+    expect(url.json().data.url).toContain('/image/authenticated/');
+  });
+
+  it('uses the video delivery type for an authenticated video original', async () => {
+    const { app, db } = await harness();
+    const project = db.seedProject({ org_id: ORG_A });
+    const asset = db.seedAsset({
+      org_id: ORG_A,
+      project_id: project.id,
+      asset_type: 'video',
+    });
+
+    const response = await app.inject({
+      method: 'POST',
+      url: `/v1/assets/${asset.id}/original-url`,
+      headers: { authorization: `Bearer ${makeToken({ orgId: ORG_A, role: 'member' })}` },
+      payload: {},
+    });
+
+    expect(response.statusCode).toBe(200);
+    expect(response.json().data.url).toContain('/video/authenticated/');
   });
 });
 

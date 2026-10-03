@@ -1,5 +1,5 @@
 /**
- * Offline queue screen (BUILD_ORDER Phase 4 "Offline UX").
+ * Offline queue screen (Phase "Offline UX").
  * Displays real-time counts (queued / syncing / confirmed / rejected),
  * photo thumbnail previews, location metadata, and item status cards.
  * Reads straight from the MMKV-backed CaptureQueue.

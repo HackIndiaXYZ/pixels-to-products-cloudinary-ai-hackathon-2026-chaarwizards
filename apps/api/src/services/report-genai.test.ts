@@ -4,9 +4,9 @@ import { runReportGenAi } from './report-genai.js';
 import { GENERATIVE_TRANSFORMS } from '../lib/transformations.js';
 
 describe('runReportGenAi (Phase 9 gen-AI job gate)', () => {
-  function setup() {
+  function setup(opts: { generativePending?: boolean } = {}) {
     const db = makeFakeDb();
-    const cloudinary = makeFakeCloudinary({ generativePending: false });
+    const cloudinary = makeFakeCloudinary({ generativePending: opts.generativePending ?? false });
     const project = db.seedProject({ org_id: ORG_A, name: 'P', sector: 'forestry' });
     const asset = db.seedAsset({
       org_id: ORG_A,
@@ -101,5 +101,103 @@ describe('runReportGenAi (Phase 9 gen-AI job gate)', () => {
         },
       ),
     ).rejects.toMatchObject({ statusCode: 422 });
+  });
+
+  it('records a pending derivative as not ready when polling is not configured', async () => {
+    const { db, cloudinary, asset, reportCopy } = setup({ generativePending: true });
+    const outcomes = await runReportGenAi(
+      { cloudinary, derivatives: db.derivatives, assets: db.assets, audit: db.audit },
+      {
+        reportId: 'report-1',
+        orgId: ORG_A,
+        edits: [
+          {
+            parentAssetId: asset.id,
+            sourceDerivativeId: reportCopy.id,
+            transformation: GENERATIVE_TRANSFORMS.landscape_expand,
+            kind: 'report_social',
+          },
+        ],
+      },
+    );
+
+    expect(outcomes).toHaveLength(1);
+    expect(outcomes[0]?.ready).toBe(false);
+  });
+
+  it('polls a pending derivative until it is ready, within the configured attempt bound', async () => {
+    const { db, cloudinary, asset, reportCopy } = setup({ generativePending: true });
+    let pollCount = 0;
+    const outcomes = await runReportGenAi(
+      {
+        cloudinary,
+        derivatives: db.derivatives,
+        assets: db.assets,
+        audit: db.audit,
+        maxPollAttempts: 3,
+        pollReady: async () => {
+          pollCount += 1;
+          return pollCount === 2;
+        },
+      },
+      {
+        reportId: 'report-1',
+        orgId: ORG_A,
+        edits: [
+          {
+            parentAssetId: asset.id,
+            sourceDerivativeId: reportCopy.id,
+            transformation: GENERATIVE_TRANSFORMS.landscape_expand,
+            kind: 'report_social',
+          },
+        ],
+      },
+    );
+
+    expect(pollCount).toBe(2);
+    expect(outcomes[0]?.ready).toBe(true);
+  });
+
+  it('stops polling after the configured attempt bound if the derivative stays pending', async () => {
+    const { db, cloudinary, asset, reportCopy } = setup({ generativePending: true });
+    let pollCount = 0;
+    const outcomes = await runReportGenAi(
+      {
+        cloudinary,
+        derivatives: db.derivatives,
+        assets: db.assets,
+        audit: db.audit,
+        maxPollAttempts: 2,
+        pollReady: async () => {
+          pollCount += 1;
+          return false;
+        },
+      },
+      {
+        reportId: 'report-1',
+        orgId: ORG_A,
+        edits: [
+          {
+            parentAssetId: asset.id,
+            sourceDerivativeId: reportCopy.id,
+            transformation: GENERATIVE_TRANSFORMS.landscape_expand,
+            kind: 'report_social',
+          },
+        ],
+      },
+    );
+
+    expect(pollCount).toBe(2);
+    expect(outcomes[0]?.ready).toBe(false);
+  });
+
+  it('returns no outcomes for a job with no edits', async () => {
+    const { db, cloudinary } = setup();
+    const outcomes = await runReportGenAi(
+      { cloudinary, derivatives: db.derivatives, assets: db.assets, audit: db.audit },
+      { reportId: 'report-1', orgId: ORG_A, edits: [] },
+    );
+
+    expect(outcomes).toEqual([]);
   });
 });

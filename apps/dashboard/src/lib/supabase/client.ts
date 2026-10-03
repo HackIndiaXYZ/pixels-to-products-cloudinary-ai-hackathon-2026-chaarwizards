@@ -56,11 +56,16 @@ export interface CountEnvelope {
   error: PostgrestFailure | null;
 }
 
+export interface ExactCountOptions {
+  count: 'exact';
+  head: true;
+}
+
 /** Awaiting a query yields its envelope, exactly as a real PostgREST builder does. The query layer
  *  reads `data` and `error` off the awaited result, so this must be a thenable rather than a plain
  *  fluent object — otherwise `await` hands back the builder and every read is `undefined`. */
 export interface TableQuery extends PromiseLike<PostgrestEnvelope> {
-  select(columns?: string): TableQuery;
+  select(columns?: string, options?: ExactCountOptions): TableQuery;
   eq(column: string, value: unknown): TableQuery;
   neq(column: string, value: unknown): TableQuery;
   is(column: string, value: null): TableQuery;
@@ -101,31 +106,24 @@ function adapt(builder: unknown): TableQuery {
     const fn = (builder as FluentBuilder)[method];
     return adapt(typeof fn === 'function' ? fn.apply(builder, args) : builder);
   };
-/* PostgREST returns the exact row count in `Content-Range` when `count: 'exact'` is requested.
-      A `head: true` select asks for the count without transferring any rows. A failed count is
-      *resolved* rather than rejected, so the failure has to be read off the settled envelope:
-      returning `error: null` alongside a null count makes a broken query indistinguishable from
-      "the backend returned no exact number", and every `if (envelope.error) return failed()` guard
-      in the query services becomes unreachable. */
-    const countExact = (): Promise<CountEnvelope> => {
-      const select = (builder as FluentBuilder).select;
-      if (typeof select !== 'function') {
-        return Promise.resolve({ count: null, error: { message: 'count is unsupported by this query' } });
-      }
-      const counted = select.apply(builder, ['*', { count: 'exact', head: true }]);
-      return Promise.resolve(counted as PromiseLike<unknown>).then((value): CountEnvelope => {
-        const envelope = toEnvelope(value);
-        if (envelope.error !== null) return { count: null, error: envelope.error };
-        const record = typeof value === 'object' && value !== null ? (value as Record<string, unknown>) : null;
-        const count =
-          record !== null && typeof record.count === 'number' && Number.isFinite(record.count)
-            ? record.count
-            : null;
-        return { count, error: null };
-      });
-    };
+  /* Exact-count options must be applied on the first select. Re-selecting an already selected
+     PostgREST builder drops its count option and resolves with count=null. */
+  const countExact = (): Promise<CountEnvelope> =>
+    Promise.resolve(builder as PromiseLike<unknown>).then((value): CountEnvelope => {
+      const envelope = toEnvelope(value);
+      if (envelope.error !== null) return { count: null, error: envelope.error };
+      const record = typeof value === 'object' && value !== null ? (value as Record<string, unknown>) : null;
+      const count =
+        record !== null && typeof record.count === 'number' && Number.isFinite(record.count)
+          ? record.count
+          : null;
+      return { count, error: null };
+    });
   return {
-    select: (columns) => (columns === undefined ? adapt(builder) : call('select', [columns])),
+    select: (columns, options) =>
+      columns === undefined
+        ? adapt(builder)
+        : call('select', options === undefined ? [columns] : [columns, options]),
     eq: (column, value) => call('eq', [column, value]),
     neq: (column, value) => call('neq', [column, value]),
     is: (column, value) => call('is', [column, value]),
@@ -182,22 +180,47 @@ export function rpc(fn: string, args: Record<string, unknown> = {}): Promise<Pos
    A client never supplies a `public_id`. It asks by `asset_id` and the API resolves the
    resource under RLS, so every media request is an authenticated fetch of a private route. */
 
-const apiBase: string | null = env.VITE_PANCHNAMA_API_BASE ?? null;
+const configuredApiBase = env.VITE_API_URL ?? env.VITE_PANCHNAMA_API_BASE;
+const apiBase: string | null = configuredApiBase?.replace(/\/+$/, '') || null;
 
 export const apiConfigured: boolean = Boolean(apiBase);
 
-export async function apiFetch<T>(path: string, parse: (raw: unknown) => T | null): Promise<T | null> {
-  const base = apiBase;
+export interface ApiFetchOptions {
+  method?: 'GET' | 'POST';
+  body?: unknown;
+}
+
+export async function apiFetch<T>(
+  path: string,
+  parse: (raw: unknown) => T | null,
+  options: ApiFetchOptions = {},
+): Promise<T | null> {
+  const base = import.meta.env.DEV && apiBase !== null ? '/api' : apiBase;
   const supabase = getSupabase();
-  if (!base || !supabase) return null;
+  if (!base) throw new Error('API base URL is not configured.');
+  if (!supabase) throw new Error('Supabase is not configured for authenticated API requests.');
   const session = await supabase.auth.getSession();
   const token = session.data.session?.access_token;
-  if (!token) return null;
+  if (!token) throw new Error('Authentication is required to load protected media.');
+
+  const method = options.method ?? 'GET';
   const response = await fetch(`${base}${path}`, {
-    headers: { authorization: `Bearer ${token}`, accept: 'application/json' },
+    method,
+    headers: {
+      authorization: `Bearer ${token}`,
+      accept: 'application/json',
+      ...(options.body === undefined ? {} : { 'content-type': 'application/json' }),
+    },
+    ...(options.body === undefined ? {} : { body: JSON.stringify(options.body) }),
   });
-  if (!response.ok) return null;
-  return parse(await response.json());
+  if (!response.ok) throw new Error(`API request failed with HTTP ${response.status}.`);
+
+  const raw: unknown = await response.json();
+  const envelope = typeof raw === 'object' && raw !== null ? (raw as Record<string, unknown>) : null;
+  if (envelope === null || !('data' in envelope) || envelope.error !== null) {
+    throw new Error('API returned an invalid success envelope.');
+  }
+  return parse(envelope.data);
 }
 
 /* ── authentication ──────────────────────────────────────────────────────────────

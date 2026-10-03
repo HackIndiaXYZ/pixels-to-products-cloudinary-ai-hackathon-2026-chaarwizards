@@ -3,7 +3,7 @@
  * parsed from the query string, an unset facet is simply omitted so the filters
  * compose, and the query runs through the `search_assets` SQL function — which
  * is SECURITY INVOKER, so `assets` RLS scopes the result to the caller's org
- * (AGENTS.md §3.9). Postgres is the system of record; this never touches the
+ * . Postgres is the system of record; this never touches the
  * Cloudinary Search API, which has no org filter and would leak across tenants.
  *
  * `total_matched` and `facet_counts` are computed over the full match set, not

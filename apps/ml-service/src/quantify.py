@@ -2,7 +2,7 @@
 ``change_events.change_metrics`` (api-contracts.md §3).
 
 Every number here is a pure, deterministic function of model output plus capture
-geometry — no randomness, no LLM (AGENTS.md §3.2). Identical inputs therefore
+geometry — no randomness, no LLM . Identical inputs therefore
 yield byte-identical metrics, which the gate asserts.
 
 Ground area is derived from the **ground sampling distance** (GSD, metres per

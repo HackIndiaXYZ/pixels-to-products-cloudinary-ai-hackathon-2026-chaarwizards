@@ -1,10 +1,10 @@
 /**
- * Report generation orchestration (BUILD_ORDER Phase 9 "Reports").
+ * Report generation orchestration (Phase "Reports").
  *
  * `generateReport` is the synchronous `POST /v1/reports/generate` path. It:
  *
  *  1. resolves the project, template, and selected change events under the
- *     caller's RLS scope (cross-org ids 404, never leak — AGENTS.md §3.4);
+ *     caller's RLS scope (cross-org ids 404, never leak — system invariants);
  *  2. GATES ON VERIFICATION: if any selected asset is not `verified`, it refuses
  *     with a clear, asset-named error (Phase 9 "Gate on verification"; a
  *     quarantined/flagged asset can never reach a donor report — §3.1);
@@ -24,7 +24,7 @@
  *
  * Metrics are NEVER produced or adjusted here — they are copied verbatim from
  * `change_events.change_metrics`, each row already carrying the `model_version`
- * of the CV model that produced it (AGENTS.md §3.2).
+ * of the CV model that produced it .
  */
 import type { Asset, ChangeEvent } from '@panchnama/shared';
 import type { CloudinaryPort, DbPort, QueuePort } from '../ports.js';

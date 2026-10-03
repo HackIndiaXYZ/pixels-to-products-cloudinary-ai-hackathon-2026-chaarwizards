@@ -5,7 +5,7 @@
 --   * GET /v1/assets/:id/verify-chain      (Chain verifier — verifyChain(from,to))
 --   * GET /v1/reports/:id/verification     (Report verification — public receipt)
 --
--- WHY THE VERIFIER LIVES IN SQL (AGENTS.md §3.8)
+-- WHY THE VERIFIER LIVES IN SQL 
 --
 --   The audit hash is over the STORED hashed_at rendered with
 --   to_char(... 'YYYY-MM-DD"T"HH24:MI:SS.US"Z"') — a microsecond UTC format that a
@@ -155,7 +155,7 @@ GRANT  EXECUTE ON FUNCTION verify_audit_chain_range(UUID, BIGINT, BIGINT) TO aut
 --   Returns ONLY hashes, counts, timestamps, and verification verdicts. It never
 --   emits org_id, any user/actor identity, a GPS coordinate, a caption, or a
 --   Cloudinary public_id (public_ids embed the org_id as their first path
---   segment — AGENTS.md §3.4). The receipt is therefore safe to export and share
+--   segment — system invariants). The receipt is therefore safe to export and share
 --   as standalone evidence, while access to it is still gated by RLS
 --   (SECURITY INVOKER): a cross-org report id resolves to no row and the API 404s.
 --

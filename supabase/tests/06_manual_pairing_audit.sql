@@ -1,4 +1,4 @@
--- Phase 7 gate — manual relink appends to the audit chain (BUILD_ORDER §Phase 7,
+-- Phase 7 gate — manual relink appends to the audit chain (architecture specification §Phase 7,
 -- "Deferred to user review": "manual relink appends to the audit chain").
 --
 -- routes/pairs.ts appends to the per-asset hash chain on BOTH manual operations:
@@ -6,7 +6,7 @@
 --   POST /v1/pairs/:id/split -> action 'split' (details.method = 'manual_split')
 -- Both go through the same append_audit_log the ML/ingest paths use, so the
 -- chain must still reproduce from the STORED hashed_at after a manual override,
--- and tampering with a manual row must break verification (AGENTS.md §3.8).
+-- and tampering with a manual row must break verification .
 --
 -- This drives the SQL layer directly (append_audit_log + verify_audit_chain),
 -- the same RPCs plugins/supabase.ts calls, so it exercises the real hash chain
@@ -57,7 +57,7 @@ SELECT is(
 );
 
 -- The manual rows are attributed to a 'user' actor, never to a model — a manual
--- link carries no CV metric (routes/pairs.ts, AGENTS.md §3.2).
+-- link carries no CV metric (routes/pairs.ts, system invariants).
 SELECT is(
   (SELECT actor_type FROM audit_logs
      WHERE asset_id = :'after_a'::uuid AND action = 'pair' LIMIT 1),

@@ -1,5 +1,5 @@
 /**
- * pair-assets worker logic (BUILD_ORDER Phase 7). Loads a project's verified
+ * pair-assets worker logic (Phase). Loads a project's verified
  * assets and its per-observation-type radii, runs the pure pairing algorithm,
  * and enqueues one detect-change job per candidate pair.
  *

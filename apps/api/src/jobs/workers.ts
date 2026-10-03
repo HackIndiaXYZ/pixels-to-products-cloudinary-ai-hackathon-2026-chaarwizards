@@ -1,5 +1,5 @@
 /**
- * Pairing & change-detection worker entrypoint (BUILD_ORDER Phase 7). Starts the
+ * Pairing & change-detection worker entrypoint (Phase). Starts the
  * BullMQ consumers for the `pair-assets` and `detect-change` queues, wiring the
  * real Supabase DB, Cloudinary, ML client, and queue.
  *

@@ -25,10 +25,56 @@ const ACTION_STATUS: Record<string, { label: string; tone: BadgeTone; glyph: Ico
 export interface ActivityStreamProps {
   assetId: string | null;
   onSelect: (assetId: string) => void;
+  embedded?: boolean;
 }
 
-export function ActivityStream({ assetId, onSelect }: ActivityStreamProps) {
+export function ActivityStream({ assetId, onSelect, embedded = false }: ActivityStreamProps) {
   const { feed, source } = useActivityStream(assetId);
+  if (feed.status === 'empty' && embedded === false) return null;
+
+  const content = (
+    <DataBoundary
+      state={feed}
+      emptyTitle={EMPTY_COPY.activity}
+      skeleton={
+        <div className="pn-stack-3" aria-busy="true">
+          <div className="pn-skeleton" />
+          <div className="pn-skeleton" />
+          <div className="pn-skeleton" />
+        </div>
+      }
+      onReady={(data) => (
+        <ul className="pn-activity" role="list">
+          {data.entries.map((entry, index) => (
+            <li key={entry.id.state === 'value' ? entry.id.value : index} className="pn-activity-item">
+              <span aria-hidden="true" style={{ color: 'var(--pn-text-faint)' }}>
+                <Icon name="clock" size={15} />
+              </span>
+              <Entry entry={entry} onSelect={onSelect} />
+            </li>
+          ))}
+        </ul>
+      )}
+    />
+  );
+
+  if (embedded) {
+    return (
+      <section className="pn-stack-3" aria-label="Audit log">
+        <div className="pn-row pn-row-wrap">
+          <h3 className="pn-card-title">Audit log</h3>
+          <span className="pn-chip">
+            <Icon name={source === 'realtime' ? 'check' : 'clock'} size={12} />
+            {source === 'realtime' ? 'Live' : 'Polling'}
+          </span>
+        </div>
+        <p className="pn-card-sub">
+          Append-only <code>audit_logs</code> entries, each with its own <code>hashed_at</code> timestamp.
+        </p>
+        {content}
+      </section>
+    );
+  }
 
   return (
     <ClayCard
@@ -46,42 +92,22 @@ export function ActivityStream({ assetId, onSelect }: ActivityStreamProps) {
         </span>
       }
     >
-      <DataBoundary
-        state={feed}
-        emptyTitle={EMPTY_COPY.activity}
-        skeleton={
-          <div className="pn-stack-3" aria-busy="true">
-            <div className="pn-skeleton" />
-            <div className="pn-skeleton" />
-            <div className="pn-skeleton" />
-          </div>
-        }
-        onReady={(data) => (
-          <ul className="pn-activity" role="list">
-            {data.entries.map((entry, index) => (
-              <li key={entry.id.state === 'value' ? entry.id.value : index} className="pn-activity-item">
-                <span aria-hidden="true" style={{ color: 'var(--pn-text-faint)' }}>
-                  <Icon name="clock" size={15} />
-                </span>
-                <Entry entry={entry} onSelect={onSelect} />
-              </li>
-            ))}
-          </ul>
-        )}
-      />
+      {content}
     </ClayCard>
   );
 }
 
 function Entry({ entry, onSelect }: { entry: ActivityEntryModel; onSelect: (assetId: string) => void }) {
   const action = fieldLabel(entry.action, UNKNOWN_COPY);
+  const isDemoEntry = action === 'demo_seed';
   const status = ACTION_STATUS[action];
   const assetId = entry.assetId.state === 'value' && entry.assetId.value !== null ? entry.assetId.value : null;
 
   return (
     <div className="pn-activity-body">
       <div className="pn-row pn-row-wrap">
-        <span className="pn-evidence-name">{action}</span>
+        <span className="pn-evidence-name">{isDemoEntry ? 'Demo seed' : action}</span>
+        {isDemoEntry ? <StatusBadge label="Demo data" tone="pending" /> : null}
         {status === undefined ? null : <StatusBadge label={status.label} tone={status.tone} glyph={status.glyph} />}
         {entry.actorType.state === 'value' && entry.actorType.value !== null ? (
           <span className="pn-chip">actor {entry.actorType.value}</span>

@@ -72,9 +72,7 @@ function AuthGateScreen({
 }) {
   return (
     <div className="pn-auth-gate" role="status" aria-live="polite">
-      <span className="pn-brand-mark" aria-hidden="true">
-        <Icon name="layers" size={16} />
-      </span>
+      <img className="pn-auth-gate-logo" src="/panchnama-wordmark.png" alt="Panchnama" />
       <h1 className="pn-auth-title">{heading}</h1>
       <p className="pn-auth-gate-text">{body}</p>
       {tone === 'fail' ? (
@@ -110,9 +108,7 @@ function WorkspaceShell() {
   return (
     <div className="pn-shell">
       <div className="pn-brand">
-        <span className="pn-brand-mark" aria-hidden="true">
-          <Icon name="layers" size={16} />
-        </span>
+        <img className="pn-brand-logo" src="/logo.png" alt="" />
         <span>
           <span className="pn-brand-name">Panchnama</span>
           <span className="pn-evidence-meta"> AI · Media intelligence</span>

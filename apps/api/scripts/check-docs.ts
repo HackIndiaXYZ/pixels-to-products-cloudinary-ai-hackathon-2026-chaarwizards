@@ -1,5 +1,5 @@
 /**
- * Doc↔reality gate CLI (BUILD_ORDER Phase 11).
+ * Doc↔reality gate CLI (Phase).
  *
  * Two checks, both direction doc → reality:
  *   1. Endpoints — every `METHOD /path` in api-contracts.md is registered by the
@@ -14,7 +14,7 @@
  *
  * Exit code is non-zero on any drift, so CI fails the build. The pure parsing and
  * diffing live in `src/lib/doc-consistency.ts` and are unit-tested there,
- * including the negative "catches a missing table" case (AGENTS.md §7.1).
+ * including the negative "catches a missing table" case .
  */
 import { readFileSync, readdirSync, statSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';

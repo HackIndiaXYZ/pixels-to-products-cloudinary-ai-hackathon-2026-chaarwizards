@@ -412,7 +412,11 @@ export function parseManifestEntries(raw: unknown): ReportManifestEntry[] {
 
 export function parseAuditLog(raw: unknown): AuditLog | null {
   const record = asRecord(raw);
-  const id = requiredStr(record?.id);
+  const rawId = record?.id;
+  const id =
+    typeof rawId === 'number' && Number.isSafeInteger(rawId)
+      ? String(rawId)
+      : requiredStr(rawId);
   const currentHash = requiredStr(record?.current_hash);
   if (record === null || id === null || currentHash === null) return null;
   return {
@@ -429,6 +433,7 @@ export function parseAuditLog(raw: unknown): AuditLog | null {
       'package',
       'export',
       'verify',
+      'demo_seed',
     ] as const) ?? 'upload',
     actor_type: asEnum(record.actor_type, ['system', 'user', 'ml_model', 'device'] as const) ?? 'system',
     actor_id: str(record.actor_id),

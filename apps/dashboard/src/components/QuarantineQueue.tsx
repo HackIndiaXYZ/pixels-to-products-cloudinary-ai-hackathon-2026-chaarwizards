@@ -16,6 +16,7 @@ export interface QuarantineQueueProps {
  *  "Reason unavailable" whenever nothing actually failed. */
 export function QuarantineQueue({ onSelect }: QuarantineQueueProps) {
   const state = useQuarantineQueue();
+  if (state.status === 'empty') return null;
 
   return (
     <ClayCard
@@ -57,7 +58,7 @@ function QueueItem({ item, onSelect }: { item: QuarantineItemModel; onSelect: (a
     <li className="pn-queue-item">
       <div className="pn-row pn-row-wrap">
         <span style={{ width: 88 }}>
-          <AssetMedia assetId={item.asset.id} maxWidth={176} maxHeight={132} ratio="4 / 3" />
+          <AssetMedia assetId={item.asset.id} assetType={item.asset.asset_type} maxWidth={176} maxHeight={132} ratio="4 / 3" />
         </span>
         <div className="pn-stack-3">
           <span className="pn-evidence-name pn-mono">{item.asset.id}</span>

@@ -1,11 +1,10 @@
 /**
- * Sync engine (BUILD_ORDER Phase 4 "Sync engine").
+ * Sync engine (Phase "Sync engine").
  *
  * Drains the offline {@link CaptureQueue} against the network. In production it
  * is triggered by `@react-native-community/netinfo` reachability changes and
  * `expo-background-fetch`; here the trigger is a port so the drain logic is
- * testable. The engine is resumable and honest about failure (AGENTS.md §3.6,
- * §3.7):
+ * testable. The engine is resumable and honest about failure :
  *  - It uploads only when the network is reachable.
  *  - Each attempt goes through `markSyncing`, which stamps `uploadStartedAt`
  *    before any bytes move.

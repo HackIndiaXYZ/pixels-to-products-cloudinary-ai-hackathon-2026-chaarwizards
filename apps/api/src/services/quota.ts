@@ -1,12 +1,12 @@
 /**
- * Storage-quota enforcement (AGENTS.md: never delete media to stay under cap;
+ * Storage-quota enforcement (system specifications: never delete media to stay under cap;
  * api-contracts.md 507 semantics). An org at or above 100% of `quota_bytes` is
  * over quota and new ingest for it is rejected `507` — media is never purged to
- * recover space, because evidence is immutable (AGENTS.md §3.1).
+ * recover space, because evidence is immutable .
  *
  * The *recomputation* of `bytes_used` is a nightly reconciliation that reads
  * authoritative usage from the Cloudinary Admin API (a permitted use under
- * AGENTS.md §3.9); it lands with the Phase 5 reconciliation job. This module is
+ * system invariants); it lands with the Phase 5 reconciliation job. This module is
  * the synchronous guard that reads the already-reconciled counters.
  */
 import { errors } from '../types.js';

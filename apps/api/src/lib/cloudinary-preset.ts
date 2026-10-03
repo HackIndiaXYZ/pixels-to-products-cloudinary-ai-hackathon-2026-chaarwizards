@@ -1,14 +1,13 @@
 /**
- * `verified_capture` upload preset and evidence retention policy (BUILD_ORDER
+ * `verified_capture` upload preset and evidence retention policy (architecture specification
  * Phase 5: "Preset setup" and "Retention").
  *
- * The capture app uploads through an UNSIGNED preset (AGENTS.md §3.5: the client
- * never holds the API secret). The preset therefore carries the server-side
+ * The capture app uploads through an UNSIGNED preset . The preset therefore carries the server-side
  * guarantees that a client cannot be trusted to set itself:
  *  - `overwrite: false` + `invalidate: false` so a `public_id` (content-addressed
  *    `{org}/{project}/{sha256}`) can never be rewritten to point at other bytes
- *    (ARCHITECTURE.md §3.2, AGENTS.md §3.1 — originals are immutable);
- *  - originals land as `type: authenticated` (delivery is gated by an auth_token);
+ *    (ARCHITECTURE.md §3.2, system invariants — originals are immutable);
+ *  - originals land as `type: authenticated` (delivery requires an SDK-signed URL);
  *  - an `allowed_formats` + `max_file_size` bound;
  *  - AI tagging (`categorization`/`detection`) at ingest so tags are copied into
  *    Postgres `observations`, never queried back from Cloudinary (§3.9);
@@ -47,7 +46,7 @@ export interface UploadPresetDefinition {
 /**
  * Build the `verified_capture` preset definition. `notificationUrl` is the API's
  * `POST /webhooks/cloudinary` endpoint; Cloudinary signs the notification and the
- * API re-verifies that signature (AGENTS.md §3.11).
+ * API re-verifies that signature .
  */
 export function buildUploadPresetDefinition(
   presetName: string,

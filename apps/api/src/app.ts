@@ -5,10 +5,10 @@
  * `FILE_STRUCTURE.md`: auth, db, cloudinary, queue, routes.
  *
  * Cross-cutting guarantees wired here:
- * - a `request_id` on every response and every log line (AGENTS.md §3.6);
+ * - a `request_id` on every response and every log line ;
  * - a single typed error handler that maps {@link HttpError} to the `{data,error}`
  *   envelope and never leaks a stack or a secret;
- * - the caller identity comes only from the verified JWT (AGENTS.md §3.4).
+ * - the caller identity comes only from the verified JWT .
  */
 import Fastify, { type FastifyInstance, type FastifyRequest } from 'fastify';
 import rateLimit from '@fastify/rate-limit';
@@ -42,9 +42,9 @@ export interface AppDeps {
   ml: MlClient;
   /**
    * Fetch the delivered original bytes so the webhook can independently re-hash
-   * them (AGENTS.md §3.4). Injected for testability; defaults to `fetch` in
+   * them . Injected for testability; defaults to `fetch` in
    * production wiring. When absent, the byte re-hash check reports `unknown`
-   * rather than a false `pass` (AGENTS.md §3.7).
+   * rather than a false `pass` .
    */
   fetchBytes?: (url: string) => Promise<Buffer>;
   /**
@@ -64,7 +64,7 @@ export interface AppDeps {
   orgUploadLimiter?: OrgRateLimiter;
   /**
    * Destination for the Pino logger, injected so the Phase 11 gate can capture
-   * emitted output and assert it carries no secret or PII (AGENTS.md §3.5). In
+   * emitted output and assert it carries no secret or PII . In
    * production the logger writes to stdout (Pino's default) when this is unset.
    */
   logStream?: NodeJS.WritableStream;
@@ -88,7 +88,7 @@ export async function buildApp(deps: AppDeps): Promise<FastifyInstance> {
     logger: {
       level: deps.config.LOG_LEVEL,
       // Never let a secret, a bearer token, or a GPS coordinate reach a log line
-      // (AGENTS.md §3.5). This covers the Cloudinary/Supabase secrets, the raw
+      // . This covers the Cloudinary/Supabase secrets, the raw
       // Supabase JWT (carried on `request.auth.jwt`), and the local HS256
       // verification secret, wherever they might be nested in a logged object.
       redact: {
@@ -102,7 +102,7 @@ export async function buildApp(deps: AppDeps): Promise<FastifyInstance> {
           'req.auth.jwt',
           '*.SUPABASE_JWT_SECRET',
           '*.jwt_secret',
-          // GPS is PII: never log a device's coordinates (AGENTS.md §3.5 / §3.7).
+          // GPS is PII: never log a device's coordinates .
           '*.gps_lat',
           '*.gps_lon',
           '*.gps',
@@ -130,6 +130,7 @@ export async function buildApp(deps: AppDeps): Promise<FastifyInstance> {
   const jwks = new JwksCache(
     `${deps.config.SUPABASE_URL.replace(/\/$/, '')}/auth/v1/.well-known/jwks.json`,
   );
+  const dashboardOrigin = new URL(deps.config.DASHBOARD_URL).origin;
 
   // CORS: the dashboard is a browser SPA on a different origin, so it cannot call
   // the API without CORS headers. Lock the allowed origin to the configured
@@ -139,7 +140,7 @@ export async function buildApp(deps: AppDeps): Promise<FastifyInstance> {
     origin: (origin, cb) => {
       if (origin === undefined) return cb(null, true); // non-browser / same-origin
       const allowed =
-        origin === deps.config.DASHBOARD_URL ||
+        origin === dashboardOrigin ||
         (deps.config.NODE_ENV !== 'production' &&
           /^http:\/\/(localhost|127\.0\.0\.1):\d+$/.test(origin));
       cb(null, allowed);

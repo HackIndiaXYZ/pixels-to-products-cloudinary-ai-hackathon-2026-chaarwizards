@@ -1,7 +1,7 @@
 -- Phase 8 (dashboard end-to-end) — search_assets: the query behind GET /v1/search.
 --
 -- Postgres is the system of record; every product read runs here, never against
--- the Cloudinary Search API (AGENTS.md §3.9). This function is SECURITY INVOKER
+-- the Cloudinary Search API . This function is SECURITY INVOKER
 -- (the default), so it runs with the caller's role and the `assets` RLS policy
 -- applies: a caller only ever sees its own org's rows. The API calls it through
 -- the request-scoped client (anon key + the user's JWT), so org isolation is the
@@ -119,7 +119,7 @@ END;
 $$;
 
 COMMENT ON FUNCTION search_assets IS
-  'GET /v1/search backing query. SECURITY INVOKER so assets RLS scopes results to the caller org (AGENTS.md §3.9). Returns a JSONB envelope with the page, full-set total_matched/facet_counts, the 1000-row truncation flag, and an opaque numeric next_cursor offset.';
+  'GET /v1/search backing query. SECURITY INVOKER so assets RLS scopes results to the caller org . Returns a JSONB envelope with the page, full-set total_matched/facet_counts, the 1000-row truncation flag, and an opaque numeric next_cursor offset.';
 
 -- The function is callable by authenticated users; RLS still gates every row it
 -- reads. anon has no business searching.
