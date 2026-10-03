@@ -2,9 +2,7 @@
 
 > **Panchnama** — a written record of inspection, signed by a witness.
 
-**No secret values appear in this file.** It documents variable *names*, exposure rules, and structure so an AI agent can work with the codebase without ever seeing a credential.
-
-Real values: `~/.config/impact-platform/env-secrets.local.txt` (outside all git repos, mode 600).
+**No secret values appear in this file.** It documents environment variable names, exposure rules, and service configuration.
 
 ---
 
@@ -54,11 +52,11 @@ Cloudinary stores media and performs transformations. **Every product read goes 
 - `EXPO_PUBLIC_*` → inlined into the app binary, readable on a jailbroken device
 - **A secret with either prefix is a leaked secret.** Renaming is not a fix.
 
-**`SUPABASE_JWT_SECRET` is required and server-only.** The API verifies Supabase-issued JWTs *locally* with the project's HS256 JWT secret (`apps/api/src/plugins/auth.ts` → `jwt.verify(token, secret, { algorithms: ['HS256'] })`, wired in `apps/api/src/app.ts`), rather than a round-trip to `auth.getUser()`. It is a 🔴 secret: no `VITE_`/`EXPO_PUBLIC_` prefix, never returned in a response, and redacted from logs. Source it from Supabase → Project Settings → API → JWT Secret. (An earlier revision of this doc claimed the variable did not exist; that was wrong — the local-verification design needs it.)
+**`SUPABASE_JWT_SECRET` is required and server-only.** The API verifies Supabase-issued JWTs locally with the project's HS256 JWT secret (`apps/api/src/plugins/auth.ts` → `jwt.verify(token, secret, { algorithms: ['HS256'] })`, wired in `apps/api/src/app.ts`), rather than a round-trip to `auth.getUser()`. It is a 🔴 secret: no `VITE_`/`EXPO_PUBLIC_` prefix, never returned in a response, and redacted from logs. Source it from Supabase → Project Settings → API → JWT Secret.
 
 **`INTERNAL_JWT_SECRET` must be byte-identical** in api and ml-service. They sign and verify the same token; a mismatch makes every API→ML call 401.
 
-**`DASHBOARD_URL`** drives both the CORS origin and generated `invite_url`. Unset in production, every invite link points at `localhost:5173`.
+**`DASHBOARD_URL`** drives both the CORS origin and generated `invite_url`. Set it to the deployed dashboard URL in production.
 
 **`ORG_UPLOAD_RATE_MAX` / `ORG_UPLOAD_RATE_WINDOW_MS`** (Phase 11) bound the per-org
 upload rate on the webhook ingest path (default 600 uploads / 60 000 ms). Keyed on
@@ -77,7 +75,7 @@ with safe defaults, never secrets.
 | `apps/dashboard/.env.local` | 5 | ✓ |
 | `apps/capture-app/.env.local` | 5 | ✓ |
 
-`.gitignore` lines 14–17 cover `.env`, `.env.local`, `.env.*.local`, `.env.production`. Confirmed active via `git check-ignore`, not assumed.
+The repository `.gitignore` covers `.env`, `.env.local`, `.env.*.local`, and `.env.production`. Verify that local files are ignored with `git check-ignore`.
 
 Copy the four files to every clone. They are gitignored by design, so there is no mechanism to sync them.
 
@@ -106,47 +104,25 @@ Rationale: enable what the architecture reads from Cloudinary; skip anything a C
 
 ---
 
-## 5. Supabase
+## 5. Supabase organization membership
 
-Project ref `uypmapvrttnkjnzjlotj` · region should match the Cloudinary account.
+Each user belongs to one organization, so organization membership is stored in the user's server-controlled `app_metadata`; a separate `org_members` table and Custom Access Token Hook are not required.
 
-### ✅ `org_members` — resolved, not a gap
-
-Earlier reviews flagged the missing `org_members` table as a blocker, on the assumption that RLS
-would need a Custom Access Token Hook reading a membership join table. **That assumption is
-withdrawn.** Each user belongs to exactly one org, so no join table is needed.
-
-The design is now:
+Organization membership works as follows:
 
 - `platform_admin` issues an `invite_tokens` row carrying `org_id`, `email`, `role`, `token_hash`, and `expires_at`
 - on redemption the API calls `auth.admin.updateUserById()` to write `org_id` and `role` into the user's `app_metadata`
 - `app_metadata` is server-controlled and not user-writable, so the JWT claim cannot be tampered with
 - RLS reads `auth.jwt() ->> 'org_id'` as specified, with no hook and no membership table
 
-`invite_tokens` DDL, RLS, and the three-condition redemption check are in
-`docs/architecture/DATABASE_SCHEMA.md` §Invite Tokens.
+`invite_tokens` DDL, RLS, and the redemption checks are in
+`docs/architecture/DATABASE_SCHEMA.md` under Invite Tokens.
 
-**Revisit only if** a user ever needs membership in more than one org, or if roles need to differ
-per project rather than per org. Both would require this table and a Custom Access Token Hook.
-
----
-
-## 6. Known state
-
-| # | Blocker | Impact |
-|---|---|---|
-| 1 | `001_core_schema.sql` not applied | 12 of 13 queried tables missing |
-| 2 | Zero auth users | nobody can log in |
-| 3 | Webhook signature check fails open | unsigned POST inserts asset rows |
-| 4 | `canonicalize` has no Python port | cross-language hashing unverified |
-| 5 | 2 test files, both in `packages/shared` | CI `pytest` passes trivially |
-| 6 | `.cursorrules` referenced by `AGENTS.md` but absent | agent may hallucinate its contents |
-| 7 | No model weights | inference untestable |
-| 8 | Mobile Ed25519 unimplemented | `signature_tier` cannot be `'device'` |
+**Revisit this design** if users need membership in multiple organizations or roles that differ by project; those requirements would need a membership table and corresponding authorization design.
 
 ---
 
-## 7. Verification
+## 6. Verification
 
 Run before every commit:
 
@@ -167,7 +143,7 @@ Note: `git grep -E "CLOUDINARY_API_SECRET|service_role"` produces **false positi
 
 ---
 
-## 8. Hard rules for any agent
+## 7. Security invariants
 
 1. Never add `CLOUDINARY_API_SECRET` or `SUPABASE_SERVICE_KEY` to a `VITE_` or `EXPO_PUBLIC_` variable.
 2. Never accept `public_id` from a client. Resolve by `asset_id` under RLS.
@@ -175,4 +151,4 @@ Note: `git grep -E "CLOUDINARY_API_SECRET|service_role"` produces **false positi
 4. Never derive org from a request body. Use verified JWT claims.
 5. Never hand-roll Cloudinary signing. Use SDK v2 and `@cloudinary/url-gen`.
 6. Never report an integrity check as `pass` when it is `unknown`.
-7. Ask before hardcoding any product, legal, quota, retention, or cost decision.
+7. Product, legal, quota, retention, and cost decisions must be explicitly approved before they are hardcoded.
