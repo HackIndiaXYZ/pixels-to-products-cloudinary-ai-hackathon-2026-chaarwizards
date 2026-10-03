@@ -7,6 +7,7 @@
 <p align="center">
   <a href="LICENSE.txt"><img src="https://img.shields.io/badge/License-MIT-green.svg" alt="MIT License"></a>
   <a href="https://panchnama-ka-1205.vercel.app"><img src="https://img.shields.io/badge/Live%20Dashboard-panchnama--ka--1205.vercel.app-000000?logo=vercel&logoColor=white" alt="Live site"></a>
+  <a href="https://drive.google.com/drive/folders/1Z2X8ua0fywWcQw9VTVyCJyeQLQK_arGV?usp=sharing"><img src="https://img.shields.io/badge/Capture%20App-4285F4?logo=googledrive&logoColor=white" alt="Capture App"></a>
   <img src="https://img.shields.io/badge/Node-20.x-339933?logo=nodedotjs&logoColor=white" alt="Node 20">
   <img src="https://img.shields.io/badge/Python-3.11-3776AB?logo=python&logoColor=white" alt="Python 3.11">
   <img src="https://img.shields.io/badge/Track-Cloudinary%20Media%20Intelligence-blueviolet" alt="Cloudinary Track">
@@ -18,6 +19,7 @@
   <a href="#-how-we-used-cloudinary">Cloudinary</a> ·
   <a href="#-key-features">Features</a> ·
   <a href="#-how-it-works">How it works</a> ·
+  <a href="#-capture-app">Capture app</a> ·
   <a href="#-architecture--system-diagrams">Architecture</a> ·
   <a href="#-how-to-test-it">How to test</a> ·
   <a href="#-documentation">Docs</a>
@@ -123,6 +125,12 @@ flowchart LR
 | **Video support (MVP)** | 30-second clips, auto thumbnails, keyframe extraction, keyframe-based change detection, synchronized diff player |
 | **Audit-ready reports** | Template-based PDF/HTML with an integrity appendix (hash chain, signatures, timestamps, GPS accuracy); verification target is under 5 minutes |
 | **Full traceability** | SHA-256 hash chain in audit logs, EXIF hash verification, caption signatures, GPS accuracy recording |
+
+---
+
+## 📲 Capture app
+
+Download the Panchnama capture app from the [Google Drive folder](https://drive.google.com/drive/folders/1Z2X8ua0fywWcQw9VTVyCJyeQLQK_arGV?usp=sharing).
 
 ---
 
