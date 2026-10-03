@@ -120,6 +120,7 @@ export async function performCapture(
     gps_timestamp: capturedAtIso,
     project_id: input.selection.projectId,
     org_id: input.orgId,
+    asset_type: input.assetType,
     observation_type: input.selection.observationType,
     phase: input.selection.phase,
     app_version: input.appVersion,

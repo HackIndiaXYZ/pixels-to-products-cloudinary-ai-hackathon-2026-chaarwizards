@@ -9,7 +9,7 @@
   <a href="https://panchnama-phi.vercel.app"><img src="https://img.shields.io/badge/Live%20site-panchnama--phi.vercel.app-000000?logo=vercel&logoColor=white" alt="Live site"></a>
   <img src="https://img.shields.io/badge/Node-20.x-339933?logo=nodedotjs&logoColor=white" alt="Node 20">
   <img src="https://img.shields.io/badge/Python-3.11-3776AB?logo=python&logoColor=white" alt="Python 3.11">
-  <a href="https://github.com/HackIndiaXYZ/pixels-to-products-cloudinary-ai-hackathon-2026-chaarwizards/stargazers"><img src="https://img.shields.io/github/stars/HackIndiaXYZ/pixels-to-products-cloudinary-ai-hackathon-2026-chaarwizards?style=social" alt="Stars"></a>
+  <a href="https://github.com/KA-1205/Panchnama/stargazers"><img src="https://img.shields.io/github/stars/KA-1205/Panchnama?style=social" alt="Stars"></a>
 </p>
 
 <p align="center">
@@ -183,8 +183,8 @@ State machine detailing transition rules for assets across capture, ingestion, v
 **1. Clone and install**
 
 ```bash
-git clone https://github.com/HackIndiaXYZ/pixels-to-products-cloudinary-ai-hackathon-2026-chaarwizards
-cd pixels-to-products-cloudinary-ai-hackathon-2026-chaarwizards
+git clone https://github.com/KA-1205/Panchnama.git
+cd Panchnama
 pnpm install
 ```
 

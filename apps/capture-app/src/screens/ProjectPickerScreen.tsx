@@ -15,6 +15,7 @@ import {
   type CaptureSelection,
   type ProjectNode,
 } from '../projects.js';
+import { colors } from '../theme.js';
 import type { AssetPhase, Project } from '@panchnama/shared/rn';
 
 interface Props {
@@ -97,7 +98,7 @@ export function ProjectPickerScreen({ projects, onSelected }: Props): JSX.Elemen
                   onPress={() => setObservationType(t.type)}
                 >
                   <Text style={[styles.chipText, t.type === observationType && styles.chipTextActive]}>
-                    🌿 {t.type} ({t.model})
+                    🌿 {t.label ?? t.type} ({t.model})
                   </Text>
                 </Pressable>
               ))
@@ -139,16 +140,16 @@ export function ProjectPickerScreen({ projects, onSelected }: Props): JSX.Elemen
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, padding: 16, backgroundColor: '#020617' },
-  mainTitle: { fontSize: 22, fontWeight: '800', color: '#f8fafc', marginBottom: 2 },
-  subTitle: { fontSize: 13, color: '#94a3b8', marginBottom: 16 },
-  heading: { fontSize: 12, fontWeight: '700', color: '#38bdf8', textTransform: 'uppercase', letterSpacing: 1, marginTop: 14, marginBottom: 8 },
-  muted: { color: '#64748b', fontSize: 12 },
+  container: { flex: 1, padding: 16, backgroundColor: colors.background },
+  mainTitle: { fontSize: 22, fontWeight: '800', color: colors.textPrimary, marginBottom: 2 },
+  subTitle: { fontSize: 13, color: colors.textSecondary, marginBottom: 16 },
+  heading: { fontSize: 12, fontWeight: '700', color: colors.brandPrimary, textTransform: 'uppercase', letterSpacing: 1, marginTop: 14, marginBottom: 8 },
+  muted: { color: colors.textMuted, fontSize: 12 },
   
   card: {
-    backgroundColor: 'rgba(15, 23, 42, 0.8)',
+    backgroundColor: colors.surface,
     borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.08)',
+    borderColor: colors.border,
     padding: 14,
     borderRadius: 14,
     marginBottom: 8,
@@ -156,11 +157,11 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'center',
   },
-  cardActive: { borderColor: '#38bdf8', backgroundColor: 'rgba(15, 23, 42, 0.95)' },
-  cardTitle: { fontSize: 14, fontWeight: '600', color: '#cbd5e1' },
-  cardTitleActive: { color: '#ffffff', fontWeight: '700' },
-  cardOrg: { fontSize: 11, color: '#64748b', marginTop: 2 },
-  checkIcon: { color: '#38bdf8', fontWeight: '800', fontSize: 16 },
+  cardActive: { borderColor: colors.brandPrimary, backgroundColor: colors.softAccent },
+  cardTitle: { fontSize: 14, fontWeight: '600', color: colors.textPrimary },
+  cardTitleActive: { color: colors.textPrimary, fontWeight: '800' },
+  cardOrg: { fontSize: 11, color: colors.textTertiary, marginTop: 2 },
+  checkIcon: { color: colors.brandPrimary, fontWeight: '800', fontSize: 16 },
 
   selectionSection: { marginTop: 8 },
   chipRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginBottom: 4 },
@@ -169,15 +170,15 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
     borderRadius: 20,
     borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.1)',
-    backgroundColor: 'rgba(255, 255, 255, 0.04)',
+    borderColor: colors.border,
+    backgroundColor: colors.elevated,
   },
-  chipActive: { backgroundColor: 'rgba(56, 189, 248, 0.15)', borderColor: '#38bdf8' },
-  chipText: { color: '#94a3b8', fontSize: 12, fontWeight: '500' },
-  chipTextActive: { color: '#38bdf8', fontWeight: '700' },
+  chipActive: { backgroundColor: colors.highlight, borderColor: colors.brandPrimary },
+  chipText: { color: colors.textSecondary, fontSize: 12, fontWeight: '500' },
+  chipTextActive: { color: colors.brandPrimary, fontWeight: '800' },
 
-  confirm: { marginTop: 24, backgroundColor: '#38bdf8', padding: 14, borderRadius: 12 },
-  confirmDisabled: { backgroundColor: 'rgba(255, 255, 255, 0.08)' },
-  confirmText: { color: '#0f172a', textAlign: 'center', fontWeight: '800', fontSize: 14 },
-  confirmTextDisabled: { color: '#475569' },
+  confirm: { marginTop: 24, backgroundColor: colors.brandPrimary, padding: 14, borderRadius: 12 },
+  confirmDisabled: { backgroundColor: colors.muted },
+  confirmText: { color: colors.textInverted, textAlign: 'center', fontWeight: '800', fontSize: 14 },
+  confirmTextDisabled: { color: colors.textMuted },
 });

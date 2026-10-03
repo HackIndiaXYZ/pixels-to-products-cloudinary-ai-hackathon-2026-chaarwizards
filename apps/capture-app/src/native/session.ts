@@ -29,3 +29,9 @@ export async function setSessionToken(jwt: string): Promise<void> {
     keychainAccessible: SecureStore.WHEN_UNLOCKED_THIS_DEVICE_ONLY,
   });
 }
+
+/** Clear the session token from secure store (logout). */
+export async function clearSessionToken(): Promise<void> {
+  await SecureStore.deleteItemAsync(SESSION_KEY);
+}
+

@@ -478,9 +478,16 @@ describe('Phase 11 — logs carry no secret or PII (AGENTS.md §3.5)', () => {
 });
 
 describe('Phase 3 — health', () => {
-  it('liveness is 200 and readiness reports each dependency', async () => {
+  it('liveness is 200 for /health and / and readiness reports each dependency', async () => {
     const h = await harness();
-    expect((await h.app.inject({ method: 'GET', url: '/health' })).statusCode).toBe(200);
+    const resHealth = await h.app.inject({ method: 'GET', url: '/health' });
+    expect(resHealth.statusCode).toBe(200);
+    expect(resHealth.json().data.status).toBe('ok');
+
+    const resRoot = await h.app.inject({ method: 'GET', url: '/' });
+    expect(resRoot.statusCode).toBe(200);
+    expect(resRoot.json().data.status).toBe('ok');
+
     const ready = await h.app.inject({ method: 'GET', url: '/health/ready' });
     expect(ready.statusCode).toBe(200);
     expect(ready.json().data.checks).toEqual({ db: 'ok', redis: 'ok', cloudinary: 'ok' });

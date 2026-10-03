@@ -42,13 +42,12 @@ export class CloudinaryUploader implements Uploader {
     } as unknown as Blob);
     form.append('upload_preset', this.config.uploadPreset);
     form.append('public_id', item.publicId);
-    form.append('context', encodeContext(item.context));
+    const combinedContext: Record<string, string> = { ...item.context };
     const exif = item.metadata['exif'];
     if (exif !== undefined) {
-      // Frozen, allowlisted EXIF only — the server re-canonicalises and re-hashes
-      // it to confirm exif_hash (§3.8). Never the raw editable EXIF.
-      form.append('context', `exif=${JSON.stringify(exif)}`);
+      combinedContext['exif'] = JSON.stringify(exif);
     }
+    form.append('context', encodeContext(combinedContext));
 
     const response = await fetch(endpoint, { method: 'POST', body: form });
 
