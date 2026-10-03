@@ -2,20 +2,64 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Field Intelligence Overview — Panchnama AI</title>
-    <meta name="description" content="Monitor verified field evidence, project activity, and environmental impact across Panchnama projects." />
-    <meta name="author" content="Panchnama AI" />
-    <meta property="og:title" content="Field Intelligence Overview — Panchnama AI" />
-    <meta property="og:description" content="Monitor verified field evidence, project activity, and environmental impact across Panchnama projects." />
-    <meta property="og:type" content="website" />
-    <meta name="twitter:card" content="summary_large_image" />
-    <!-- Google Fonts: preconnect for performance -->
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <meta name="color-scheme" content="light" />
+    <meta name="theme-color" content="#f8f6f2" />
+    <meta
+      name="description"
+      content="Panchnama AI — media intelligence and field verification console. Every figure is read from Postgres under row-level security; nothing is invented."
+    />
+    <title>Panchnama AI · Media intelligence console</title>
+
+    <!-- Favicon: the same layered mark used in the shell. Inline so there is no extra request. -->
+    <link
+      rel="icon"
+      href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23214eca' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M12 3l9 5-9 5-9-5z'/%3E%3Cpath d='M3 13l9 5 9-5'/%3E%3C/svg%3E"
+    />
+
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      rel="stylesheet"
+      href="https://fonts.googleapis.com/css2?family=Sora:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap"
+      media="print"
+      onload="this.media='all'"
+    />
+    <noscript>
+      <link
+        rel="stylesheet"
+        href="https://fonts.googleapis.com/css2?family=Sora:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap"
+      />
+    </noscript>
+
+    <style>
+      /* Painted before the bundle parses so the first frame is already the surface colour.
+         These three values mirror --pn-ground, --pn-text, and --pn-text-faint in tokens.css;
+         keep them in step when the palette changes. */
+      html,
+      body {
+        margin: 0;
+        min-height: 100dvh;
+        background-color: #f8f6f2;
+        color: #1f2229;
+      }
+      #root:empty::before {
+        content: 'Loading the console…';
+        display: block;
+        padding: 3rem;
+        font-family: 'Sora', ui-sans-serif, system-ui, sans-serif;
+        color: #6a6e77;
+      }
+    </style>
   </head>
   <body>
     <div id="root"></div>
+    <noscript>
+      <p style="padding: 2rem; font-family: system-ui, sans-serif">
+        Panchnama AI is an interactive console and needs JavaScript. Nothing on this page reads data
+        without it.
+      </p>
+    </noscript>
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>
