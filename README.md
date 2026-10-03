@@ -1,4 +1,8 @@
-<h1 align="center">Panchnama</h1>
+<p align="center">
+  <a href="https://panchnama-ka-1205.vercel.app"><img src="apps/dashboard/public/panchnama-wordmark.png" alt="Panchnama" width="320"></a>
+</p>
+
+<h1 align="center"></h1>
 
 <p align="center"><i>पंचनामा — a written record of inspection, signed by a witness.</i></p>
 
@@ -18,6 +22,9 @@
   <a href="#-the-problem">Problem</a> ·
   <a href="#-how-we-used-cloudinary">Cloudinary</a> ·
   <a href="#-key-features">Features</a> ·
+  <a href="#-tech-stack">Tech stack</a> ·
+  <a href="#-project-structure">Project structure</a> ·
+  <a href="#-configuration-and-ml-routing">Configuration</a> ·
   <a href="#-how-it-works">How it works</a> ·
   <a href="#-capture-app">Capture app</a> ·
   <a href="#-architecture--system-diagrams">Architecture</a> ·
@@ -125,6 +132,96 @@ flowchart LR
 | **Video support (MVP)** | 30-second clips, auto thumbnails, keyframe extraction, keyframe-based change detection, synchronized diff player |
 | **Audit-ready reports** | Template-based PDF/HTML with an integrity appendix (hash chain, signatures, timestamps, GPS accuracy); verification target is under 5 minutes |
 | **Full traceability** | SHA-256 hash chain in audit logs, EXIF hash verification, caption signatures, GPS accuracy recording |
+
+---
+
+## 🧰 Tech stack
+
+| Layer | Technology | Purpose |
+| --- | --- | --- |
+| **Capture app** | Expo, React Native, `expo-camera`, `expo-location`, `expo-secure-store` | Capture evidence, record GPS, sign and sync commits |
+| **Media platform** | Cloudinary | Secure uploads, transformations, AI tagging, video processing |
+| **Database and auth** | Supabase, PostgreSQL, PostGIS, Row-Level Security | Store evidence metadata, enforce tenant isolation, and authenticate users |
+| **API** | Node.js 20, Fastify, TypeScript, BullMQ | REST API, webhooks, verification, and background jobs |
+| **ML service** | Python 3.11, FastAPI, PyTorch, YOLOv8, ChangeFormer | Sector-specific detection and before/after analysis |
+| **Dashboard** | React 19, Vite, TanStack Query, MapLibre GL | Evidence search, maps, integrity review, and reports |
+| **Workspace** | pnpm, Turborepo, TypeScript | Manage and build the monorepo |
+
+<p>
+  <img src="https://img.shields.io/badge/Node.js-339933?style=for-the-badge&logo=nodedotjs&logoColor=white" alt="Node.js">
+  <img src="https://img.shields.io/badge/TypeScript-3178C6?style=for-the-badge&logo=typescript&logoColor=white" alt="TypeScript">
+  <img src="https://img.shields.io/badge/Fastify-000000?style=for-the-badge&logo=fastify&logoColor=white" alt="Fastify">
+  <img src="https://img.shields.io/badge/Python-3776AB?style=for-the-badge&logo=python&logoColor=white" alt="Python">
+  <img src="https://img.shields.io/badge/FastAPI-009688?style=for-the-badge&logo=fastapi&logoColor=white" alt="FastAPI">
+  <img src="https://img.shields.io/badge/PyTorch-EE4C2C?style=for-the-badge&logo=pytorch&logoColor=white" alt="PyTorch">
+  <img src="https://img.shields.io/badge/React-20232A?style=for-the-badge&logo=react&logoColor=61DAFB" alt="React">
+  <img src="https://img.shields.io/badge/Vite-646CFF?style=for-the-badge&logo=vite&logoColor=white" alt="Vite">
+  <img src="https://img.shields.io/badge/Expo-000020?style=for-the-badge&logo=expo&logoColor=white" alt="Expo">
+  <img src="https://img.shields.io/badge/Supabase-3FCF8E?style=for-the-badge&logo=supabase&logoColor=white" alt="Supabase">
+  <img src="https://img.shields.io/badge/Cloudinary-3448C5?style=for-the-badge&logo=cloudinary&logoColor=white" alt="Cloudinary">
+  <img src="https://img.shields.io/badge/Redis-DC382D?style=for-the-badge&logo=redis&logoColor=white" alt="Redis">
+  <img src="https://img.shields.io/badge/Turborepo-EF4444?style=for-the-badge&logo=turborepo&logoColor=white" alt="Turborepo">
+  <img src="https://img.shields.io/badge/pnpm-F69220?style=for-the-badge&logo=pnpm&logoColor=white" alt="pnpm">
+</p>
+
+## 📁 Project structure
+
+```text
+panchnama/
+├── apps/
+│   ├── api/              # Node.js · Fastify · TypeScript · BullMQ
+│   ├── capture-app/      # Expo · React Native · camera · GPS · signing
+│   ├── dashboard/        # React · Vite · TanStack Query · MapLibre
+│   └── ml-service/       # Python · FastAPI · PyTorch · CV models
+├── packages/
+│   ├── shared/           # Shared types, Zod schemas, canonicalization, signing
+│   └── ui-components/    # Shared React UI components
+├── docs/
+│   ├── architecture/     # System, API, database, and Cloudinary documentation
+│   └── assets/           # Architecture diagrams and illustrations
+├── scripts/              # Repository and demo-data utilities
+├── supabase/
+│   ├── migrations/       # Numbered database migrations
+│   └── tests/            # pgTAP database tests
+├── pnpm-workspace.yaml
+└── turbo.json            # Monorepo task pipeline
+```
+
+## ⚙️ Configuration and ML routing
+
+Each project stores its observation types and model routing in `projects.config`. Every observation type requires a `type`, a `model` key from `model_registry`, and a numeric `gps_radius` (meters). `label` and `phase_field` are optional.
+
+```json
+{
+  "observation_types": [
+    {
+      "type": "mangrove_planting",
+      "label": "Mangrove Planting",
+      "model": "forestry",
+      "gps_radius": 5,
+      "phase_field": "planting_phase"
+    },
+    {
+      "type": "water_extent",
+      "label": "Water Cleanup",
+      "model": "water",
+      "gps_radius": 10
+    }
+  ],
+  "report_template": "default"
+}
+```
+
+The API and database validate the project config. ML models resolve by their registered key and version; an untrained or unsupported model returns `unsupported` rather than falling back to another sector's model. See [model routing and schema details](docs/architecture/DATABASE_SCHEMA.md#model-registry) and the [ML service environment example](apps/ml-service/.env.example).
+
+| Model key | Registry status |
+| --- | --- |
+| `forestry` | `trained` (`v1.0`) |
+| `water` | `trained` (`v1.0`) |
+| `infrastructure` | `unsupported` |
+| `agriculture` | `unsupported` |
+
+Configure local services using the relevant environment examples: [API](apps/api/.env.example), [capture app](apps/capture-app/.env.example), and [ML service](apps/ml-service/.env.example). Keep secrets server-side; only documented public configuration belongs in client app environment variables. See [ENVIRONMENT.md](ENVIRONMENT.md).
 
 ---
 
