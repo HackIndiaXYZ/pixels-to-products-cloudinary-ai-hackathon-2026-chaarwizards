@@ -1,4 +1,4 @@
-import { useActivityStream, type ActivitySource } from '../hooks/useActivityStream';
+import { useActivityStream } from '../hooks/useActivityStream';
 import type { ActivityEntryModel } from '../lib/models';
 import { EMPTY_COPY, UNKNOWN_COPY, fieldLabel } from '../lib/state';
 import { AssetMedia } from './AssetMedia';

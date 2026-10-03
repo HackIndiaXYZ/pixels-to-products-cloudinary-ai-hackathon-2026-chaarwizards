@@ -1,6 +1,7 @@
 import { useMemo, useState } from 'react';
 import { useReports, type ReportWorkspace } from '../hooks/useReports';
-import { EMPTY_COPY } from '../lib/state';
+import { EMPTY_COPY, type DataState } from '../lib/state';
+import type { Asset } from '../types/database';
 import { ClayCard } from './ClayCard';
 import { DataBoundary } from './DataBoundary';
 import { Icon } from './Icon';
@@ -234,12 +235,12 @@ interface ManifestPlanEntry {
 /** The plan is built only from columns that exist: `ordinal`, `role`, the selected asset id, and
  *  `assets.sha256_hash`. `byte_size` is not an `assets` column, so it is left to the server rather
  *  than estimated. */
-function buildManifestPlan(workspace: ReportWorkspace, selected: string[]): ManifestPlanEntry[] {
+function buildManifestPlan(workspace: DataState<ReportWorkspace>, selected: string[]): ManifestPlanEntry[] {
   if (workspace.status !== 'ready') return [];
   const rows = workspace.data.selectableAssets;
   if (rows.status !== 'ready') return [];
   return selected
-    .map((assetId) => rows.data.find((asset) => asset.id === assetId))
+    .map((assetId) => rows.data.find((asset: Asset) => asset.id === assetId))
     .filter((asset): asset is NonNullable<typeof asset> => asset !== undefined)
     .map((asset, index) => ({
       ordinal: index + 1,

@@ -151,10 +151,16 @@ function adapt(builder: unknown): TableQuery {
     /* A PostgREST builder is thenable, so it must be awaited before `toEnvelope` reads `data` and
        `error` off it. Reading the builder itself yields neither, which would report every query as
        a successful empty result instead of surfacing a real failure. */
-    range: (from, to) =>
-      Promise.resolve((builder as FluentBuilder).range(from, to) as PromiseLike<unknown>).then(toEnvelope),
-    maybeSingle: () =>
-      Promise.resolve((builder as FluentBuilder).maybeSingle() as PromiseLike<unknown>).then(toEnvelope),
+    range: (from, to) => {
+      const fn = (builder as FluentBuilder).range;
+      const target = typeof fn === 'function' ? fn.call(builder, from, to) : builder;
+      return Promise.resolve(target as PromiseLike<unknown>).then(toEnvelope);
+    },
+    maybeSingle: () => {
+      const fn = (builder as FluentBuilder).maybeSingle;
+      const target = typeof fn === 'function' ? fn.call(builder) : builder;
+      return Promise.resolve(target as PromiseLike<unknown>).then(toEnvelope);
+    },
     countExact,
   };
 }

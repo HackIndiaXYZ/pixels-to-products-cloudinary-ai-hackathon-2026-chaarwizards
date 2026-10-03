@@ -87,7 +87,7 @@ export function ReportPreview({ packageId }: ReportPreviewProps) {
                   </thead>
                   <tbody>
                     {data.rows.map((row) => (
-                      <tr key={`${row.ordinal.state === 'value' ? row.ordinal.value : 'row'}-${row.publicId.value}`}>
+                      <tr key={`${row.ordinal.state === 'value' ? row.ordinal.value : 'row'}-${fieldLabel(row.publicId, 'id')}`}>
                         <td className="pn-mono">
                           {row.ordinal.state === 'value' ? row.ordinal.value : UNKNOWN_COPY}
                         </td>

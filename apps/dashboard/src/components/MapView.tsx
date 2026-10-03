@@ -203,7 +203,7 @@ export function MapView({ evidence, projects, selectedAssetId, onSelect, onOpenP
     });
     /* `attachLayers` runs again after every `setStyle`. Without this, the layer-scoped handler would
        be registered a second time on the same map and fire `onSelect` twice per click. */
-    instance.off('click', 'evidence-points');
+    (instance as any).off('click', 'evidence-points');
     instance.on('click', 'evidence-points', (event) => {
       const feature = event.features === undefined ? undefined : event.features[0];
       const id = feature?.properties?.assetId;

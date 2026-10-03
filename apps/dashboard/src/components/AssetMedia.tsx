@@ -47,7 +47,7 @@ export function AssetMedia({ assetId, maxWidth = 960, maxHeight = 720, alt, rati
       </div>
     );
   }
-  if (state.status === 'unknown' || state.data === null) {
+  if (state.status !== 'ready' || state.data === null) {
     return (
       <div className="pn-media-frame" style={frameStyle}>
         <span className="pn-unknown pn-media-frame-caption">{UNAVAILABLE_COPY}</span>

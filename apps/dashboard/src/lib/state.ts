@@ -58,7 +58,7 @@ export function ready<T>(data: T): DataState<T> {
 
 /** The single rule every service and hook uses: a list with no rows is `empty`, never `ready([])`. */
 export function readyOrEmpty<T>(rows: readonly T[], reason?: string): DataState<T[]> {
-  return rows.length === 0 ? empty(reason) : ready(rows);
+  return rows.length === 0 ? empty(reason) : ready([...rows]);
 }
 
 export function isReady<T>(state: DataState<T>): state is { status: 'ready'; data: T } {

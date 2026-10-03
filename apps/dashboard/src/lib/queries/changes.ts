@@ -62,8 +62,10 @@ export async function listPairingCandidates(projectId: string): Promise<DataStat
     const fallback = await assets.select('*').eq('project_id', projectId).order('device_capture_timestamp', true);
     if (fallback.error) return failed();
     const rows = parseAssets(fallback.data);
-    if (rows.length < 2) return readyOrEmpty<PairingCandidate>([]);
-    return ready<PairingCandidate[]>([{ projectId, before: rows[0], after: rows[1] }]);
+    const before = rows[0];
+    const after = rows[1];
+    if (before === undefined || after === undefined) return readyOrEmpty<PairingCandidate>([]);
+    return ready<PairingCandidate[]>([{ projectId, before, after }]);
   }
   return ready<PairingCandidate[]>(pairs);
 }

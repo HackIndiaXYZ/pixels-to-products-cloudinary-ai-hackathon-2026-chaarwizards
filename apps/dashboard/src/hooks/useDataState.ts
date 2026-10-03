@@ -1,5 +1,5 @@
 import type { UseQueryResult } from '@tanstack/react-query';
-import { failed, loading, ready, type DataState } from '../lib/state';
+import { failed, loading, type DataState } from '../lib/state';
 
 /** The single bridge from a TanStack Query result to the `DataState<T>` seam.
  *
