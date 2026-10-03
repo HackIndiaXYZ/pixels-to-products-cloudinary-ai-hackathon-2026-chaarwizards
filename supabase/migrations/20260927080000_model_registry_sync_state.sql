@@ -1,6 +1,6 @@
 -- Phase 1 — Model Registry & Sync State
 --
--- model_registry: source of every metric-producing model (AGENTS.md §3.2/§3.3).
+-- model_registry: source of every metric-producing model .
 -- Columns per ARCHITECTURE.md §3.4 and docs/planning/FINE_TUNING_STRATEGY.md:
 --   key, version, sector, weights_uri, status (trained|prebuilt|unsupported), metrics.
 -- The ML service resolves observation_type.model -> a row here; status != 'trained'
@@ -17,7 +17,7 @@ CREATE TABLE model_registry (
 );
 
 -- Platform-wide reference data, not org-scoped. A SELECT policy with USING(true)
--- is read-only and safe; the prohibition in AGENTS.md §3.4 is on WITH CHECK(true)
+-- is read-only and safe; the prohibition in system invariants is on WITH CHECK(true)
 -- for writes. No INSERT/UPDATE policy: the registry is curated via the service
 -- role by a platform_admin.
 ALTER TABLE model_registry ENABLE ROW LEVEL SECURITY;
@@ -26,7 +26,7 @@ CREATE POLICY "model_registry_read" ON model_registry FOR SELECT
   USING (true);
 
 
--- sync_state: SCHEMA ADDITION documented per AGENTS.md §8. BUILD_ORDER Phase 1
+-- sync_state: SCHEMA ADDITION documented per system invariants Phase
 -- lists sync_state among the tables to create, but DATABASE_SCHEMA.md ships no
 -- DDL for it. It records the nightly one-way Cloudinary->Postgres reconciliation
 -- run per org (ARCHITECTURE.md §Nightly reconciliation): last cursor, last run,

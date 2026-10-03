@@ -21,7 +21,7 @@ export const ASSET_PHASES = ['before', 'after'] as const;
 export type AssetPhase = (typeof ASSET_PHASES)[number];
 
 /**
- * Three-state integrity verdict (`integrity_state` in Postgres, AGENTS.md §3.7).
+ * Three-state integrity verdict (`integrity_state` in Postgres, system invariants).
  * Only `fail` blocks a report; `unknown` must never be surfaced as `pass`.
  */
 export const VERIFICATION_STATES = ['pass', 'fail', 'unknown'] as const;
@@ -29,7 +29,7 @@ export type VerificationState = (typeof VERIFICATION_STATES)[number];
 
 /**
  * Provenance of the capture signature. A server-side fallback is honestly
- * `server`; it must never be mislabelled as `device` (AGENTS.md §8).
+ * `server`; it must never be mislabelled as `device` .
  */
 export const SIGNATURE_TIERS = ['device', 'server'] as const;
 export type SignatureTier = (typeof SIGNATURE_TIERS)[number];
@@ -42,7 +42,7 @@ export type JobState = (typeof JOB_STATES)[number];
 export const ORG_TYPES = ['government', 'ngo', 'partner', 'funder'] as const;
 export type OrgType = (typeof ORG_TYPES)[number];
 
-/** Role model (AGENTS.md §3.10), resolved from the verified JWT only. */
+/** Role model , resolved from the verified JWT only. */
 export const ROLES = ['platform_admin', 'org_admin', 'member', 'viewer'] as const;
 export type Role = (typeof ROLES)[number];
 
@@ -50,7 +50,7 @@ export type Role = (typeof ROLES)[number];
 export const INVITE_ROLES = ['org_admin', 'member', 'viewer'] as const;
 export type InviteRole = (typeof INVITE_ROLES)[number];
 
-/** `model_registry.status` (AGENTS.md §3.3). */
+/** `model_registry.status` . */
 export const MODEL_STATUSES = ['trained', 'prebuilt', 'unsupported'] as const;
 export type ModelStatus = (typeof MODEL_STATUSES)[number];
 

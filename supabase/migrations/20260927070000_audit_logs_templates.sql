@@ -2,7 +2,7 @@
 -- Source: docs/architecture/DATABASE_SCHEMA.md §Audit Logs
 --
 -- Declared PARTITION BY RANGE (hashed_at) up front so retention is a partition
--- detach, not a bulk DELETE (BUILD_ORDER Phase 1 "Audit partitioning"). The
+-- detach, not a bulk DELETE (Phase "Audit partitioning"). The
 -- primary key must include the partition key, hence (id, hashed_at). id is a
 -- global BIGSERIAL, so ORDER BY id still yields insertion order across
 -- partitions, which the hash-chain walk relies on.
@@ -23,7 +23,7 @@ CREATE TABLE audit_logs (
   current_hash TEXT NOT NULL,
 
   -- The exact timestamp fed into the hash. Verification MUST use this column,
-  -- never clock_timestamp(), or recomputation can never match (AGENTS.md §3.8).
+  -- never clock_timestamp(), or recomputation can never match .
   hashed_at TIMESTAMPTZ NOT NULL,
 
   -- RFC 8785 canonical JSON of `details`, computed by the API and stored so the
@@ -61,7 +61,7 @@ BEGIN
 END;
 $$;
 
--- Append-only: no UPDATE/DELETE policies (AGENTS.md §3.8).
+-- Append-only: no UPDATE/DELETE policies .
 ALTER TABLE audit_logs ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "audit_select_org" ON audit_logs FOR SELECT
   USING (

@@ -40,7 +40,7 @@ describe('freezeExif', () => {
 });
 
 describe('computeExifHash', () => {
-  it('equals the server JCS hash of the frozen EXIF (AGENTS.md §3.8)', () => {
+  it('equals the server JCS hash of the frozen EXIF ', () => {
     // The API re-hashes metadata.exif with sha256Canonical; parity is proven by
     // using the same shared function over the same frozen object.
     const frozen = freezeExif(RAW_EXIF);

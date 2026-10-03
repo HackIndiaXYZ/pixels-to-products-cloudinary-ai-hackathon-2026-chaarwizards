@@ -6,7 +6,7 @@
  * SHA-256, Ed25519 signing with honest `signature_tier`, the MMKV-backed offline
  * queue, the sync engine, and video-capture rules. The native wiring of each
  * port to its Expo/React-Native module and the UI screens are exercised by the
- * device tests deferred to user review (BUILD_ORDER Phase 4).
+ * device tests deferred to user review (Phase).
  */
 import { SHARED_PACKAGE_VERSION } from '@panchnama/shared/rn';
 

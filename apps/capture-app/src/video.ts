@@ -1,5 +1,5 @@
 /**
- * Video capture rules (BUILD_ORDER Phase 4 "Video capture").
+ * Video capture rules (Phase "Video capture").
  *
  * `expo-camera` records the bytes; these are the platform-agnostic rules the
  * recorder is driven by: a hard 30-second cap, an auto thumbnail from the first

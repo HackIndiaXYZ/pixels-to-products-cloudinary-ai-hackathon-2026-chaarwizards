@@ -1,5 +1,5 @@
 /**
- * Supabase-backed {@link DbPort}. Two client kinds, never mixed (AGENTS.md §3.4):
+ * Supabase-backed {@link DbPort}. Two client kinds, never mixed :
  *
  * - **Request-scoped**: anon key + the caller's JWT in the `Authorization`
  *   header, so RLS is the isolation boundary and every product read is org
@@ -36,8 +36,7 @@ import type { JsonValue, Project, VerificationState, GpsProvider } from '@panchn
 import { verifyExifHash, verifyCaptureSignature } from '../services/verification.js';
 
 /**
- * Runtime validation of the `search_assets` JSONB envelope (AGENTS.md §4 —
- * validate every trust boundary, and a Postgres function's return value is one).
+ * Runtime validation of the `search_assets` JSONB envelope .
  * A malformed row is a hard error, never silently coerced.
  */
 const SearchRowSchema = z.object({
@@ -165,7 +164,7 @@ function stateToBool(state: VerificationState): boolean | null {
 /**
  * Resolve the two API-side checks (Ed25519 signature over the re-derived
  * canonical payload, and the RFC 8785 EXIF hash) and assemble the flat contract.
- * A missing input yields `null` (unknown), never a false `pass` (AGENTS.md §3.7).
+ * A missing input yields `null` (unknown), never a false `pass` .
  */
 function resolveIntegrityContract(raw: IntegrityRaw): IntegrityContract {
   const ci = raw.crypto_inputs;

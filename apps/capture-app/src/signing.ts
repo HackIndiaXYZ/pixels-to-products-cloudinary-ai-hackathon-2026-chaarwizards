@@ -1,5 +1,5 @@
 /**
- * Ed25519 capture signing (BUILD_ORDER Phase 4 "Signing", AGENTS.md §3.4, §8).
+ * Ed25519 capture signing (Phase "Signing", system invariants, §8).
  *
  * The device signs the RFC-8785 canonical signing payload built by the shared
  * package; the API re-derives the same bytes and verifies independently. Two
@@ -7,7 +7,7 @@
  *
  *  1. `signature_tier` reports where the key actually lives. A Keystore /
  *     Secure-Enclave-wrapped key is `'device'`; a software fallback is `'server'`.
- *     Reporting `'device'` for a non-hardware key is a `FAIL` (AGENTS.md §8) — so
+ *     Reporting `'device'` for a non-hardware key is a `FAIL`  — so
  *     the tier comes from the signer that produced the signature, never a guess.
  *  2. Any edit to the payload after signing (caption, phase, GPS…) changes the
  *     canonical bytes and invalidates the signature. That is the integrity
@@ -36,7 +36,7 @@ export interface SignedCapture {
   readonly signature: string;
   /** Base64 raw Ed25519 public key that verifies {@link signature}. */
   readonly devicePublicKey: string;
-  /** Honest provenance of the key that signed (AGENTS.md §8). */
+  /** Honest provenance of the key that signed . */
   readonly signatureTier: SignatureTier;
   /** The exact canonical bytes that were signed (kept for local verification). */
   readonly canonicalPayload: string;
@@ -66,7 +66,7 @@ export async function signCapture(
 /**
  * Local re-verification of a {@link SignedCapture} against a (possibly mutated)
  * payload. Returns `false` for any tampered field — never throwing — so the app
- * can refuse to enqueue an item it cannot itself verify (AGENTS.md §3.6).
+ * can refuse to enqueue an item it cannot itself verify .
  *
  * Uses pure-JS `@noble/ed25519` (RN-safe): the raw 32-byte public key and
  * 64-byte signature are verified directly against the canonical bytes, mirroring

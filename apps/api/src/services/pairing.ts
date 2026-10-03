@@ -1,5 +1,5 @@
 /**
- * Pure before/after pairing (ARCHITECTURE.md §4.2, BUILD_ORDER Phase 7).
+ * Pure before/after pairing (ARCHITECTURE.md §4.2, Phase).
  *
  * The algorithm is deliberately side-effect-free so it is exhaustively
  * unit-testable without a DB, a queue, or the ML service. The worker
@@ -13,7 +13,7 @@
  *      keeps a wrong-sector number out of a report (§3.3).
  *   2. Grid-bucket by that type's gps_radius so clustering is not a global O(n²)
  *      sweep (ARCHITECTURE.md §Scaling row 7). The bucket size IS the radius —
- *      never a hard-coded constant (BUILD_ORDER Phase 7 "pair-assets worker").
+ *      never a hard-coded constant (Phase "pair-assets worker").
  *   3. Cluster: connected components where an edge exists iff the haversine
  *      distance is ≤ the radius. Assets farther apart than the radius are never
  *      clustered together.

@@ -1,5 +1,5 @@
 /**
- * Native adapter: capture signer (BUILD_ORDER Phase 4 "Signing", AGENTS.md §8).
+ * Native adapter: capture signer (Phase "Signing", system invariants).
  *
  * This is the **software fallback** signer and it reports `signatureTier:
  * 'server'` — never `'device'`. A hardware-backed Ed25519 key wrapped by the

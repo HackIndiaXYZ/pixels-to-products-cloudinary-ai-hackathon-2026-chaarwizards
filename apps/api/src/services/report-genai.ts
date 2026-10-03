@@ -1,10 +1,10 @@
 /**
- * Asynchronous gen-AI social-variant job (BUILD_ORDER Phase 9 "Async gen-AI
+ * Asynchronous gen-AI social-variant job (Phase "Async gen-AI
  * job"). Gen-AI transforms return 420 Pending / 423 Locked, so they must NOT run
  * inside the synchronous `POST /v1/reports/generate` path (§3.11). This job runs
  * on the queue, applies each edit to a REPORT COPY derivative — never an
- * original (AGENTS.md §3.1) — and polls, within a bounded attempt budget, until
- * the derivative is ready (AGENTS.md §8: gen-AI must be cost/rate bounded).
+ * original  — and polls, within a bounded attempt budget, until
+ * the derivative is ready .
  *
  * The report-copy constraint is enforced structurally by `createDerivative`: a
  * generative edit must name a `sourceDerivativeId` that resolves to a report

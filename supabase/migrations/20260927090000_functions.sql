@@ -1,7 +1,7 @@
 -- Phase 1 — Integrity & audit-chain functions
 -- Source: docs/architecture/DATABASE_SCHEMA.md §Helper Functions
 --
--- NOTE (AGENTS.md §3.8): the verify_audit_chain shown in DATABASE_SCHEMA.md is a
+-- NOTE : the verify_audit_chain shown in DATABASE_SCHEMA.md is a
 -- stale draft — it hashes `details::text` and `created_at`, which do NOT match
 -- append_audit_log (which hashes `details_canonical` and the stored `hashed_at`).
 -- Reproducing the draft would make every chain fail to verify. This file makes
@@ -68,7 +68,7 @@ END;
 $$;
 
 -- ---------------------------------------------------------------------------
--- verify_audit_chain — recompute every hash from STORED fields (AGENTS.md §3.8).
+-- verify_audit_chain — recompute every hash from STORED fields .
 -- ---------------------------------------------------------------------------
 CREATE OR REPLACE FUNCTION verify_audit_chain(p_asset_id UUID)
 RETURNS BOOLEAN
@@ -114,7 +114,7 @@ $$;
 
 -- ---------------------------------------------------------------------------
 -- verify_asset_integrity — three-state per-check result. Only 'fail' blocks a
--- report; 'unknown' is never reported as 'pass' (AGENTS.md §3.7).
+-- report; 'unknown' is never reported as 'pass' .
 -- ---------------------------------------------------------------------------
 CREATE OR REPLACE FUNCTION verify_asset_integrity(p_asset_id UUID)
 RETURNS TABLE (

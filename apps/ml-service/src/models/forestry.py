@@ -10,7 +10,7 @@ run without it installed; the deterministic baseline in ``synthetic`` covers the
 ``weights_uri IS NULL`` placeholder state.
 
 Weights are loaded **once** in ``__init__`` and cached on the model object; the
-detectors never re-load per request (AGENTS.md §4).
+detectors never re-load per request .
 """
 
 from __future__ import annotations

@@ -1,5 +1,5 @@
 /**
- * Doc↔reality consistency checks (BUILD_ORDER Phase 11 gate:
+ * Doc↔reality consistency checks (Phase gate:
  *  - "the migration gate actually fails" — every table and column named in
  *    DATABASE_SCHEMA.md must exist in information_schema after a reset, and the
  *    check must be *seen to fail* on a deliberately missing table;

@@ -7,7 +7,7 @@ enforceable:
   guard, only from a signed Cloudinary URL.
 * :class:`DiffUploader` uploads the rendered diff PNG. The production
   implementation uses the Cloudinary Python SDK's ``uploader.upload`` with a
-  signed request; signing is **never** hand-rolled (AGENTS.md §3.11), and the
+  signed request; signing is **never** hand-rolled , and the
   diff is a derivative (``type: upload``), never an authenticated original.
 
 Neither port ever calls the Cloudinary Search / Admin resource API — Cloudinary

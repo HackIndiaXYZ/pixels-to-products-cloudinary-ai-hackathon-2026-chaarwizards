@@ -43,6 +43,30 @@ async function harness(overrides: Partial<AppDeps> = {}): Promise<Harness> {
   return { app, db, queue };
 }
 
+describe('Dashboard CORS', () => {
+  it('allows the configured dashboard origin when its env URL has a trailing slash', async () => {
+    const { app } = await harness({
+      config: testConfig({
+        NODE_ENV: 'production',
+        DASHBOARD_URL: 'https://panchnama-ka-1205.vercel.app/',
+      }),
+    });
+    const response = await app.inject({
+      method: 'OPTIONS',
+      url: '/v1/assets/00000000-0000-4000-8000-000000000001/original-url',
+      headers: {
+        origin: 'https://panchnama-ka-1205.vercel.app',
+        'access-control-request-method': 'POST',
+        'access-control-request-headers': 'authorization,content-type',
+      },
+    });
+
+    expect(response.statusCode).toBe(204);
+    expect(response.headers['access-control-allow-origin']).toBe('https://panchnama-ka-1205.vercel.app');
+    expect(response.headers['access-control-allow-headers']?.toLowerCase()).toContain('authorization');
+  });
+});
+
 const CAPTURE_TS = '2024-01-15T09:30:00.000Z';
 const LAT = 19.1234;
 const LON = 72.8765;
@@ -273,7 +297,7 @@ describe('Phase 3 gate — org isolation and delivery URLs', () => {
       method: 'POST',
       url: `/v1/assets/${assetB.id}/original-url`,
       headers: { authorization: `Bearer ${makeToken({ orgId: ORG_A, role: 'member' })}` },
-      payload: { ttl_seconds: 300 },
+      payload: {},
     });
     expect(res.statusCode).toBe(404);
   });
@@ -423,7 +447,7 @@ describe('Phase 11 — per-org upload rate limiting (unsigned-preset abuse)', ()
   });
 });
 
-describe('Phase 11 — logs carry no secret or PII (AGENTS.md §3.5)', () => {
+describe('Phase 11 — logs carry no secret or PII ', () => {
   it('an upload request emits no CLOUDINARY_API_SECRET, service-role key, or GPS coordinate', async () => {
     const lines: string[] = [];
     const logStream = new Writable({

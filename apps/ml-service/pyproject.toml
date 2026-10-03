@@ -79,7 +79,7 @@ ignore_missing_imports = true
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 pythonpath = ["."]
-# BUILD_ORDER Phase 11 — "ML 70%". The threshold is ENFORCED: pytest exits
+# Phase — "ML 70%". The threshold is ENFORCED: pytest exits
 # non-zero when coverage drops below 70%, so CI fails the build. `main.py` is the
 # uvicorn entrypoint and `models/forestry.py` needs torch/ultralytics (lazy,
 # not installed in the gate env), so both are omitted rather than counted as a

@@ -1,7 +1,7 @@
 """Detector interfaces and result types shared across the CV pipeline.
 
 Weights are loaded **once** per model and cached on the model object; a detector
-is never instantiated inside a request handler (AGENTS.md §4, Python). The
+is never instantiated inside a request handler . The
 concrete implementations live in ``synthetic`` (the deterministic baseline used
 while ``model_registry.weights_uri`` is NULL) and ``forestry`` (the YOLOv8n +
 ChangeFormer path used once fine-tuned weights exist).

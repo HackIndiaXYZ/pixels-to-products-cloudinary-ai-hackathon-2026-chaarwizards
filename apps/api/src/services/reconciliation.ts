@@ -1,8 +1,8 @@
 /**
- * Nightly reconciliation job (BUILD_ORDER Phase 5: "Reconciliation job" +
+ * Nightly reconciliation job (Phase: "Reconciliation job" +
  * resolves the Phase 3 quota carry-over: recomputing `orgs.bytes_used`).
  *
- * This is one of only two sanctioned Cloudinary Admin API uses (AGENTS.md §3.9):
+ * This is one of only two sanctioned Cloudinary Admin API uses :
  * a ONE-WAY integrity check. It lists what Cloudinary stores, joins it against
  * Postgres (the system of record), and reports:
  *   - orphans:  a Cloudinary asset with no owning row in `assets`/`asset_derivatives`;

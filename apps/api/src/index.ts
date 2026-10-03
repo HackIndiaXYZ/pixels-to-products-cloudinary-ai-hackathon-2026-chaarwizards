@@ -10,7 +10,7 @@
 import { v2 as cloudinary } from 'cloudinary';
 import { SHARED_PACKAGE_VERSION } from '@panchnama/shared';
 
-// Prove the v2 handle resolves. No secrets, no hand-rolled signing (AGENTS.md §3.11).
+// Prove the v2 handle resolves. No secrets, no hand-rolled signing .
 export const cloudinarySdk = cloudinary;
 
 export const API_PACKAGE_VERSION = '0.0.0' as const;

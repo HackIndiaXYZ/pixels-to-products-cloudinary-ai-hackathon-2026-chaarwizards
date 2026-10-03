@@ -1,6 +1,6 @@
 """Pydantic request/response models for the ML service (api-contracts.md §3).
 
-Every inbound payload is validated here at the trust boundary (AGENTS.md §4).
+Every inbound payload is validated here at the trust boundary .
 Responses either carry the computed result or the ``{"status": "unsupported"}``
 envelope returned when a sector has no trained model (§3.3).
 """

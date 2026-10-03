@@ -6,13 +6,22 @@ import { ClayCard } from '../../components/ClayCard';
 import { DataBoundary } from '../../components/DataBoundary';
 import { EmptyState } from '../../components/EmptyState';
 import { IntegrityBadge } from '../../components/IntegrityBadge';
+import { AssetMedia } from '../../components/AssetMedia';
 import { useIntegrityChecks } from '../../hooks/useIntegrityChecks';
 import { UNKNOWN_COPY, UNAVAILABLE_COPY, fieldLabel } from '../../lib/state';
 import { boolToIntegrity } from '../../lib/models';
 
+const ASSET_ID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
 export function IntegrityPage() {
   const [assetId, setAssetId] = useState<string | null>(null);
+  const [inspectorOpen, setInspectorOpen] = useState(false);
   const checks = useIntegrityChecks(assetId);
+  const hasValidAssetId = assetId !== null && ASSET_ID_PATTERN.test(assetId);
+  const selectAsset = (id: string): void => {
+    setAssetId(id);
+    setInspectorOpen(true);
+  };
 
   return (
     <div className="pn-stack-5">
@@ -37,22 +46,43 @@ export function IntegrityPage() {
                 : assetId
             }
           >
-            <div className="pn-field">
-              <label className="pn-label" htmlFor="integrity-asset">
-                Asset id
-                <span className="pn-label-required"> required</span>
-              </label>
-              <input
-                id="integrity-asset"
-                className="pn-input pn-mono"
-                value={assetId ?? ''}
-                placeholder="uuid"
-                aria-describedby="integrity-help"
-                onChange={(event) => setAssetId(event.target.value.trim() === '' ? null : event.target.value.trim())}
-              />
-              <p className="pn-help" id="integrity-help">
-                Verified under row-level security for your organisation.
-              </p>
+            <div className="pn-integrity-asset-layout">
+              <div className="pn-stack-3">
+                <div className="pn-field">
+                  <label className="pn-label" htmlFor="integrity-asset">
+                    Asset id
+                    <span className="pn-label-required"> required</span>
+                  </label>
+                  <input
+                    id="integrity-asset"
+                    className="pn-input pn-mono"
+                    value={assetId ?? ''}
+                    placeholder="uuid"
+                    aria-describedby="integrity-help"
+                    onChange={(event) => {
+                      const value = event.target.value.trim();
+                      setAssetId(value === '' ? null : value);
+                      setInspectorOpen(false);
+                    }}
+                  />
+                  <p className="pn-help" id="integrity-help">
+                    Verified under row-level security for your organisation.
+                  </p>
+                </div>
+                {hasValidAssetId ? (
+                  <button type="button" className="pn-btn pn-btn-sm" onClick={() => setInspectorOpen(true)}>
+                    Open evidence detail
+                  </button>
+                ) : null}
+              </div>
+              {hasValidAssetId ? (
+                <div className="pn-integrity-asset-preview">
+                  <AssetMedia assetId={assetId} maxWidth={640} maxHeight={480} alt="Selected evidence" ratio="4 / 3" />
+                  <span className="pn-evidence-meta pn-mono">{assetId}</span>
+                </div>
+              ) : (
+                <EmptyState title="No asset selected" body="Select an asset to preview its evidence here." />
+              )}
             </div>
           </ClayCard>
 
@@ -137,16 +167,16 @@ export function IntegrityPage() {
           )}
         </div>
 
-        <div className="pn-stack-4">
-          <ActivityStream assetId={assetId} onSelect={setAssetId} />
-          <QuarantineQueue onSelect={setAssetId} />
+        <div className="pn-stack-4 pn-integrity-sidebar">
+          <ActivityStream assetId={assetId} onSelect={selectAsset} />
+          <QuarantineQueue onSelect={selectAsset} />
         </div>
       </div>
 
-      {assetId === null ? null : (
+      {assetId === null || inspectorOpen === false ? null : (
         <>
-          <div className="pn-scrim" onClick={() => setAssetId(null)} aria-hidden="true" />
-          <EvidenceInspector assetId={assetId} onClose={() => setAssetId(null)} />
+          <div className="pn-scrim" onClick={() => setInspectorOpen(false)} aria-hidden="true" />
+          <EvidenceInspector assetId={assetId} onClose={() => setInspectorOpen(false)} />
         </>
       )}
     </div>

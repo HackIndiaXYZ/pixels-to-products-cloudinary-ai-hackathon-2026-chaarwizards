@@ -574,34 +574,71 @@ export interface ChangeMetricRow {
   netDelta: Field<string>;
 }
 
-/** `change_metrics` is opaque JSONB. Only keys actually present are rendered, a key that cannot be
- *  resolved reads `Unknown`, and no metric shape is assumed. */
 export function toChangeMetricRows(metrics: Record<string, unknown>): ChangeMetricRow[] {
+  if (!metrics || typeof metrics !== 'object') return [];
   const keys = Object.keys(metrics).sort();
-  const rows: ChangeMetricRow[] = keys.map((key) => {
-    const raw = metrics[key];
-    const base = key.endsWith('_before') ? key.slice(0, -'_before'.length) : null;
-    const afterKey = base === null ? null : `${base}_after`;
-    const afterRaw = afterKey === null ? undefined : metrics[afterKey];
-    const toNumber = (input: unknown): number | null =>
-      typeof input === 'number' && Number.isFinite(input)
-        ? input
-        : typeof input === 'string' && input.trim() !== '' && Number.isFinite(Number(input))
-          ? Number(input)
-          : null;
-    const beforeNumber = toNumber(raw);
-    const afterNumber = toNumber(afterRaw);
-    const paired = base !== null && afterKey !== null && afterRaw !== undefined;
-    return {
-      key,
-      before: scalar(raw),
-      after: paired ? scalar(afterRaw) : fieldUnavailable<string>(),
-      netDelta:
-        paired && beforeNumber !== null && afterNumber !== null
-          ? fieldValue(String(afterNumber - beforeNumber))
-          : fieldUnknown<string>(),
-    };
-  });
+  const processed = new Set<string>();
+  const rows: ChangeMetricRow[] = [];
+
+  const toNumber = (input: unknown): number | null =>
+    typeof input === 'number' && Number.isFinite(input)
+      ? input
+      : typeof input === 'string' && input.trim() !== '' && Number.isFinite(Number(input))
+        ? Number(input)
+        : null;
+
+  for (const key of keys) {
+    if (processed.has(key)) continue;
+
+    if (key.endsWith('_before')) {
+      const base = key.slice(0, -7);
+      const afterKey = `${base}_after`;
+      const beforeRaw = metrics[key];
+      const afterRaw = metrics[afterKey];
+
+      processed.add(key);
+      if (afterKey in metrics) processed.add(afterKey);
+
+      const beforeNum = toNumber(beforeRaw);
+      const afterNum = toNumber(afterRaw);
+      const hasAfter = afterRaw !== undefined;
+
+      const diff = beforeNum !== null && afterNum !== null ? afterNum - beforeNum : null;
+      const diffStr = diff !== null ? (diff > 0 ? `+${diff}` : `${diff}`) : null;
+
+      rows.push({
+        key: base,
+        before: scalar(beforeRaw),
+        after: hasAfter ? scalar(afterRaw) : fieldValue('—'),
+        netDelta: diffStr !== null ? fieldValue(diffStr) : fieldValue('—'),
+      });
+    } else if (key.endsWith('_after')) {
+      const base = key.slice(0, -6);
+      const beforeKey = `${base}_before`;
+      if (!(beforeKey in metrics)) {
+        processed.add(key);
+        const afterRaw = metrics[key];
+        const afterNum = toNumber(afterRaw);
+        rows.push({
+          key: base,
+          before: fieldValue('—'),
+          after: scalar(afterRaw),
+          netDelta: afterNum !== null ? fieldValue(`+${afterNum}`) : fieldValue('—'),
+        });
+      }
+    } else {
+      processed.add(key);
+      const val = metrics[key];
+      const num = toNumber(val);
+      rows.push({
+        key,
+        before: fieldValue('—'),
+        after: scalar(val),
+        netDelta: num !== null ? fieldValue(`+${num}`) : fieldValue('—'),
+      });
+    }
+  }
+
   return rows;
 }
 
@@ -617,8 +654,6 @@ export interface ChangeDetailModel {
   paired: boolean;
   before: Asset | null;
   after: Asset | null;
-  beforeMedia: AssetMediaRef | null;
-  afterMedia: AssetMediaRef | null;
   diffPublicId: Field<string>;
   metricRows: ChangeMetricRow[];
   provenance: ModelProvenanceModel;

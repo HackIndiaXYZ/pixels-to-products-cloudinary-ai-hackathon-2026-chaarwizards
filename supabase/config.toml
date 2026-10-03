@@ -172,7 +172,7 @@ enable_refresh_token_rotation = true
 # Requires enable_refresh_token_rotation = true.
 refresh_token_reuse_interval = 10
 # Allow/disallow new user signups to your project.
-# AGENTS.md §3.10: NO self-service signup. Users are provisioned by a
+# system invariants: NO self-service signup. Users are provisioned by a
 # platform_admin via the admin API at invite-token redemption only; there is no
 # public registration endpoint. Keep this false — leaving GoTrue's
 # /auth/v1/signup live would bypass the single-use, hashed, 72h invite flow.
@@ -221,7 +221,7 @@ web3 = 30
 
 [auth.email]
 # Allow/disallow new user signups via email to your project.
-# AGENTS.md §3.10: no public registration. Onboarding is invite-only through the
+# system invariants: no public registration. Onboarding is invite-only through the
 # service role, never GoTrue's email signup endpoint.
 enable_signup = false
 # If enabled, a user will be required to confirm any email change on both the old, and new email

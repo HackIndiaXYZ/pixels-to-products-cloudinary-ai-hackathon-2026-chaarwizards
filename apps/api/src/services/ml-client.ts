@@ -3,7 +3,7 @@
  *
  * Every call mints a fresh short-TTL internal JWT — `sub`, `org_id`, `job_id`,
  * 120s HS256 — and sends it as a bearer token. A bare shared secret is never
- * sent (AGENTS.md §3.4): the per-call token gives the ML service an audit trail
+ * sent : the per-call token gives the ML service an audit trail
  * and lets it reject cross-org work. The mint is exported on its own so it is
  * unit-testable without a live ML service.
  */

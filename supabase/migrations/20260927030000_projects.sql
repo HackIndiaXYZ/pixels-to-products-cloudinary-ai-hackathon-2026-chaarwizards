@@ -5,7 +5,7 @@
 -- validated by a BEFORE INSERT OR UPDATE trigger (see below): each entry MUST
 -- carry a `type`, a `model`, and a numeric `gps_radius`. The pairing worker
 -- (Phase 7) clusters by gps_radius; a missing model would let a wrong-sector
--- number reach a report (AGENTS.md §3.2/§3.3).
+-- number reach a report .
 
 CREATE TABLE projects (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -29,7 +29,7 @@ CREATE INDEX idx_projects_parent_sector ON projects(parent_project_id, sector);
 -- Required per entry: type (text), model (text), gps_radius (number).
 -- phase_field is validated when present; label is optional (the canonical
 -- example in DATABASE_SCHEMA.md omits it, so requiring it would reject a
--- documented-valid config). See BUILD_ORDER.md Phase 1 "Config schema".
+-- documented-valid config). See architecture specification.md Phase 1 "Config schema".
 CREATE OR REPLACE FUNCTION validate_project_config() RETURNS trigger
 LANGUAGE plpgsql AS $$
 DECLARE

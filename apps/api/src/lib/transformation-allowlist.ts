@@ -1,5 +1,5 @@
 /**
- * Delivery transformation allowlist (AGENTS.md §3.11, api-contracts.md §5).
+ * Delivery transformation allowlist .
  *
  * A signed derivative URL with attacker-chosen parameters is a free resize and a
  * gen-AI billing primitive, so a client-supplied `transformation` is accepted

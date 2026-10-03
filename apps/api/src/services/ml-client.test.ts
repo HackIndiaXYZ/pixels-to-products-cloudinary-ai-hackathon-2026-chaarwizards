@@ -7,7 +7,7 @@ import { testConfig } from '../testing/fakes.js';
  * A stand-in ML endpoint that enforces the same contract the real Python service
  * does: a request with no valid internal JWT is rejected 401. This proves the
  * API client always mints and sends the token, never a bare shared secret
- * (AGENTS.md §3.4), and that the "no internal JWT" path is a rejection.
+ * , and that the "no internal JWT" path is a rejection.
  */
 function fakeMlEndpoint(secret: string): typeof fetch {
   return (async (_url: string | URL | Request, init?: RequestInit) => {

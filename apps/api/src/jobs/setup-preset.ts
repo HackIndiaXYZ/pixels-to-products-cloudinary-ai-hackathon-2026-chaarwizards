@@ -1,5 +1,5 @@
 /**
- * One-time operational setup (BUILD_ORDER Phase 5: "Preset setup"). Provisions
+ * One-time operational setup (Phase: "Preset setup"). Provisions
  * the unsigned `verified_capture` upload preset with the server-side guarantees
  * a client cannot be trusted to set (overwrite disabled, authenticated originals,
  * AI tagging, the signed incoming webhook). Run once per environment.

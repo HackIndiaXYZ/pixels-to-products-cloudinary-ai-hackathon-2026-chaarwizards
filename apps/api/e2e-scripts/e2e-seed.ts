@@ -6,7 +6,7 @@
  *   device-signed, `verified` asset tagged `planting`. The asset is signed with a
  *   real Ed25519 key over the RFC 8785 canonical payload, and its EXIF hash is a
  *   real JCS hash, so the API's independent checks pass HONESTLY — no verdict is
- *   fabricated (AGENTS.md §3.7).
+ *   fabricated .
  *
  *   Flow 2 (quarantine admin queue): a second, `flagged` asset in the same org.
  *

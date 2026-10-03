@@ -1,5 +1,5 @@
 /**
- * Change-metric schema validation (BUILD_ORDER Phase 7 "Metrics schema", gate:
+ * Change-metric schema validation (Phase "Metrics schema", gate:
  * "an off-schema metric is rejected ... the rejection names the offending key").
  *
  * §3.2 says a number in a report must trace to a versioned model. The complement

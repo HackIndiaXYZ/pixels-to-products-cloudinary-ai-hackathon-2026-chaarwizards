@@ -1,10 +1,10 @@
 /**
  * Supabase JWT verification and the caller identity it yields.
  *
- * The client is untrusted (AGENTS.md §3.4): the API verifies the bearer token
+ * The client is untrusted : the API verifies the bearer token
  * independently and reads `org_id`, `user_id`, and `role` ONLY from the verified
  * claims — never from a request body. `org_id` and `role` are written into
- * `app_metadata` at invite redemption (BUILD_ORDER carry-over decision), so they
+ * `app_metadata` at invite redemption (architecture specification carry-over decision), so they
  * are read from there first, with a top-level fallback for tokens that hoist the
  * claims (the custom access-token hook does exactly this). An absent or
  * unverifiable token is a `401`; a token missing an `org_id`/`role` is a `401`

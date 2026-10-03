@@ -5,7 +5,7 @@
 -- forestry is a TRAINED placeholder (no weights exist yet — weights_uri NULL).
 -- Every other sector is 'unsupported' so the ML service returns
 -- {"status":"unsupported"} rather than borrowing forestry's numbers
--- (AGENTS.md §3.3). Reference data, so it lives in a migration, not seed.sql.
+-- . Reference data, so it lives in a migration, not seed.sql.
 
 INSERT INTO model_registry (key, version, sector, weights_uri, status, metrics) VALUES
   ('forestry',       'v1-placeholder', 'forestry',       NULL, 'trained',     '{}'),

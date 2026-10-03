@@ -111,7 +111,7 @@ Response: 200 OK (async processing)
 may carry `info.tags` and `info.info.categorization` / `info.info.detection`.
 On a fresh, non-quarantined asset the API copies these into Postgres
 `observations` (`notes = 'cloudinary_ai_tags'`) and never queries Cloudinary
-back for them (AGENTS.md §3.9). Tags on a quarantined asset are discarded.
+back for them . Tags on a quarantined asset are discarded.
 
 ---
 
@@ -155,7 +155,7 @@ Response (200):
 }
 
 # `model_version` is the model_registry version that produced every number and
-# is what change_events.model_version records (AGENTS.md §3.2). A sector with no
+# is what change_events.model_version records . A sector with no
 # trained model returns 200 with the envelope below instead of metrics — never a
 # borrowed number from another sector (§3.3):
 #   { "status": "unsupported" }
@@ -629,21 +629,25 @@ verdict rather than the underlying rows. Reconciled to match reality in Phase 11
 Two endpoints, because originals and derivatives use different Cloudinary access mechanisms.
 See `DATABASE_SCHEMA.md` §"Delivery URL Generator" and `ARCHITECTURE.md` §3.2.2.
 
-### Original asset (authenticated, real expiry)
+### Original asset (authenticated, signed; no expiry on the Free plan)
 ```
 POST /v1/assets/{asset_id}/original-url
 Authorization: Bearer <supabase-jwt>
-Body: { "ttl_seconds": 300 }
+Body: {}
 
 Response (200):
 {
-  "url": "https://res.cloudinary.com/.../image/authenticated/...__cld_token__=stp=..&exp=..&url=..&hmac=..",
-  "expires_at": 1705345800
+  "url": "https://res.cloudinary.com/.../image/authenticated/s--<signature>--/v1/...",
+  "expires_at": null
 }
 ```
 
 `public_id` is **not** accepted from the client. The API looks it up by `asset_id` under RLS,
 so a caller cannot request another org's media by guessing a hash.
+The API selects the Cloudinary resource type (`image` or `video`) from that same RLS-scoped
+asset row; the client never supplies it.
+The Cloudinary Free plan does not provide token-based URL expiry. This SDK-signed URL remains
+usable if copied or shared; keep it server-generated and do not treat it as a short-lived URL.
 
 ### Derivative (signed, CDN-cacheable)
 ```

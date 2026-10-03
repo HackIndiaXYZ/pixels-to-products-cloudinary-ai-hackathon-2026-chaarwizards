@@ -1,5 +1,5 @@
 /**
- * EXIF freeze (BUILD_ORDER Phase 4 "EXIF freeze", AGENTS.md §3.1).
+ * EXIF freeze (Phase "EXIF freeze", system invariants).
  *
  * A captured image carries dozens of EXIF tags, many of them editable
  * (`Software`, `DateTimeOriginal`, GPS blocks, maker notes). We keep only a
@@ -7,7 +7,7 @@
  * *before* hashing, so the frozen EXIF cannot smuggle a mutable field into the
  * signed evidence. The device's `exif_hash` is the SHA-256 of the RFC-8785
  * canonical form of the frozen object, which is byte-identical to the server's
- * independent re-hash (`apps/api` verification `verifyExifHash`, AGENTS.md §3.8).
+ * independent re-hash (`apps/api` verification `verifyExifHash`, system invariants).
  */
 import { sha256Canonical } from '@panchnama/shared/rn';
 import type { JsonValue } from '@panchnama/shared/rn';
@@ -17,7 +17,7 @@ import type { RawExif } from './ports.js';
  * The only EXIF keys that survive into the hash. All are read-only descriptions
  * of the capturing hardware and pixel geometry; none is user-editable after
  * capture. Anything not in this list — notably `Software`, `DateTimeOriginal`,
- * and GPS tags — is discarded (BUILD_ORDER Phase 4).
+ * and GPS tags — is discarded (Phase).
  */
 export const EXIF_ALLOWLIST = [
   'Make',
@@ -64,7 +64,7 @@ export function freezeExif(raw: RawExif): Record<FrozenExifKey, ExifScalar> {
 /**
  * Compute the device `exif_hash`: SHA-256 over the RFC-8785 canonical JSON of the
  * frozen EXIF. Delegates to the shared `sha256Canonical` so the bytes match the
- * server's re-hash exactly (AGENTS.md §3.8). On React Native, where `node:crypto`
+ * server's re-hash exactly . On React Native, where `node:crypto`
  * is unavailable, hash {@link canonicalFrozenExif} with a native SHA-256 instead.
  */
 export function computeExifHash(raw: RawExif): string {

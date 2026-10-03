@@ -25,9 +25,9 @@ CREATE POLICY "observations_org_write" ON observations FOR ALL
 
 
 -- Change Events (before/after pairs). change_metrics originate from a versioned
--- CV model; model_version records which one (AGENTS.md §3.2). It is NOT NULL: a
+-- CV model; model_version records which one . It is NOT NULL: a
 -- metric-bearing row with no model provenance is exactly what §3.2 forbids, and
--- BUILD_ORDER Phase 6 gates on "a change event with model_version = NULL is
+-- Phase gates on "a change event with model_version = NULL is
 -- rejected at the database level". detection_method stays as the human-readable
 -- method label ('cv_model_forestry', 'manual'); model_version is the machine
 -- fact that ties the number to a row in model_registry.
@@ -42,7 +42,7 @@ CREATE TABLE change_events (
   change_type TEXT,
   change_metrics JSONB NOT NULL,
   detection_method TEXT,           -- 'cv_model_forestry', 'manual'
-  model_version TEXT NOT NULL,     -- versioned model that produced the metric (AGENTS.md §3.2)
+  model_version TEXT NOT NULL,     -- versioned model that produced the metric 
   confidence FLOAT,
 
   diff_asset_cloudinary_id TEXT,   -- Cloudinary diff visualization

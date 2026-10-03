@@ -1,12 +1,12 @@
 /**
- * Asset delivery-URL routes (api-contracts.md §5, AGENTS.md §3.11).
+ * Asset delivery-URL routes (api-contracts.md §5, system invariants).
  *
  * A client never supplies a `public_id`: it asks by `asset_id`, and the API
  * resolves the `public_id` under RLS. That closes the cross-org path where a
  * caller guesses another org's content hash — the asset lookup is org-scoped, so
  * an id outside the caller's org is a `404`.
  *
- * Originals are `type: authenticated` with a real-expiry `auth_token`;
+ * Originals are SDK-signed `type: authenticated` URLs (no expiry on the Free plan);
  * derivatives are signed `type: upload` with no expiry, and the client-supplied
  * `transformation` must pass the allowlist or the request is `422`.
  */
@@ -20,9 +20,7 @@ import { rejectUnsafeTransformation } from '../lib/transformation-allowlist.js';
 const IdParamsSchema = z.object({ id: z.uuid() });
 const ProjectIdParamsSchema = z.object({ id: z.uuid() });
 
-const OriginalBodySchema = z
-  .object({ ttl_seconds: z.number().int().positive().max(3600).default(300) })
-  .strict();
+const OriginalBodySchema = z.object({}).strict();
 
 // `.strict()` rejects a smuggled `public_id`: the client asks by asset_id only.
 const DerivativeBodySchema = z.object({ transformation: z.string().min(1) }).strict();
@@ -54,14 +52,14 @@ export async function registerAssetRoutes(app: FastifyInstance): Promise<void> {
     async (request) => {
       const ctx = app.authenticate(request);
       const { id } = IdParamsSchema.parse(request.params);
-      const body = OriginalBodySchema.parse(request.body ?? {});
+      OriginalBodySchema.parse(request.body ?? {});
       const asset = await app.deps.db.assets.getById(ctx, id);
       if (asset === null) throw errors.notFound('asset not found');
-      const { url, expiresAt } = app.deps.cloudinary.originalUrl(
-        asset.cloudinary_public_id,
-        body.ttl_seconds,
-      );
-      return ok({ url, expires_at: expiresAt });
+      if (asset.asset_type !== 'image' && asset.asset_type !== 'video') {
+        throw errors.unprocessable('asset type is unavailable for media delivery');
+      }
+      const url = app.deps.cloudinary.originalUrl(asset.cloudinary_public_id, asset.asset_type);
+      return ok({ url, expires_at: null });
     },
   );
 

@@ -1,5 +1,5 @@
 /**
- * Report template registry (BUILD_ORDER Phase 9 "Template"). Handlebars
+ * Report template registry (Phase "Template"). Handlebars
  * templates render the report HTML from a fully-resolved model: cover, project
  * summary, metrics tables, before/after pairs, a map, video clips, and the
  * integrity appendix.

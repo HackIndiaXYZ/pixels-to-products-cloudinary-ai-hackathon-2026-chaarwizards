@@ -1,5 +1,5 @@
 /**
- * Project picker (BUILD_ORDER Phase 4 "Project picker").
+ * Project picker (Phase "Project picker").
  *
  * The capture screen shows a hierarchical project list. A field worker picks a
  * (sub-)project, an observation type, and a capture phase (`before`/`after`).
@@ -87,7 +87,7 @@ export interface CaptureSelection {
  * Validate a picker selection against resolved config: the project must exist,
  * the observation type must be one the project (or an ancestor) offers, and the
  * phase must be a known phase. Returns the reason on failure rather than throwing
- * so the UI can surface it (AGENTS.md §3.6).
+ * so the UI can surface it .
  */
 export function validateSelection(
   projects: readonly Project[],

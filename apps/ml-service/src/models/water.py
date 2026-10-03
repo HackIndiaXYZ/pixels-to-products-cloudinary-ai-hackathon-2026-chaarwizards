@@ -4,7 +4,7 @@ mask + a COCO YOLOv8n base detector for context (boats, infrastructure).
 Detectors ship as ONNX (``water_yolov8n.onnx``, ``changeformer_water.onnx``);
 the COCO base is the stock ``yolov8n.pt``. Weights are loaded **once** in
 ``__init__`` and cached on the model object; the detectors never re-load per
-request (AGENTS.md §4).
+request .
 """
 
 from __future__ import annotations

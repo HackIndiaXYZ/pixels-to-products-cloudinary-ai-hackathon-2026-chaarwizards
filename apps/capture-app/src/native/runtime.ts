@@ -1,5 +1,5 @@
 /**
- * Native runtime assembly (BUILD_ORDER Phase 4). Wires every injectable port to
+ * Native runtime assembly (Phase). Wires every injectable port to
  * its real Expo / React-Native adapter and constructs the offline queue, exactly
  * mirroring how the unit tests wire the in-memory fakes. Screens depend on this
  * runtime, never on a native module directly, so the capture logic stays the

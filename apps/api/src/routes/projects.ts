@@ -1,7 +1,7 @@
 /**
  * Project routes (api-contracts.md §4). List, create, get, get-tree, and update
  * config. Every handler resolves the caller from the verified JWT and scopes by
- * that org — `org_id` is never read from the body (AGENTS.md §3.4). Writes
+ * that org — `org_id` is never read from the body . Writes
  * require a role that may write (`member`+); `viewer` is read-only (§3.10).
  */
 import type { FastifyInstance } from 'fastify';

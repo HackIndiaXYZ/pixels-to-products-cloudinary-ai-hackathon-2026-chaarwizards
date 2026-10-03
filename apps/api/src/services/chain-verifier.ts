@@ -1,11 +1,11 @@
 /**
- * Chain verifier (BUILD_ORDER Phase 10 — "Chain verifier: verifyChain(from, to)
+ * Chain verifier (Phase — "Chain verifier: verifyChain(from, to)
  * walking audit_logs").
  *
  * The authoritative hash + link recomputation runs in Postgres
  * (`verify_audit_chain_range`), because the audit hash folds in the STORED
  * `hashed_at` rendered as microsecond UTC — a format a second serializer cannot
- * reproduce byte-for-byte (AGENTS.md §3.8). This module COMPOSES that with the
+ * reproduce byte-for-byte . This module COMPOSES that with the
  * one check Postgres cannot do: that each row's raw `details` JSONB still
  * canonicalizes (RFC 8785) to its stored `details_canonical`. Together they
  * catch every tamper the gate names:

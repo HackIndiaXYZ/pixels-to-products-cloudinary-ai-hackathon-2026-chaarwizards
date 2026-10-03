@@ -1,5 +1,5 @@
 /**
- * Schematic site-map generator (BUILD_ORDER Phase 9 "Template": map). Produces a
+ * Schematic site-map generator (Phase "Template": map). Produces a
  * self-contained inline SVG rendered at report time, so a finalized report needs
  * no network and no tile provider to show its map panel (Phase 9 "Self-contained
  * artifact").

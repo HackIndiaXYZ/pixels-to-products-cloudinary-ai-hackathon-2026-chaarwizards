@@ -1,5 +1,5 @@
 /**
- * Manual pairing override (BUILD_ORDER Phase 7 "Manual override"). A reviewer
+ * Manual pairing override (Phase "Manual override"). A reviewer
  * can link two assets into a before/after pair, or split an existing pair that
  * the automated worker got wrong. Both actions append to the audit chain.
  *

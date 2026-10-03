@@ -1,6 +1,5 @@
 /**
- * Independent, server-side verification of a captured asset (AGENTS.md §3.4,
- * §3.6, §3.7). The client signs; the API re-derives and re-checks every claim it
+ * Independent, server-side verification of a captured asset . The client signs; the API re-derives and re-checks every claim it
  * can, and every check yields one of three honest states — `pass` / `fail` /
  * `unknown` — where only `fail` blocks a report and `unknown` is NEVER surfaced
  * as `pass` (§3.7).

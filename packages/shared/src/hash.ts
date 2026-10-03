@@ -3,7 +3,7 @@
  *
  * This is the digest used by the audit hash chain and by EXIF / signing-payload
  * verification. It is intentionally built on {@link canonicalize} so the hashed
- * bytes are identical to the Python implementation (AGENTS.md §3.8). Never hash
+ * bytes are identical to the Python implementation . Never hash
  * `JSON.stringify(value)` or a Postgres `jsonb::text` — those serializers do not
  * agree byte-for-byte.
  *

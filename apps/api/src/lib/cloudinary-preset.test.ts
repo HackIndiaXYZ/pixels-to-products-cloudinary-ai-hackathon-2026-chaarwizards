@@ -2,7 +2,7 @@
  * Phase 5 — upload preset + retention policy.
  *
  * Asserts the `verified_capture` preset carries the server-side guarantees a
- * client cannot be trusted to set (AGENTS.md §3.1/§3.5) and that the retention
+ * client cannot be trusted to set  and that the retention
  * policy excludes evidence from any Cloudinary-side auto-expiry (ARCHITECTURE.md
  * §3.2).
  */

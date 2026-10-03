@@ -92,7 +92,7 @@ export interface IntegrityCheck {
  * The documented flat integrity contract (api-contracts.md §4 "Get Asset with
  * Integrity"), consumed by the dashboard's integrity panel. Every boolean is
  * tri-state: `true`/`false`/`null`, where `null` renders as `unknown` and is
- * NEVER shown as `pass` (AGENTS.md §3.7).
+ * NEVER shown as `pass` .
  */
 export interface IntegrityContract {
   readonly asset_id: string;
@@ -163,7 +163,7 @@ export interface AssetsRepo {
   /**
    * Org-scoped global search (RLS). Runs the `search_assets` SQL function, which
    * is SECURITY INVOKER so results are scoped to the caller's org by Postgres,
-   * never a Cloudinary query (AGENTS.md §3.9).
+   * never a Cloudinary query .
    */
   searchAssets(ctx: AuthContext, filters: SearchFilters, params: ListParams): Promise<SearchResult>;
   // --- Service-role paths (webhook / workers only) ---
@@ -261,7 +261,7 @@ export interface InvitesRepo {
 export interface AuditRepo {
   /**
    * Append one row to the per-asset hash chain via `append_audit_log`. The API
-   * supplies the RFC 8785 canonical string of `details` (AGENTS.md §3.8); the
+   * supplies the RFC 8785 canonical string of `details` ; the
    * function hashes the stored `hashed_at`, not `clock_timestamp()`.
    */
   append(input: {
@@ -274,7 +274,7 @@ export interface AuditRepo {
   /**
    * Service-role read of one asset's hash chain in insertion order, for the
    * report integrity appendix (Phase 9). The tip row's `current_hash` is the
-   * value the appendix prints and a verifier re-derives (AGENTS.md §3.8).
+   * value the appendix prints and a verifier re-derives .
    */
   chainForAsset(assetId: string): Promise<AuditChainRow[]>;
   /**
@@ -340,7 +340,7 @@ export interface IntegrityRepo {
   /**
    * Org-scoped integrity in the documented flat contract shape. Runs
    * `asset_integrity` (RLS-scoped) and resolves the Ed25519 + RFC 8785 checks in
-   * Node (AGENTS.md §3.8). Returns null if the asset is absent or in another org.
+   * Node . Returns null if the asset is absent or in another org.
    */
   contract(ctx: AuthContext, assetId: string): Promise<IntegrityContract | null>;
 }
@@ -405,7 +405,7 @@ export interface ReportFinalizeInput {
 
 /**
  * Service-role manifest insert. `org_id` is intentionally NOT accepted — the DB
- * trigger forces it to the parent package's org (AGENTS.md §3.4), so a caller
+ * trigger forces it to the parent package's org , so a caller
  * can never file a manifest row under another org.
  */
 export interface ManifestEntryInsert {
@@ -464,7 +464,7 @@ export interface ReceiptManifestEntry {
 /**
  * Public-safe report verification receipt (Phase 10 — "Report verification").
  * Deliberately carries NO org_id, user identity, GPS, caption, or public_id, so
- * it is safe to export and share as standalone evidence (AGENTS.md §3.4).
+ * it is safe to export and share as standalone evidence .
  */
 export interface ReportReceipt {
   readonly report_id: string;
@@ -519,7 +519,7 @@ export interface DbPort {
   /**
    * Service-role lookup of a project's owning org, used by the webhook to derive
    * `org_id` from the signed `project_id` — never from the request body
-   * (AGENTS.md §3.4). Returns null if the project does not exist.
+   * . Returns null if the project does not exist.
    */
   orgIdForProject(projectId: string): Promise<string | null>;
   /**
@@ -541,8 +541,8 @@ export interface CloudinaryPort {
   verifyNotificationSignature(body: string, timestamp: string, signature: string): boolean;
   /** Signed, no-expiry delivery URL for a derivative (`type: upload`). */
   signedDerivativeUrl(publicId: string, transformation: string): string;
-  /** Authenticated original URL gated by an `auth_token` with a real `exp`. */
-  originalUrl(publicId: string, ttlSeconds: number): { url: string; expiresAt: number };
+  /** SDK-signed authenticated original URL. Signed URLs do not expire. */
+  originalUrl(publicId: string, resourceType: 'image' | 'video'): string;
   /**
    * Apply a transformation to an existing asset as an EAGER derivative and return
    * the derived asset's identity. Generative transforms are asynchronous
@@ -550,7 +550,7 @@ export interface CloudinaryPort {
    * 'processing'` (or 'pending') with the destination URL already present but the
    * bytes not yet generated. Whenever the derivative is still generating, `status`
    * is `'pending'` and `secure_url` is null — the caller must never block on it or
-   * serve the URL early (AGENTS.md §3.11, CLOUDINARY_TRANSFORMATIONS.md §4).
+   * serve the URL early .
    * Signing is done by the SDK; no HMAC is hand-rolled.
    */
   createEagerDerivative(input: EagerDerivativeInput): Promise<EagerDerivativeResult>;
@@ -562,7 +562,7 @@ export interface CloudinaryPort {
   /**
    * Upload a finalized report artifact (PDF or self-contained HTML) into the
    * media pipeline (Phase 9 "Renderer": upload to Cloudinary). This is a WRITE,
-   * not a query — it never lists or searches Cloudinary (AGENTS.md §3.9). Signing
+   * not a query — it never lists or searches Cloudinary . Signing
    * is done by the SDK; no HMAC is hand-rolled (§3.11).
    */
   uploadArtifact(input: ArtifactUploadInput): Promise<ArtifactUploadResult>;
@@ -610,7 +610,7 @@ export interface CloudinaryResource {
 }
 
 /**
- * Admin-API surface. Per AGENTS.md §3.9 the ONLY legitimate Admin API uses are
+ * Admin-API surface. Per system invariants the ONLY legitimate Admin API uses are
  * the nightly reconciliation (a one-way integrity check) and operational setup
  * such as provisioning the upload preset. It is never used to serve a product
  * read — that is what would leak one org's assets to another.
@@ -644,7 +644,7 @@ export interface QueuePort {
    * (Phase 9 "Async gen-AI job"). Gen-AI transforms return 420/423, so they run
    * OUT of the synchronous `POST /v1/reports/generate` path and poll to
    * completion here. Each edit targets a report-copy derivative, never an
-   * original (AGENTS.md §3.1).
+   * original .
    */
   enqueueReportGenAi(payload: {
     reportId: string;

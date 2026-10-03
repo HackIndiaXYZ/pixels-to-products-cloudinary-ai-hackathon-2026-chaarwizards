@@ -1,4 +1,4 @@
-"""Structured JSON logging for the ML service (BUILD_ORDER Phase 11 —
+"""Structured JSON logging for the ML service (Phase —
 "Monitoring: Pino + structlog").
 
 This mirrors the API's Pino setup: one JSON object per line, safe to ship to a
@@ -7,7 +7,7 @@ typed for ``mypy --strict``); a production swap to ``structlog`` + OpenTelemetry
 is the documented upgrade path and needs a collector endpoint that only exists
 in staging.
 
-Two invariants match AGENTS.md §3.5:
+Two invariants match system invariants:
   * the internal JWT (``Authorization`` header) is never logged — the request
     middleware logs only method, path, status, and duration;
   * GPS coordinates are PII and are never part of a log record here (the ML

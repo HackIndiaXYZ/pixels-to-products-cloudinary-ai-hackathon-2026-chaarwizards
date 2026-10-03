@@ -1,7 +1,7 @@
 /**
  * Integrity endpoint (api-contracts.md §4 "Get Asset with Integrity"). Returns
  * the documented flat contract: per-check tri-state booleans plus timing, where
- * a `null` is honestly `unknown` and never rounded up to `pass` (AGENTS.md §3.7).
+ * a `null` is honestly `unknown` and never rounded up to `pass` .
  * The asset is resolved under RLS first, so a cross-org id is a 404 rather than a
  * disclosure of another org's checks.
  */

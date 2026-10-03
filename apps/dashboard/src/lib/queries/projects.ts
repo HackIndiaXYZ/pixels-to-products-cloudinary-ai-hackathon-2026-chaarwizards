@@ -28,7 +28,10 @@ export async function getProject(projectId: string): Promise<DataState<Project>>
 export async function countProjectAssets(projectId: string): Promise<DataState<number>> {
   const assets = table('assets');
   if (assets === null) return failed();
-  const envelope = await assets.select('*').eq('project_id', projectId).countExact();
+  const envelope = await assets
+    .select('*', { count: 'exact', head: true })
+    .eq('project_id', projectId)
+    .countExact();
   if (envelope.error) return failed();
   return envelope.count === null ? undetermined() : ready(envelope.count);
 }

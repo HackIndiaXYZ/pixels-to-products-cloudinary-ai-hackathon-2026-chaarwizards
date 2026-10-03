@@ -1,6 +1,6 @@
 /**
  * Native adapter: GPS via `expo-location` at `BestForNavigation` accuracy
- * (BUILD_ORDER Phase 4 "GPS"). Returns a single fix; the {@link evaluateGpsAccuracy}
+ * (Phase "GPS"). Returns a single fix; the {@link evaluateGpsAccuracy}
  * gate in `gps.ts` decides whether the accuracy is good enough to capture. The
  * caller must have been granted foreground location permission first.
  */

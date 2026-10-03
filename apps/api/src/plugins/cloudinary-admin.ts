@@ -1,6 +1,6 @@
 /**
  * Cloudinary Admin API adapter — the ONLY place `api.resources()` /
- * `resources_by_*` is called (AGENTS.md §3.9). Two legitimate uses live here and
+ * `resources_by_*` is called . Two legitimate uses live here and
  * nowhere else:
  *   1. the nightly reconciliation job's one-way integrity listing, and
  *   2. operational provisioning of the unsigned `verified_capture` upload preset.

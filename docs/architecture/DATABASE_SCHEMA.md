@@ -67,7 +67,7 @@ CREATE POLICY "orgs_admin_update" ON orgs FOR UPDATE
   );
 
 -- No INSERT policy: orgs are provisioned by platform_admin through the API
--- using the service role. There is no self-service signup (AGENTS.md §3.10).
+-- using the service role. There is no self-service signup .
 ```
 
 > **Why the trigger, not the grant, is the real protection.** The `service_role` bypasses RLS
@@ -91,7 +91,7 @@ CREATE TABLE invite_tokens (
   -- assigned out of band, not by redeeming a link.
   role TEXT NOT NULL CHECK (role IN ('org_admin', 'member', 'viewer')),
   -- SHA-256 of the raw token. The raw token is returned once, at creation,
-  -- and is never stored or logged (AGENTS.md §3.10).
+  -- and is never stored or logged .
   token_hash TEXT NOT NULL UNIQUE,
   -- 72 hours from issue. Enforced on redemption, not by a cron.
   expires_at TIMESTAMPTZ NOT NULL,
@@ -183,7 +183,7 @@ CREATE TABLE assets (
   -- Signed as epoch milliseconds (captured_at_ms) in the capture payload, NOT as
   -- an ISO string: the API re-derives the signed value with
   -- round(extract(epoch from device_capture_timestamp) * 1000) so it reproduces
-  -- byte-for-byte (see packages/shared/src/signing.ts, AGENTS.md §3.4/§3.8).
+  -- byte-for-byte (see packages/shared/src/signing.ts, system invariants/§3.8).
   device_commit_hash TEXT NOT NULL,           -- SHA-256 = commitId from app
   device_id TEXT NOT NULL,
   device_public_key TEXT NOT NULL,            -- Ed25519 public key
@@ -194,7 +194,7 @@ CREATE TABLE assets (
   -- Signed as integer E7 coordinates (lat_e7/lon_e7 = round(deg * 1e7)) in the
   -- capture payload, never as floats. Re-derive with round(ST_Y(gps_point)*1e7)
   -- / round(ST_X(gps_point)*1e7). Integers avoid PostGIS double drift breaking
-  -- signature verification (packages/shared/src/signing.ts, AGENTS.md §3.8).
+  -- signature verification (packages/shared/src/signing.ts, system invariants).
   gps_accuracy_meters FLOAT,                  -- Horizontal accuracy (meters), signed as accuracy_m
   gps_altitude FLOAT,                         -- signed as altitude_m
   gps_provider TEXT,                          -- 'gps' | 'network' | 'fused' | 'passive'
@@ -224,7 +224,7 @@ CREATE TABLE assets (
   custom_metadata JSONB DEFAULT '{}',
 
   -- Signals harvested ONCE from Cloudinary at ingest, then owned by Postgres.
-  -- We never query these back from Cloudinary (AGENTS.md §3.7).
+  -- We never query these back from Cloudinary .
   phash TEXT,                                 -- perceptual hash; near-duplicate + "same site, later" search
   dominant_colors TEXT[],                     -- Cloudinary derived_metadata.colors
   cloudinary_quality_score FLOAT,             -- derived_metadata.quality_score
@@ -273,7 +273,7 @@ CREATE POLICY "assets_org_scope" ON assets FOR SELECT
 -- `anon` -- the right to insert an asset row into any org. Never do that.
 --
 -- The webhook must derive org_id from the verified signature's org claim, never
--- from the request body's context field (AGENTS.md §3.4).
+-- from the request body's context field .
 ```
 
 **Legitimate asset updates.** Only mutable columns may ever change, and only via the API:
@@ -292,7 +292,7 @@ cloudinary_public_id, cloudinary_version) ON assets FROM anon, authenticated;`
 
 Every resize, crop, re-encode, caption, or generative edit produces a **new**
 Cloudinary asset and a **new** row here — the original asset row is never
-mutated (AGENTS.md §3.1). The row *is* the evidence that a transform happened,
+mutated . The row *is* the evidence that a transform happened,
 so the table is append-only: an `UPDATE`/`DELETE` trigger refuses, and a changed
 transform is a new row, not an edit. `org_id` is forced to the parent asset's
 org by a `BEFORE INSERT/UPDATE` trigger (same pattern as
@@ -373,7 +373,7 @@ CREATE TABLE change_events (
   change_type TEXT, -- 'sapling_planting', 'canopy_growth', 'construction_progress', etc.
   change_metrics JSONB NOT NULL, -- {hectares: 2.3, saplings: 49, density: 0.041, ...}
   detection_method TEXT, -- 'cv_model_forestry', 'manual'
-  model_version TEXT NOT NULL, -- versioned model that produced the metric (AGENTS.md §3.2); NOT NULL so a metric can never lack provenance
+  model_version TEXT NOT NULL, -- versioned model that produced the metric ; NOT NULL so a metric can never lack provenance
   confidence FLOAT,
   
   -- Cloudinary diff visualization
@@ -445,7 +445,7 @@ CREATE POLICY "packages_org_write" ON evidence_packages FOR ALL
   WITH CHECK (org_id = (auth.jwt() ->> 'org_id')::uuid);
 ```
 
-> **Phase 9 schema change (AGENTS.md §8).** `template_id`, `template_version`,
+> **Phase 9 schema change .** `template_id`, `template_version`,
 > `report_html_url`, and `byte_size` were added in migration
 > `20260930010000_report_generation.sql`. A donor report must be regenerable
 > byte-for-byte from its stored inputs, which requires pinning the template
@@ -552,7 +552,7 @@ CREATE TABLE audit_logs (
   change_event_id UUID REFERENCES change_events(id),
   evidence_package_id UUID REFERENCES evidence_packages(id),
   
-  action TEXT NOT NULL, -- 'upload', 'transform', 'tag', 'pair', 'detect', 'package', 'export', 'verify'
+  action TEXT NOT NULL, -- 'upload', 'transform', 'tag', 'pair', 'detect', 'package', 'export', 'verify'; 'demo_seed' is reserved for explicitly marked synthetic demo rows
   actor_type TEXT CHECK (actor_type IN ('system', 'user', 'ml_model', 'device')),
   actor_id TEXT, -- user_id, device_id, 'cloudinary', 'ml_model_v3', etc.
   details JSONB,
@@ -566,7 +566,7 @@ CREATE TABLE audit_logs (
   hashed_at TIMESTAMPTZ NOT NULL,
 
   -- RFC 8785 canonical JSON of `details`, computed by the API and stored so the
-  -- chain is independently reproducible without re-serializing jsonb (AGENTS.md §3.9).
+  -- chain is independently reproducible without re-serializing jsonb .
   details_canonical TEXT,
 
   created_at TIMESTAMPTZ DEFAULT now()
@@ -621,7 +621,7 @@ CREATE POLICY "templates_org_write" ON report_templates FOR ALL
 
 ### Model Registry
 
-The source of every metric-producing model (AGENTS.md §3.2/§3.3). The ML service
+The source of every metric-producing model . The ML service
 resolves `observation_type.model` → a row here; `status != 'trained'` returns
 `{"status":"unsupported"}` and **never** falls back to another sector. Platform
 reference data, not org-scoped: a read-only `USING (true)` SELECT policy is safe
@@ -701,7 +701,7 @@ Three properties make this correct or useless, so all three are load-bearing:
 1. **Serialized per asset** — a bare `SELECT ... ORDER BY id DESC LIMIT 1` lets two
    concurrent calls read the same `previous_hash` and both append, forking the chain
    permanently. `pg_advisory_xact_lock` fixes that.
-2. **Canonical JSON** — hashing `p_details::text` violates AGENTS.md §3.9. Postgres `jsonb`
+2. **Canonical JSON** — hashing `p_details::text` violates system invariants Postgres `jsonb`
    output is not RFC 8785, so the API passes the canonical string in and we store it.
 3. **The hashed timestamp is stored** — hashing `clock_timestamp()` while inserting
    `created_at DEFAULT now()` means a verifier recomputing the hash gets a different
@@ -885,7 +885,7 @@ $$ LANGUAGE plpgsql;
 | Column | Type | Purpose |
 |--------|------|---------|
 | `upload_started_at` | `timestamptz` | Client clock immediately before upload begins — isolates dwell |
-| `device_monotonic_ms` | `bigint` | Monotonic counter since app launch, inside the signed payload (`device_monotonic_ms`, see `packages/shared/src/signing.ts`). Signed so it cannot be forged post-capture (AGENTS.md §3.7). |
+| `device_monotonic_ms` | `bigint` | Monotonic counter since app launch, inside the signed payload (`device_monotonic_ms`, see `packages/shared/src/signing.ts`). Signed so it cannot be forged post-capture . |
 | `ntp_offset_seconds` | `numeric` | Signed NTP offset at capture; NULL means skew is `unknown` |
 | `signature_tier` | `text` | `device` or `server` — never mislabel a server fallback |
 | `exif_verified_at` | `timestamptz` | When the API confirmed the JCS EXIF hash |
@@ -964,7 +964,7 @@ timestamps, and per-asset chain verdicts (via `verify_audit_chain_range`); never
 
 | Asset kind | Cloudinary type | Access | Why |
 |---|---|---|---|
-| Originals (photos, video) | `authenticated` | `auth_token` carrying a real `exp` | A leaked URL alone is useless, and the CDN enforces expiry |
+| Originals (photos, video) | `authenticated` | SDK-signed URL; no expiry on the Free plan | RLS gates URL issuance; treat a signed URL as a bearer link |
 | Derivatives (thumbnails, diffs, report copies) | `upload` | signed URL, **no expiry** — acceptable because these are not sensitive | CDN-cacheable and fast. If a derivative ever becomes sensitive, promote it to `authenticated` rather than assuming the signature expires. |
 
 > **Do not hand-roll the signature.** An earlier draft in this file built an HMAC-**SHA-256**
@@ -977,7 +977,7 @@ timestamps, and per-asset chain verdicts (via `verify_audit_chain_range`); never
 
 ```typescript
 // apps/api/src/cloudinary/delivery.ts
-// Node SDK v2 ONLY (AGENTS.md §4).
+// Node SDK v2 ONLY .
 import { v2 as cloudinary } from 'cloudinary';
 
 cloudinary.config({
@@ -1000,22 +1000,19 @@ export function signedDerivativeUrl(
   });
 }
 
-/** Original: authenticated asset, gated by a token with a genuine exp. */
-export function originalUrl(publicId: string, ttlSeconds = 300): string {
+/** Original: authenticated asset, signed with the Cloudinary SDK. No expiry on the Free plan. */
+export function originalUrl(publicId: string, resourceType: 'image' | 'video'): string {
   return cloudinary.url(publicId, {
     secure: true,
-    resource_type: 'image',
+    resource_type: resourceType,
     type: 'authenticated',
     sign_url: true,
-  }) + tokenFor(publicId, ttlSeconds);
+  });
 }
 ```
 
-`tokenFor` must come from the Cloudinary SDK's auth-token helper or the Admin API's
-`generate_auth_token` endpoint — **not** from hand-written HMAC. Confirm the exact helper name
-and token shape against the live account in Phase 0; the token carries `stp` (start), `exp`
-(expiry), the URL path, and an HMAC over those fields, keyed by the token key configured in
-the Cloudinary console.
+The Cloudinary SDK signs the authenticated delivery URL using the server-only API secret. This
+signature does not expire on the Free plan. Never hand-roll the URL signature.
 
 **Cache-busting and immutability.** Public IDs are content-addressed
 (`{org_id}/{project_id}/{sha256}`) and uploads use `invalidate: false`, so the URL for a given

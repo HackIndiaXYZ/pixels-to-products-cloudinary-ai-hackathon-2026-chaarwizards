@@ -44,7 +44,7 @@ Routing is hash-based so the bundle works from a static host with no rewrite rul
 | --- | --- | --- |
 | `VITE_SUPABASE_URL` | yes | Supabase project URL |
 | `VITE_SUPABASE_ANON_KEY` | yes | anon or publishable key **only** |
-| `VITE_PANCHNAMA_API_BASE` | for media | base URL of the authenticated API routes |
+| `VITE_API_URL` | for media | base URL of the authenticated API routes; trailing slashes are ignored and local Vite dev server proxies `/api` to it. `VITE_PANCHNAMA_API_BASE` remains a supported alias |
 | `VITE_SATELLITE_TILE_URL` | no | raster tile template; absent ⇒ satellite control stays disabled |
 
 Without a backend the console still renders honestly, in two distinct ways:

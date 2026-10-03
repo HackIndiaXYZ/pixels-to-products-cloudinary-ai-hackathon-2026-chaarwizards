@@ -29,17 +29,15 @@ function renderValue(metric: MetricValue) {
       );
     case 'text':
       return <b className="pn-metric-value pn-metric-value-text">{metric.value}</b>;
-    case 'rate':
+    case 'rate': {
+      const ratePct =
+        metric.total === 0 ? UNKNOWN_COPY : `${((metric.verified / metric.total) * 100).toFixed(1)}%`;
       return (
         <div>
           <b className="pn-metric-value" style={{ whiteSpace: 'nowrap' }}>
-            {metric.total === 0 ? (
-              UNKNOWN_COPY
-            ) : (
-              <>
-                {formatNumber(metric.verified)}
-                <span className="pn-metric-unit"> of {formatNumber(metric.total)}</span>
-              </>
+            {ratePct}
+            {metric.total === 0 ? null : (
+              <span className="pn-metric-unit"> ({formatNumber(metric.verified)} of {formatNumber(metric.total)})</span>
             )}
           </b>
           <div className="pn-metric-breakdown">
@@ -62,5 +60,6 @@ function renderValue(metric: MetricValue) {
           </div>
         </div>
       );
+    }
   }
 }

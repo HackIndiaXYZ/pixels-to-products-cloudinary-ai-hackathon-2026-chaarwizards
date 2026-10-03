@@ -1,5 +1,5 @@
 /**
- * Camera screen (BUILD_ORDER Phase 4 "Camera screen" + "Video capture" + "GPS").
+ * Camera screen (Phase "Camera screen" + "Video capture" + "GPS").
  *
  * Captures a still or a ≤30 s video with `expo-camera`, freezes EXIF, takes a
  * GPS fix and gates on accuracy, then runs the tested {@link performCapture}

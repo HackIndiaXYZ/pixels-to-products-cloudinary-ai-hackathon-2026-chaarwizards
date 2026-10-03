@@ -1,7 +1,7 @@
 /**
  * BullMQ queue adapter. The webhook enqueues `ai-enrich` after a successful
  * ingest; generative/enrichment work is asynchronous and never blocks the
- * request (AGENTS.md §3.11). The Redis connection backs both enqueue and the
+ * request . The Redis connection backs both enqueue and the
  * readiness probe.
  */
 import { Queue } from 'bullmq';

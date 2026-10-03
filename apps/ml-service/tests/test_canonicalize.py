@@ -1,6 +1,6 @@
 """Cross-language JCS conformance: the Python canonicalizer must reproduce the
 same canonical bytes and SHA-256 as the TypeScript implementation in
-``packages/shared`` for every shared fixture (AGENTS.md §3.8)."""
+``packages/shared`` for every shared fixture ."""
 
 from __future__ import annotations
 

@@ -3,7 +3,7 @@
  * `docs/architecture/DATABASE_SCHEMA.md`, plus the inferred domain types.
  *
  * These schemas are the single runtime trust boundary shared across services
- * (AGENTS.md §4): the API validates HTTP input against them, workers validate
+ * : the API validates HTTP input against them, workers validate
  * queue messages, and every consumer imports the inferred type rather than
  * re-declaring it. Enum values come from `./enums` so a schema can never drift
  * from the database `CHECK` constraint.
@@ -47,7 +47,7 @@ export type Org = z.infer<typeof OrgSchema>;
 /**
  * One entry in `projects.config.observation_types[]`. `model` and `gps_radius`
  * are mandatory — the Phase 1 config gate rejects an entry missing either
- * (BUILD_ORDER Phase 1), because an observation type with no model has no way to
+ * (Phase), because an observation type with no model has no way to
  * produce a metric and one with no radius cannot be clustered for pairing.
  */
 export const ObservationTypeConfigSchema = z.object({
@@ -165,7 +165,7 @@ export type Observation = z.infer<typeof ObservationSchema>;
 /**
  * `change_events`. `model_version` is required (NOT NULL in the DB): a metric
  * must always carry the provenance of the versioned model that produced it
- * (AGENTS.md §3.2).
+ * .
  */
 export const ChangeEventSchema = z.object({
   id: uuid,
@@ -227,7 +227,7 @@ export const ReportSchema = z.object({
 });
 export type Report = z.infer<typeof ReportSchema>;
 
-/** `audit_logs` — append-only tamper-evident chain (AGENTS.md §3.8). */
+/** `audit_logs` — append-only tamper-evident chain . */
 export const AuditLogSchema = z.object({
   id: z.number().int().nonnegative(),
   asset_id: uuid.nullable().optional(),
@@ -258,5 +258,5 @@ export const ModelRegistryEntrySchema = z.object({
 });
 export type ModelRegistryEntry = z.infer<typeof ModelRegistryEntrySchema>;
 
-/** Role model (AGENTS.md §3.10), for validating a decoded JWT claim set. */
+/** Role model , for validating a decoded JWT claim set. */
 export const RoleSchema = z.enum(ROLES);

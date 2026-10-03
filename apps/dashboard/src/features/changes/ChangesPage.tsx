@@ -176,6 +176,21 @@ function ChangeDetailPanel({
               <dt>Change mask</dt>
               <dd className="pn-mono">{fieldLabel(model.diffPublicId, UNAVAILABLE_COPY)}</dd>
             </dl>
+            {model.diffPublicId.state === 'value' ? (
+              <div className="pn-stack-2" style={{ marginTop: 'var(--pn-space-3)' }}>
+                <span className="pn-label">AI Visual Diff Mask (Change Mask)</span>
+                <div className="pn-media-frame" style={{ borderRadius: 'var(--pn-radius-2)', overflow: 'hidden' }}>
+                  <img
+                    src={`https://res.cloudinary.com/o2ystfbm/image/upload/c_fit,w_800,h_600/q_auto,f_auto/${model.diffPublicId.value}`}
+                    alt="AI Visual Diff Mask"
+                    style={{ width: '100%', height: 'auto', display: 'block' }}
+                    onError={(e) => {
+                      (e.target as HTMLImageElement).src = 'https://res.cloudinary.com/demo/image/upload/c_fit,w_800,h_600/sample.jpg';
+                    }}
+                  />
+                </div>
+              </div>
+            ) : null}
           </ClayCard>
 
           <MetricTable rows={model.metricRows} />

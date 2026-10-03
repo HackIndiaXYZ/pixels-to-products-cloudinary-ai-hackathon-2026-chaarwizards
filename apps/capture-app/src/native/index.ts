@@ -1,5 +1,5 @@
 /**
- * Native adapter barrel (BUILD_ORDER Phase 4). Device-layer only; imported by
+ * Native adapter barrel (Phase). Device-layer only; imported by
  * screens and the app root, never by the unit-tested capture logic in `src/*.ts`.
  */
 export * from './clock.js';

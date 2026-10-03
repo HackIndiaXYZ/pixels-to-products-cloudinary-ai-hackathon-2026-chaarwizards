@@ -1,5 +1,5 @@
 /**
- * Native adapter: chunked file reader over `expo-file-system` (BUILD_ORDER
+ * Native adapter: chunked file reader over `expo-file-system` (architecture specification
  * Phase 4 "Hashing"). Reads a file in bounded byte slices and yields them, so a
  * 200 MB video is hashed without ever materialising the whole file in JS memory.
  *

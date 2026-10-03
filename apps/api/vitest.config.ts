@@ -1,7 +1,7 @@
 import { defineConfig } from 'vitest/config';
 
 /**
- * API test + coverage config (BUILD_ORDER Phase 11 — "API 80%").
+ * API test + coverage config (Phase — "API 80%").
  *
  * The coverage thresholds are ENFORCED, not merely reported: vitest exits
  * non-zero when any metric falls below 80%, so CI fails the build (a threshold

@@ -1,5 +1,5 @@
 /**
- * Sync triggers (BUILD_ORDER Phase 4 "Sync engine"). Drains the offline queue on
+ * Sync triggers (Phase "Sync engine"). Drains the offline queue on
  * two events: a `@react-native-community/netinfo` transition to online, and an
  * `expo-background-fetch` wake-up. Both call the same tested {@link runSyncOnce}
  * drain, which is resumable and never marks a partial upload confirmed (§3.7).

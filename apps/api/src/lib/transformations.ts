@@ -1,12 +1,12 @@
 /**
- * Cloudinary transformation catalogue (BUILD_ORDER Phase 5; the ONLY verified
+ * Cloudinary transformation catalogue (Phase; the ONLY verified
  * source is `docs/architecture/CLOUDINARY_TRANSFORMATIONS.md`). Every string
  * here is copied verbatim from that document — nothing is invented, and the
  * effects proven not to exist (`e_diff`, `e_gen_expand`, `e_gen_caption`, …) are
  * deliberately absent (§2 of that doc).
  *
  * These are the exact strings stored in `asset_derivatives.transformation`
- * (AGENTS.md §3.1), so the bytes a derivative was built from can be re-derived
+ * , so the bytes a derivative was built from can be re-derived
  * and audited later.
  */
 
@@ -23,7 +23,7 @@ export type NamedTransform = keyof typeof NAMED_TRANSFORMS;
 /**
  * The report copies a generative edit is permitted to build on. A generative
  * transform on anything else (an original, or a non-report derivative) is
- * rejected — AGENTS.md §3.1 confines generative edits to report copies.
+ * rejected — system invariants confines generative edits to report copies.
  */
 export const REPORT_KINDS: ReadonlySet<string> = new Set<NamedTransform>([
   'report_thumb',

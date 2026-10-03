@@ -23,7 +23,7 @@ import type { Project } from '@panchnama/shared/rn';
 
 type Screen = 'login' | 'picker' | 'camera' | 'queue';
 
-/** Extract org_id from JWT payload claims safely without using atob (AGENTS.md §3.4) */
+/** Extract org_id from JWT payload claims safely without using atob  */
 function extractOrgIdFromJwt(token: string | null): string | null {
   if (!token) return null;
   try {

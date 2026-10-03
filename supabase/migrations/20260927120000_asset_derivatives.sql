@@ -1,22 +1,22 @@
 -- Phase 1 — Asset Derivatives (Cloudinary lineage) + assets.cloudinary_created_at
 --
--- AGENTS.md §8 requires a migration plus a documented reason for any schema
+-- system invariants requires a migration plus a documented reason for any schema
 -- change not already in docs/architecture/DATABASE_SCHEMA.md. This is that
 -- migration, and here is the reason:
 --
 --   DATABASE_SCHEMA.md did not carry an `asset_derivatives` DDL block, so the
 --   table did not exist. But six documents depend on it:
---     * AGENTS.md §3.1        — "any resize, crop, re-encode, caption, or
+--     * system invariants        — "any resize, crop, re-encode, caption, or
 --                                generative edit creates a new row in
 --                                asset_derivatives with a parent_asset_id and
 --                                the exact transformation string"
---     * AGENTS.md §6          — "any new Cloudinary transformation is recorded
+--     * system invariants          — "any new Cloudinary transformation is recorded
 --                                in asset_derivatives with is_generative set
 --                                correctly"
 --     * ARCHITECTURE.md:66    — table listed in the Postgres layer
 --     * ARCHITECTURE.md:194   — the BullMQ job "writes an asset_derivatives row
 --                                on success"
---     * BUILD_ORDER.md        — Phase 1 "Derivative lineage" task and Phase 5
+--     * architecture specification.md        — Phase 1 "Derivative lineage" task and Phase 5
 --                                createDerivative(parentAssetId, transformation,
 --                                kind, isGenerative)
 --     * CLOUDINARY_TRANSFORMATIONS.md:171 — "each is a string stored in
@@ -47,7 +47,7 @@ COMMENT ON COLUMN assets.cloudinary_created_at IS
 
 -- The existing immutability trigger does not know this column, so a write would
 -- slip past it. Recreate the function with the column added and re-arm the
--- trigger. This is the authoritative control (AGENTS.md §3.1) — it fires for
+-- trigger. This is the authoritative control  — it fires for
 -- every role including service_role, which bypasses both RLS and column grants.
 CREATE OR REPLACE FUNCTION assets_prevent_evidence_update() RETURNS trigger
 LANGUAGE plpgsql AS $$
@@ -105,7 +105,7 @@ CREATE TABLE asset_derivatives (
   -- under RLS, which is a cross-tenant leak.
   org_id UUID NOT NULL REFERENCES orgs(id),
 
-  -- The exact transformation string, per AGENTS.md §3.1. Not a description, not
+  -- The exact transformation string, per system invariants Not a description, not
   -- a reference to a template — the literal that was sent to Cloudinary, so the
   -- bytes can be re-derived and audited later.
   transformation TEXT NOT NULL,
@@ -121,7 +121,7 @@ CREATE TABLE asset_derivatives (
   public_id TEXT NOT NULL,
 
   -- True when generative transforms were used. Generative edits are allowed only
-  -- on report copies, never on originals (AGENTS.md §3.1), so this column is what
+  -- on report copies, never on originals , so this column is what
   -- a later gate reads to prove that rule held.
   is_generative BOOLEAN NOT NULL DEFAULT false,
 
@@ -148,11 +148,11 @@ CREATE TABLE asset_derivatives (
 );
 
 COMMENT ON TABLE asset_derivatives IS
-  'Cloudinary derivative lineage. Append-only: the row IS the evidence that a transform happened. See AGENTS.md §3.1.';
+  'Cloudinary derivative lineage. Append-only: the row IS the evidence that a transform happened. See system invariants';
 COMMENT ON COLUMN asset_derivatives.transformation IS
   'Exact transformation string sent to Cloudinary, not a template reference.';
 COMMENT ON COLUMN asset_derivatives.is_generative IS
-  'True iff a generative transform was used. Generative edits are permitted only on report copies (AGENTS.md §3.1).';
+  'True iff a generative transform was used. Generative edits are permitted only on report copies .';
 COMMENT ON COLUMN asset_derivatives.org_id IS
   'Forced to the parent asset org_id by trigger. Never set independently.';
 
@@ -204,7 +204,7 @@ CREATE POLICY "derivatives_org_scope" ON asset_derivatives FOR SELECT
 -- No INSERT, UPDATE, or DELETE policy. Derivatives are written by the
 -- transformation worker through the service role, which bypasses RLS by design.
 -- Clients never create them: a client asks for a URL by asset_id and the API
--- resolves the asset under RLS (AGENTS.md §3.11). Adding a permissive INSERT
+-- resolves the asset under RLS . Adding a permissive INSERT
 -- policy here would let any caller mint a derivative row pointing at another
 -- org's asset id, which is precisely the WITH CHECK (true) mistake the assets
 -- table already documents at length.

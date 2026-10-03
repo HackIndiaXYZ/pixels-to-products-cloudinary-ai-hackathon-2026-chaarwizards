@@ -4,8 +4,8 @@
 
 **Version:** 1.0
 **Status:** Approved for Development
-**Audience:** Implementation engineers and AI coding agents
-**Related:** `PRD.md` (what to build), `docs/architecture/DATABASE_SCHEMA.md` (table DDL), `docs/architecture/api-contracts.md` (endpoint contracts)
+**Audience:** Engineers, system architects, and technical auditors
+**Related:** `docs/architecture/DATABASE_SCHEMA.md` (table DDL), `docs/architecture/api-contracts.md` (endpoint contracts)
 
 ---
 
@@ -175,7 +175,7 @@ Originals are uploaded as `type: authenticated`; derivatives are `type: upload`.
 
 | Kind | Cloudinary type | Access | Rationale |
 |---|---|---|---|
-| Originals | `authenticated` | `auth_token` with a real `exp` | A leaked URL is useless on its own; the CDN enforces expiry |
+| Originals | `authenticated` | SDK-signed URL; no expiry on the Free plan | RLS gates URL issuance; treat the signed URL as a bearer link |
 | Derivatives | `upload` | Signed URL | CDN-cacheable and fast; report copies are not sensitive |
 
 Only the **API** can mint either. The dashboard never receives a secret, and never receives a

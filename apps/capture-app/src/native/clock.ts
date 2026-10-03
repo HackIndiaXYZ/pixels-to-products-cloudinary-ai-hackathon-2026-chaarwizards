@@ -1,5 +1,5 @@
 /**
- * Native adapter: device clocks (BUILD_ORDER Phase 4; AGENTS.md §3.7).
+ * Native adapter: device clocks (Phase; system invariants).
  *
  * `now()` is wall-clock epoch ms and `monotonicMs()` is a monotonic counter that
  * a wall-clock adjustment cannot move backwards. Keeping them separate is what

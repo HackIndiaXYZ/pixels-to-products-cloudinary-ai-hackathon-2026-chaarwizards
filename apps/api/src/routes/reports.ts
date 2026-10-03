@@ -1,5 +1,5 @@
 /**
- * Report endpoints (api-contracts.md §Reports, BUILD_ORDER Phase 9):
+ * Report endpoints (api-contracts.md §Reports, Phase):
  *   POST /v1/reports/generate    — synchronous generate; returns report + manifest
  *   GET  /v1/report-templates    — list templates (built-in + org-authored)
  *

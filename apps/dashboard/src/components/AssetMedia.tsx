@@ -3,10 +3,12 @@ import { useAssetMedia } from '../hooks/useAssetMedia';
 import { buildDeliveryUrl, mediaAspectRatio, type AssetMediaRef } from '../lib/media';
 import { LOADING_COPY, UNAVAILABLE_COPY } from '../lib/state';
 import { Icon } from './Icon';
+import type { AssetType } from '../types/database';
 
 export interface AssetMediaProps {
   /** The client asks by asset id only — never by Cloudinary public id. */
   assetId: string;
+  assetType?: AssetType;
   maxWidth?: number;
   maxHeight?: number;
   alt?: string;
@@ -20,8 +22,8 @@ const FILL_STYLE: CSSProperties = { position: 'absolute', inset: 0, aspectRatio:
 /** Resolves media through the API route under RLS and composes the delivery URL with
  *  `@cloudinary/url-gen`. The container takes the asset's measured intrinsic ratio, so a
  *  content-bearing image is never cropped or distorted. */
-export function AssetMedia({ assetId, maxWidth = 960, maxHeight = 720, alt, ratio, fill = false }: AssetMediaProps) {
-  const state = useAssetMedia(assetId);
+export function AssetMedia({ assetId, assetType, maxWidth = 960, maxHeight = 720, alt, ratio, fill = false }: AssetMediaProps) {
+  const state = useAssetMedia(assetId, assetType);
   const frameStyle: CSSProperties | undefined = fill
     ? FILL_STYLE
     : ratio === undefined

@@ -1,5 +1,5 @@
 /**
- * Audit & integrity surfacing endpoints (BUILD_ORDER Phase 10):
+ * Audit & integrity surfacing endpoints (Phase):
  *
  *   GET /v1/assets/:id/verify-chain    — structured chain verification for an
  *                                        asset (Chain verifier). Names the first
@@ -11,7 +11,7 @@
  *                                        user identity, GPS, caption, or public_id.
  *
  * Both resolve strictly under the caller's RLS scope: a cross-org id is a 404,
- * never a disclosure (AGENTS.md §3.4). The receipt BODY is public-safe so it can
+ * never a disclosure . The receipt BODY is public-safe so it can
  * be exported and shared, but access to it is still gated by org membership.
  */
 import type { FastifyInstance } from 'fastify';

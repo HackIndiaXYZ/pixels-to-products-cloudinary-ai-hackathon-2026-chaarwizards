@@ -3,7 +3,7 @@
  * error handler turns into an envelope.
  *
  * `AuthContext` is the ONLY source of `org_id` / `user_id` / `role` for a
- * request (AGENTS.md §3.4). It is derived from the verified Supabase JWT by the
+ * request . It is derived from the verified Supabase JWT by the
  * auth plugin and is never populated from a request body.
  */
 import type { Role } from '@panchnama/shared';
@@ -22,7 +22,7 @@ export interface AuthContext {
  * A typed error a route may throw. The error handler maps `code` to an HTTP
  * status and emits the `{ data: null, error }` envelope with a `request_id`.
  * Carrying the code (not just a message) keeps every failure path machine
- * readable (AGENTS.md §3.6).
+ * readable .
  */
 export class HttpError extends Error {
   readonly code: ApiErrorCode;

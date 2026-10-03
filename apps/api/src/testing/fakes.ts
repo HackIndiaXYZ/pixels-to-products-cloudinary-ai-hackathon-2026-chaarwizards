@@ -991,11 +991,8 @@ export function makeFakeCloudinary(
     signedDerivativeUrl(publicId, transformation) {
       return `https://res.cloudinary.com/demo/image/upload/${transformation}/s--sig--/v1/${publicId}`;
     },
-    originalUrl(publicId, ttlSeconds) {
-      return {
-        url: `https://res.cloudinary.com/demo/image/authenticated/${publicId}?__cld_token__=exp`,
-        expiresAt: Math.floor(Date.now() / 1000) + ttlSeconds,
-      };
+    originalUrl(publicId, resourceType) {
+      return `https://res.cloudinary.com/demo/${resourceType}/authenticated/s--sig--/${publicId}`;
     },
     async createEagerDerivative(input) {
       // Generative transforms are asynchronous: unless told otherwise, a

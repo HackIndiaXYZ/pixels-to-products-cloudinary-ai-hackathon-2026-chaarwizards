@@ -28,9 +28,8 @@ export interface OverviewMetrics {
 
 const MAP_PAGE_SIZE = SEARCH_ASSETS_LIMIT_MAX;
 
-/** A count service already returns the exact count or an honest refusal, so its state is re-typed
- *  for the metric cards without changing one word of what it says. */
-function reType<A, B>(state: DataState<A>): DataState<B> {
+/** Preserve every service state and map only ready payloads into the metric-card shape. */
+function mapState<A, B>(state: DataState<A>, map: (data: A) => B): DataState<B> {
   switch (state.status) {
     case 'loading':
       return loading<B>();
@@ -42,8 +41,8 @@ function reType<A, B>(state: DataState<A>): DataState<B> {
       return empty<B>(state.reason);
     case 'unknown':
       return undetermined<B>();
-    default:
-      return ready<B>(state.data as unknown as B);
+    case 'ready':
+      return ready(map(state.data));
   }
 }
 
@@ -84,28 +83,21 @@ export function useOverviewMetrics(): OverviewMetrics {
 
   /* Only `verification === 'passed'` is verified; the denominator and every excluded bucket are
      reported beside the rate so the number is auditable rather than a bare percentage. */
-  const verifiedRate: DataState<MetricValue> =
-    bucketState.status === 'ready'
-      ? ready<MetricValue>(
-          toAuditRate({
-            verified: bucketState.data.passed,
-            pending: bucketState.data.pending,
-            unknown: bucketState.data.unknown,
-            failed: bucketState.data.failed,
-            total:
-              bucketState.data.passed +
-              bucketState.data.pending +
-              bucketState.data.unknown +
-              bucketState.data.failed,
-          }),
-        )
-      : reType<VerificationBuckets, MetricValue>(bucketState);
+  const verifiedRate = mapState<VerificationBuckets, MetricValue>(bucketState, (distribution) =>
+    toAuditRate({
+      verified: distribution.passed,
+      pending: distribution.pending,
+      unknown: distribution.unknown,
+      failed: distribution.failed,
+      total: distribution.passed + distribution.pending + distribution.unknown + distribution.failed,
+    }),
+  );
 
   return {
-    totalAssets: reType<number, MetricValue>(totalAssetState),
+    totalAssets: mapState<number, MetricValue>(totalAssetState, (value) => ({ kind: 'count', value })),
     verifiedRate,
-    pairedChangeEvents: reType<number, MetricValue>(pairedState),
-    quarantineItems: reType<number, MetricValue>(quarantineState),
+    pairedChangeEvents: mapState<number, MetricValue>(pairedState, (value) => ({ kind: 'count', value })),
+    quarantineItems: mapState<number, MetricValue>(quarantineState, (value) => ({ kind: 'count', value })),
     buckets: bucketState,
     evidence: evidenceState,
   };

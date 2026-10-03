@@ -1,5 +1,5 @@
 /**
- * Pure, deterministic report assembly (BUILD_ORDER Phase 9). Given every media
+ * Pure, deterministic report assembly (Phase). Given every media
  * element already fetched as bytes, this module:
  *
  *  1. inlines each element as a base64 `data:` URI (Phase 9 "Self-contained

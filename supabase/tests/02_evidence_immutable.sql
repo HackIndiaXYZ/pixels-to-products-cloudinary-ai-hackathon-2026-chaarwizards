@@ -20,7 +20,7 @@ SELECT format('UPDATE assets SET caption = %L WHERE id = %L', 'a new caption', :
 SELECT format('DELETE FROM assets WHERE id = %L', :'asset_i')
   AS delete_asset \gset
 
--- Runs as the table owner/superuser: the trigger must STILL raise (AGENTS.md §3.1).
+-- Runs as the table owner/superuser: the trigger must STILL raise .
 SELECT throws_ok(
   :'mutate_sha',
   NULL,

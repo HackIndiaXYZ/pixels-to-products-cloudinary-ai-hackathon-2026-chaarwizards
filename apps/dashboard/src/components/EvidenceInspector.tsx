@@ -80,6 +80,7 @@ function Detail({ data }: { data: EvidenceAssetBundle }) {
     <>
       <AssetMedia
         assetId={detail.assetId.state === 'value' ? detail.assetId.value : ''}
+        assetType={detail.assetType.state === 'value' ? detail.assetType.value : undefined}
         maxWidth={1200}
         maxHeight={900}
       />

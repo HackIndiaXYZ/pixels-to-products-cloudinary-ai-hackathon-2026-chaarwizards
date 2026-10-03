@@ -1,5 +1,5 @@
 /**
- * detect-change worker logic (BUILD_ORDER Phase 7). Processes ONE before/after
+ * detect-change worker logic (Phase). Processes ONE before/after
  * pair: resolves the two originals to signed URLs, calls the ML service, and
  * persists exactly one `change_events` row.
  *
@@ -25,9 +25,6 @@ import { resolveMetricsSchema, validateChangeMetrics } from '../lib/change-metri
 
 /** Sentinel model_version for a row that carries no CV metric (§3.2 note). */
 export const NO_MODEL_VERSION = 'none';
-/** TTL for the authenticated original URL handed to the ML service. */
-const ORIGINAL_URL_TTL_SECONDS = 300;
-
 export interface DetectChangeDeps {
   readonly db: DbPort;
   readonly ml: MlClient;
@@ -76,8 +73,15 @@ export async function runDetectChange(
     return persistFailure(deps, project.org_id, payload, 'before or after asset not found', actorId);
   }
 
-  const beforeUrl = cloudinary.originalUrl(before.cloudinary_public_id, ORIGINAL_URL_TTL_SECONDS).url;
-  const afterUrl = cloudinary.originalUrl(after.cloudinary_public_id, ORIGINAL_URL_TTL_SECONDS).url;
+  if (
+    (before.asset_type !== 'image' && before.asset_type !== 'video') ||
+    (after.asset_type !== 'image' && after.asset_type !== 'video')
+  ) {
+    return persistFailure(deps, project.org_id, payload, 'asset type unavailable for media delivery', actorId);
+  }
+
+  const beforeUrl = cloudinary.originalUrl(before.cloudinary_public_id, before.asset_type);
+  const afterUrl = cloudinary.originalUrl(after.cloudinary_public_id, after.asset_type);
 
   const sector = project.sector ?? 'unknown';
   const gpsDistance = payload.gpsDistanceMeters ?? null;
