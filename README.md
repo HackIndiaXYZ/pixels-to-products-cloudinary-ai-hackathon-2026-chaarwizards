@@ -7,7 +7,7 @@
 <p align="center"><i>पंचनामा — a written record of inspection, signed by a witness.</i></p>
 
 <p align="center"><b>Turn raw field photos and videos into searchable evidence, quantified impact metrics, and audit-ready reports.</b></p>
-
+## Live Link: https://panchnama-ka-1205.vercel.app
 <p align="center">
   <a href="LICENSE.txt"><img src="https://img.shields.io/badge/License-MIT-green.svg" alt="MIT License"></a>
   <a href="https://panchnama-ka-1205.vercel.app"><img src="https://img.shields.io/badge/Live%20Dashboard-panchnama--ka--1205.vercel.app-000000?logo=vercel&logoColor=white" alt="Live site"></a>
